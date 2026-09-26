@@ -1,0 +1,6 @@
+tags:
+  golden:
+    description: >-
+      Golden image tests. They are generated and compared on CI Linux only, so
+      on macOS or Windows run `flutter test --exclude-tags golden`
+      (CLAUDE.md 10, layer 4b).

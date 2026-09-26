@@ -32,3 +32,14 @@ A short running log of choices and the reasons for them, newest last. It include
 
 - **`TapeColors.voidColor`**, not `TapeColors.void`: `void` is a reserved word in Dart. Other tokens keep the DESIGN.md name with dots removed (`carbon900`, `etchStrong`) when they arrive in phase 3a.
 - **`lib/main.dart` uses `WidgetsApp`**, not `MaterialApp`, so no Material code is linked in at all.
+
+## Tooling
+
+- **`tool/verify.sh` is the pre-commit gate:** `dart format` check, `flutter analyze`, `flutter test` and `tool/check_offline.sh`. On macOS and Windows golden tests are excluded (`--exclude-tags golden`), since they are generated on CI Linux only (CLAUDE.md 10). A format check is added to the three checks in CLAUDE.md 2 so diffs carry no formatting noise.
+- **`tool/check_offline.sh` goes slightly beyond CLAUDE.md 4:**
+  - `url_launcher` is banned outright, not just its web-opening use. The About page shows the project URL as text plus a QR code, so nothing needs it.
+  - `Image.network`, `NetworkImage` and `NetworkAssetBundle` are treated like an HTTP client, because they use one internally.
+  - Sockets are confined to `lib/obd/transport/wifi_transport.dart`, as CLAUDE.md 4 states, and the script enforces it.
+  - Banned Gradle groups are `com.google.android.gms`, `com.google.firebase`, `com.google.android.play` and a few other proprietary SDKs. `com.google.guava` (small Guava stubs pulled in by androidx) is fine.
+  - The Gradle step is skipped locally when nothing that changes the dependency tree has changed since the last pass, tracked by a stamp in `build/`. `--strict` (CI) never skips.
+  - The script has its own fixture tests (`test/unit/tool/check_offline_test.dart`), so a broken check cannot pass silently.

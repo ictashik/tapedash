@@ -34,9 +34,10 @@ Android only. You need the Flutter stable SDK and an Android SDK.
 
 ```
 flutter pub get
-flutter analyze
-flutter test
+tool/verify.sh
 ```
+
+`tool/verify.sh` is the gate for every commit: a format check, `flutter analyze`, `flutter test` and `tool/check_offline.sh`, which fails if the app could reach the network or pulls in Play Services or Firebase. Golden tests run on Linux CI only, so on macOS the script skips them.
 
 ## License
 
