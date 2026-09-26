@@ -328,9 +328,11 @@ Future<void> main(List<String> args) async {
     return;
   }
 
-  final profile = options.containsKey('profile')
-      ? VehicleProfiles.byName(options['profile']!)
-      : null;
+  final profileName = options['profile'];
+  final profile = profileName == null
+      ? null
+      : (VehicleProfiles.byName(profileName) ??
+            _fail('no profile "$profileName"'));
   final quirks = options.containsKey('quirks')
       ? (AdapterQuirks.presets[options['quirks']] ??
             _fail('no quirks "${options['quirks']}"'))
