@@ -19,6 +19,7 @@ A short running log of choices and the reasons for them, newest last. It include
 | Package | License | Kind | Reason |
 |---|---|---|---|
 | `flutter_lints` ^6.0.0 | BSD-3-Clause | dev only | The Flutter team's analyzer rule set. Not shipped. |
+| `integration_test` (Flutter SDK) | BSD-3-Clause | dev only | Runs tests on an emulator or phone (CLAUDE.md 10, layer 5). It brings dev-only tooling that is never linked into the app: `flutter_driver` and `fuchsia_remote_debug_protocol` (Flutter SDK, BSD-3-Clause), `file`, `platform`, `process`, `sync_http` and `web` (BSD-3-Clause), and `webdriver` (Apache-2.0). |
 
 ## Android
 
@@ -32,6 +33,16 @@ A short running log of choices and the reasons for them, newest last. It include
 
 - **`TapeColors.voidColor`**, not `TapeColors.void`: `void` is a reserved word in Dart. Other tokens keep the DESIGN.md name with dots removed (`carbon900`, `etchStrong`) when they arrive in phase 3a.
 - **`lib/main.dart` uses `WidgetsApp`**, not `MaterialApp`, so no Material code is linked in at all.
+
+## Device features
+
+- **`DeviceFeatures` is an interface**, with `DeviceChannel` (platform channels to `DeviceChannel.kt`) and `FakeDeviceFeatures` behind it. Code that needs the screen, battery or sensors takes the interface, so Daylight and Night switching and the phone-health logic can be tested headlessly.
+- **One shared stream per sensor.** A Flutter `EventChannel` has one native handler, so a second `receiveBroadcastStream()` would silently take the sensor from the first listener. The streams are built once, and the sensor is only registered while something listens.
+- **Brightness has a floor.** Dart clamps the level to 0..1 and rejects NaN, and the Android side never goes below 0.01, since some phones treat 0 as backlight off, which would blank the dash. The design floors (12% at night, 20% for the HUD) are policy for the brightness controller and are not enforced here.
+- **Accelerometer axes are remapped in Dart.** Android reports the sensor in the phone's own axes, not the screen's. The Android side sends `[x, y, z, displayRotation]` untouched, and Dart turns it into screen axes (x right, y up the screen, z out of it), so the mapping is unit-tested and CI covers it. It matters because the app is landscape-only, so a phone held upright is still drawn rotated. Checked on emulators by rotating the emulated phone: with the display following the phone into either landscape, gravity reads +9.8 on screen y whichever rotation the OS reports.
+- **Immersive mode** uses `WindowInsetsController` on Android 11+ and the legacy `systemUiVisibility` flags below, and is re-applied when the window regains focus. On Android 4.4 to 10 the OS shows a one-time "Viewing full screen" notice the first time an app goes immersive. It cannot be suppressed, and one tap on "Got it" dismisses it for good. Expect it on old phones.
+- **Startup never waits on the window calls.** If hiding the bars or keeping the screen on fails, that is logged and the app starts anyway. Other errors, which would be bugs, are not swallowed.
+- **Launch flash cannot be measured on emulators.** With the launch colour set to solid red, no red frame appears on either an Android 7.0 or an Android 16 emulator, so an emulator recording cannot show a white flash, broken or fixed. The launch resources are guarded by `launch_theme_test.dart` instead, and a check on a real phone is part of the hardware handoff.
 
 ## Tooling
 
