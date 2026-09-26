@@ -6,57 +6,7 @@ import 'package:tapedash/sim/profiles.dart';
 import 'package:tapedash/sim/scenarios.dart';
 import 'package:tapedash/sim/simulated_car.dart';
 
-/// An ECU that says exactly what it is told to, so that the adapter's output
-/// can be compared with the examples in the ELM327 datasheet, byte for byte.
-class _ScriptedEcu implements ObdEcu {
-  _ScriptedEcu(this.answers, {this.awake = true, this.volts = 12.47});
-
-  /// Answers, by request as hex digits without spaces.
-  final Map<String, List<int>> answers;
-  bool awake;
-  double volts;
-
-  /// Every request that reached the ECU.
-  final List<List<int>> requests = [];
-
-  @override
-  bool get isAwake => awake;
-
-  @override
-  double get batteryVolts => volts;
-
-  @override
-  List<int>? respond(List<int> request) {
-    requests.add(request);
-    if (!awake) return null;
-    final key = request
-        .map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0'))
-        .join();
-    return answers[key];
-  }
-}
-
-/// The answers the datasheet shows for its own examples.
-final Map<String, List<int>> _datasheet = {
-  // "01 00": 41 00 BE 1F B8 10
-  '0100': [0x41, 0x00, 0xBE, 0x1F, 0xB8, 0x10],
-  // "01 05": 41 05 7B
-  '0105': [0x41, 0x05, 0x7B],
-  // "01 0C": 41 0C 1A F8
-  '010C': [0x41, 0x0C, 0x1A, 0xF8],
-  // "09 02", the VIN of a CAN car: 014 / 0: 49 02 01 31 44 34 / ...
-  '0902': [
-    0x49, 0x02, 0x01, 0x31, 0x44, 0x34, //
-    0x47, 0x50, 0x30, 0x30, 0x52, 0x35, 0x35,
-    0x42, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36,
-  ],
-  // "01 04 05 0B 0C": 00A / 0: 41 04 3F 05 44 0B / 1: 21 0C 17 B8 00 00 00
-  '0104050B0C': [0x41, 0x04, 0x3F, 0x05, 0x44, 0x0B, 0x21, 0x0C, 0x17, 0xB8],
-  // "01 0B 04 0C 05": the same PIDs in another order
-  '010B040C05': [0x41, 0x0B, 0x21, 0x04, 0x3F, 0x0C, 0x17, 0xB8, 0x05, 0x44],
-  // Mode 03 with three codes: 8 bytes, so two frames
-  '03': [0x43, 0x03, 0x04, 0x20, 0x01, 0x71, 0x03, 0x00],
-};
+import '../../support/scripted_ecu.dart';
 
 /// An adapter with a scripted ECU, already on a fixed protocol 6 so that the
 /// first request does not search.
@@ -68,7 +18,7 @@ Elm327Simulator _adapter({
   int seed = 1,
 }) {
   final sim = Elm327Simulator(
-    ecu: ecu ?? _ScriptedEcu(_datasheet),
+    ecu: ecu ?? ScriptedEcu(datasheetAnswers),
     quirks: quirks,
     linefeedsByDefault: linefeeds,
     seed: seed,
@@ -261,7 +211,7 @@ void main() {
           // 200 bytes: a first frame of 6, then 28 consecutive frames of 7 (the
           // last one short). The digits of the consecutive frames run 1 to F, then
           // 0, 1 and on.
-          final ecu = _ScriptedEcu({
+          final ecu = ScriptedEcu({
             '0902': [0x49, ...List<int>.generate(199, (i) => i & 0xFF)],
           });
           final sim = _adapter(ecu: ecu, connect: false)
@@ -329,7 +279,7 @@ void main() {
 
     test('the version can be configured', () {
       final sim = Elm327Simulator(
-        ecu: _ScriptedEcu(_datasheet),
+        ecu: ScriptedEcu(datasheetAnswers),
         version: 'ELM327 v2.1',
       )..execute('ATE0');
 
@@ -337,7 +287,7 @@ void main() {
     });
 
     test('ATRV rounds to one decimal place, as the datasheet says', () {
-      final ecu = _ScriptedEcu(_datasheet, volts: 12.47);
+      final ecu = ScriptedEcu(datasheetAnswers, volts: 12.47);
       final sim = _adapter(ecu: ecu, connect: false)
         ..execute('ATE0')
         ..execute('ATL0');
@@ -349,7 +299,7 @@ void main() {
     });
 
     test('ATRV works with the ignition off: the battery is still there', () {
-      final ecu = _ScriptedEcu(_datasheet, awake: false, volts: 12.4);
+      final ecu = ScriptedEcu(datasheetAnswers, awake: false, volts: 12.4);
       final sim = _adapter(ecu: ecu, connect: false)
         ..execute('ATE0')
         ..execute('ATL0');
@@ -465,7 +415,7 @@ void main() {
     });
 
     test('a lone carriage return with nothing to repeat is just a prompt', () {
-      final sim = Elm327Simulator(ecu: _ScriptedEcu(_datasheet));
+      final sim = Elm327Simulator(ecu: ScriptedEcu(datasheetAnswers));
 
       // Echo is on, so the carriage return comes back, and then the prompt.
       expect(_text(sim, ''), '\r>');
@@ -670,7 +620,10 @@ void main() {
   group('when the car cannot be reached', () {
     Elm327Simulator asleep(String protocol) {
       final sim =
-          _adapter(ecu: _ScriptedEcu(_datasheet, awake: false), connect: false)
+          _adapter(
+              ecu: ScriptedEcu(datasheetAnswers, awake: false),
+              connect: false,
+            )
             ..execute('ATE0')
             ..execute('ATL0')
             ..execute(protocol);
@@ -700,7 +653,7 @@ void main() {
     });
 
     test('a K-line protocol on a CAN car: BUS INIT: ...ERROR', () {
-      final ecu = _ScriptedEcu(_datasheet);
+      final ecu = ScriptedEcu(datasheetAnswers);
       for (final protocol in ['ATSP3', 'ATSP4', 'ATSP5']) {
         final sim = _adapter(ecu: ecu, connect: false)
           ..execute('ATE0')
@@ -735,7 +688,7 @@ void main() {
     });
 
     test('a connected adapter whose ECU falls asleep says NO DATA', () {
-      final ecu = _ScriptedEcu(_datasheet);
+      final ecu = ScriptedEcu(datasheetAnswers);
       final sim = _adapter(ecu: ecu)
         ..execute('ATE0')
         ..execute('ATL0');
@@ -793,7 +746,7 @@ void main() {
     test(
       'the ECU is sent the bytes of the request, without the count digit',
       () {
-        final ecu = _ScriptedEcu(_datasheet);
+        final ecu = ScriptedEcu(datasheetAnswers);
         final sim = _adapter(ecu: ecu)..execute('ATE0');
         ecu.requests.clear();
 
@@ -806,7 +759,7 @@ void main() {
     );
 
     test('a request to another ECU address gets no answer', () {
-      final ecu = _ScriptedEcu(_datasheet);
+      final ecu = ScriptedEcu(datasheetAnswers);
       final sim = _adapter(ecu: ecu)
         ..execute('ATE0')
         ..execute('ATL0');
@@ -828,7 +781,7 @@ void main() {
     });
 
     test('a negative response is passed on like any other answer', () {
-      final ecu = _ScriptedEcu({
+      final ecu = ScriptedEcu({
         '04': [0x7F, 0x04, 0x22],
       });
       final sim = _adapter(ecu: ecu)
@@ -953,7 +906,7 @@ void main() {
 
   group('quirks', () {
     test('noMultiPid: several PIDs at once are not understood', () {
-      final ecu = _ScriptedEcu(_datasheet);
+      final ecu = ScriptedEcu(datasheetAnswers);
       final sim =
           _adapter(ecu: ecu, quirks: const AdapterQuirks(noMultiPid: true))
             ..execute('ATE0')
