@@ -43,3 +43,10 @@ A short running log of choices and the reasons for them, newest last. It include
   - Banned Gradle groups are `com.google.android.gms`, `com.google.firebase`, `com.google.android.play` and a few other proprietary SDKs. `com.google.guava` (small Guava stubs pulled in by androidx) is fine.
   - The Gradle step is skipped locally when nothing that changes the dependency tree has changed since the last pass, tracked by a stamp in `build/`. `--strict` (CI) never skips.
   - The script has its own fixture tests (`test/unit/tool/check_offline_test.dart`), so a broken check cannot pass silently.
+
+## CI
+
+- **`.github/workflows/ci.yml`:** build the release APKs, then `tool/verify.sh --strict`, then `tool/check_apk_size.sh`. The build comes first because the strict offline check reads the merged release manifest it produces. It has not been run on GitHub yet, since there is no remote.
+- **Actions are pinned to full commit SHAs** with the version in a comment, and the Flutter version (3.44.1) and runner image (`ubuntu-24.04`) are pinned too. A moved tag or a new runner image cannot change what CI runs or the golden images it produces. Bump them on purpose. The actions are `actions/checkout`, `actions/setup-java` and `subosito/flutter-action` (MIT, third party, used for the SDK cache).
+- **`flutter pub get --enforce-lockfile`** fails CI if `pubspec.lock` is out of date, so the lockfile the offline check reads is the one that builds.
+- **APK budget: under 20 MB per ABI**, checked by `tool/check_apk_size.sh`, which also fails if either `armeabi-v7a` or `arm64-v8a` is missing. "MB" is 1,000,000 bytes, matching the sizes the Flutter tool prints, which is also the stricter reading. An empty app is 11.0 MB (armeabi-v7a) and 13.9 MB (arm64-v8a), mostly the Flutter engine, so fonts and assets have about 6 MB of headroom on arm64.

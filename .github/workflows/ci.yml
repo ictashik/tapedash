@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Actions are pinned to full commit SHAs, not tags, so a moved tag cannot change
+# what runs here. The Flutter version is pinned for reproducible builds and
+# goldens (CLAUDE.md 3: stable channel only). Bump both on purpose.
+jobs:
+  verify:
+    name: Analyze, test, offline check and APK build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: '3.44.1'
+          cache: true
+
+      - name: Get packages
+        run: flutter pub get --enforce-lockfile
+
+      # Only the two ABIs we ship (CLAUDE.md 3). The build has to come first:
+      # the offline check reads the merged release manifest it produces.
+      - name: Build release APKs
+        run: >-
+          flutter build apk --release --split-per-abi
+          --target-platform android-arm,android-arm64
+
+      # Format, analyze, all tests including goldens (Linux only), and the
+      # offline check in strict mode.
+      - name: Verify
+        run: tool/verify.sh --strict
+
+      - name: APK size budget
+        run: tool/check_apk_size.sh
