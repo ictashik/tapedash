@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- TapeDash is always dark (DESIGN.md 4.1), so there is a single theme for
+         every OS setting and no values-night variant. -->
+
+    <!-- Applied to the window while the process starts. -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:colorBackground">@color/tapedash_void</item>
+    </style>
+
+    <!-- Applied as soon as the process has started. Sets the window colour
+         while Flutter initialises and behind the Flutter UI while it runs. -->
+    <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/tapedash_void</item>
+        <item name="android:colorBackground">@color/tapedash_void</item>
+    </style>
+</resources>

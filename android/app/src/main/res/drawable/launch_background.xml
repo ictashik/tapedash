@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The launch window is the `void` colour and nothing else: no white flash at
+     any point (CLAUDE.md 3, DESIGN.md 12). The brand mark arrives with the
+     adaptive icon in phase 3b. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/tapedash_void" />
+</layer-list>

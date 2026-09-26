@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- DESIGN.md 4.1: the `void` token. Must equal TapeColors.voidColor in
+         lib/ui/design/tokens/colors.dart (checked by
+         test/unit/platform/launch_theme_test.dart). -->
+    <color name="tapedash_void">#FF050607</color>
+</resources>
