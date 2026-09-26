@@ -35,39 +35,95 @@ final _realTime = RegExp(
   r'\bFuture(?:<[^>]*>)?\.delayed\s*\(',
 );
 
+final _directive = RegExp(r'''^\s*(?:import|export)\s+['"]([^'"]+)['"]''');
+
+/// Parts of the app that the pure directories must never reach into: they hold
+/// widgets and platform channels.
+const _appLayers = {'ui', 'app', 'platform'};
+
+/// Directories at the bottom of the stack, and all they may import. `core` is
+/// the base of everything, and `sim` is the simulator, which sits on it alone
+/// so that nothing it depends on can depend on it.
+const _bottomLayers = {
+  'core': {'core'},
+  'sim': {'core', 'sim'},
+};
+
+/// The directory of `lib/` that an import of [target], made from the file at
+/// [fromPath] (relative to `lib/`), points into. Null for `dart:` and
+/// other packages, and for anything outside `lib/`.
+String? _libDirectory(String fromPath, String target) {
+  final String path;
+  if (target.startsWith('package:tapedash/')) {
+    path = target.substring('package:tapedash/'.length);
+  } else if (target.contains(':')) {
+    return null;
+  } else {
+    path = Uri.parse(fromPath).resolve(target).path;
+  }
+  if (path.startsWith('..')) return null;
+  final slash = path.indexOf('/');
+  return slash < 0 ? '' : path.substring(0, slash);
+}
+
 /// Every rule broken under `<root>/lib`, as `path:line: message`.
 List<String> findViolations(Directory root) {
   final violations = <String>[];
-  for (final dir in _pureDirs) {
-    final directory = Directory('${root.path}/lib/$dir');
-    if (!directory.existsSync()) continue;
+  final lib = Directory('${root.path}/lib');
+  if (!lib.existsSync()) return violations;
 
-    final files =
-        directory
-            .listSync(recursive: true)
-            .whereType<File>()
-            .where((f) => f.path.endsWith('.dart'))
-            .toList()
-          ..sort((a, b) => a.path.compareTo(b.path));
+  final files =
+      lib
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.dart'))
+          .toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
 
-    for (final file in files) {
-      final path = file.path.substring(root.path.length + 1);
-      // CLAUDE.md 6: trips is pure Dart "except the sqflite adapter".
-      final isSqfliteAdapter =
-          path.startsWith('lib/trips/') && path.contains('sqflite');
-      final lines = file.readAsLinesSync();
-      for (var i = 0; i < lines.length; i++) {
-        final code = lines[i].replaceFirst(RegExp(r'//.*$'), '');
-        if (!isSqfliteAdapter && _flutterImport.hasMatch(code)) {
-          violations.add(
-            '$path:${i + 1}: lib/$dir must not import Flutter or dart:ui',
-          );
-        }
-        if (!_realTimeAllowed.contains(path) && _realTime.hasMatch(code)) {
-          violations.add(
-            '$path:${i + 1}: use the injected Clock or Scheduler, not real time',
-          );
-        }
+  for (final file in files) {
+    final path = file.path.substring(root.path.length + 1);
+    final fromLib = path.substring('lib/'.length);
+    final slash = fromLib.indexOf('/');
+    final dir = slash < 0 ? '' : fromLib.substring(0, slash);
+    final isPure = _pureDirs.contains(dir);
+    // CLAUDE.md 6: trips is pure Dart "except the sqflite adapter".
+    final isSqfliteAdapter = dir == 'trips' && path.contains('sqflite');
+    final lines = file.readAsLinesSync();
+
+    for (var i = 0; i < lines.length; i++) {
+      final code = lines[i].replaceFirst(RegExp(r'//.*$'), '');
+      final where = '$path:${i + 1}';
+
+      if (isPure &&
+          !_realTimeAllowed.contains(path) &&
+          _realTime.hasMatch(code)) {
+        violations.add(
+          '$where: use the injected Clock or Scheduler, not real time',
+        );
+      }
+      if (isPure && !isSqfliteAdapter && _flutterImport.hasMatch(code)) {
+        violations.add('$where: lib/$dir must not import Flutter or dart:ui');
+      }
+
+      final target = _directive.firstMatch(code)?.group(1);
+      if (target == null) continue;
+      final into = _libDirectory(fromLib, target);
+      if (into != null && isPure && _appLayers.contains(into)) {
+        violations.add('$where: lib/$dir must not import lib/$into');
+      }
+      final allowed = _bottomLayers[dir];
+      if (into != null && allowed != null && !allowed.contains(into)) {
+        violations.add(
+          '$where: lib/$dir may only import ${allowed.map((d) => 'lib/$d').join(' and ')}, '
+          'not lib/$into',
+        );
+      }
+      if (dir == 'ui' &&
+          (target.contains('sqflite') ||
+              (into == 'obd' && target.contains('transport')))) {
+        violations.add(
+          '$where: lib/ui must not touch transports or the database: $target',
+        );
       }
     }
   }
@@ -201,6 +257,114 @@ final u = Timer(d, f);
         'lib/money/x.dart:2: use the injected Clock or Scheduler, not real time',
         'lib/money/x.dart:4: use the injected Clock or Scheduler, not real time',
       ]);
+    });
+
+    group('imports', () {
+      test('a pure directory may not import the app layers', () {
+        write('lib/fuel/a.dart', "import '../ui/page.dart';\n");
+        write('lib/fuel/b.dart', "import 'package:tapedash/app/app.dart';\n");
+        write(
+          'lib/obd/transport/c.dart',
+          "import '../../platform/device_channel.dart';\n",
+        );
+        write('lib/coach/d.dart', "export '../ui/page.dart';\n");
+
+        expect(findViolations(root), [
+          'lib/coach/d.dart:1: lib/coach must not import lib/ui',
+          'lib/fuel/a.dart:1: lib/fuel must not import lib/ui',
+          'lib/fuel/b.dart:1: lib/fuel must not import lib/app',
+          'lib/obd/transport/c.dart:1: lib/obd must not import lib/platform',
+        ]);
+      });
+
+      test('the app layers may import the pure ones, and each other', () {
+        write('lib/ui/page.dart', "import '../vehicle/state.dart';\n");
+        write('lib/app/x.dart', "import '../platform/y.dart';\n");
+        write(
+          'lib/platform/y.dart',
+          "import 'package:tapedash/core/clock.dart';\n",
+        );
+
+        expect(findViolations(root), isEmpty);
+      });
+
+      test('pure directories may import each other and their own files', () {
+        write(
+          'lib/obd/transport/t.dart',
+          "import '../../sim/x.dart';\nimport 'transport.dart';\n"
+              "import '../pids/pid.dart';\nimport 'dart:async';\n"
+              "import 'package:collection/collection.dart';\n",
+        );
+
+        expect(findViolations(root), isEmpty);
+      });
+
+      test('sim sits on core alone', () {
+        write('lib/sim/a.dart', "import '../obd/transport/transport.dart';\n");
+        write('lib/sim/b.dart', "import 'package:tapedash/location/x.dart';\n");
+        write(
+          'lib/sim/c.dart',
+          "import '../core/clock.dart';\n"
+              "import 'package:tapedash/core/scheduler.dart';\n"
+              "import 'engine_spec.dart';\nimport 'dart:math';\n",
+        );
+
+        expect(findViolations(root), [
+          'lib/sim/a.dart:1: lib/sim may only import lib/core and lib/sim, '
+              'not lib/obd',
+          'lib/sim/b.dart:1: lib/sim may only import lib/core and lib/sim, '
+              'not lib/location',
+        ]);
+      });
+
+      test('core sits on nothing', () {
+        write('lib/core/a.dart', "import '../sim/x.dart';\n");
+        write('lib/core/b.dart', "import 'clock.dart';\n");
+
+        expect(findViolations(root), [
+          'lib/core/a.dart:1: lib/core may only import lib/core, not lib/sim',
+        ]);
+      });
+
+      test('ui may not touch transports or the database', () {
+        write('lib/ui/a.dart', "import '../obd/transport/transport.dart';\n");
+        write(
+          'lib/ui/b.dart',
+          "import 'package:tapedash/obd/transport/sim_transport.dart';\n",
+        );
+        write('lib/ui/c.dart', "import 'package:sqflite/sqflite.dart';\n");
+        write('lib/ui/d.dart', "import '../obd/pids/pid.dart';\n");
+
+        expect(findViolations(root), [
+          'lib/ui/a.dart:1: lib/ui must not touch transports or the '
+              'database: ../obd/transport/transport.dart',
+          'lib/ui/b.dart:1: lib/ui must not touch transports or the '
+              'database: package:tapedash/obd/transport/sim_transport.dart',
+          'lib/ui/c.dart:1: lib/ui must not touch transports or the '
+              'database: package:sqflite/sqflite.dart',
+        ]);
+      });
+
+      test('an import that leaves lib is not judged', () {
+        write('lib/sim/a.dart', "import '../../tool/x.dart';\n");
+
+        expect(findViolations(root), isEmpty);
+      });
+
+      test(
+        'a commented-out import is ignored, and a violation has its line',
+        () {
+          write('lib/fuel/a.dart', """
+// import '../ui/page.dart';
+void a() {}
+import '../ui/page.dart';
+""");
+
+          expect(findViolations(root), [
+            'lib/fuel/a.dart:3: lib/fuel must not import lib/ui',
+          ]);
+        },
+      );
     });
   });
 }
