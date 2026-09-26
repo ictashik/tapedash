@@ -59,6 +59,13 @@ class AdapterQuirks {
     garbageRate: 0.005,
   );
 
+  /// The presets by the name used on the command line of the tools.
+  static const Map<String, AdapterQuirks> presets = {
+    'none': none,
+    'bluetooth_clone': bluetoothClone,
+    'flaky': flaky,
+  };
+
   /// The quirks that are switched on, in a line: `latency 80 ms +/- 40 ms,
   /// drops first command`. `none` if there are none.
   @override

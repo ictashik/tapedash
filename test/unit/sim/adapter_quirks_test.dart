@@ -39,6 +39,18 @@ void main() {
     );
   });
 
+  group('presets by name', () {
+    test('are the three presets', () {
+      expect(AdapterQuirks.presets.keys, ['none', 'bluetooth_clone', 'flaky']);
+      expect(AdapterQuirks.presets['none'], AdapterQuirks.none);
+      expect(
+        AdapterQuirks.presets['bluetooth_clone'],
+        AdapterQuirks.bluetoothClone,
+      );
+      expect(AdapterQuirks.presets['flaky'], AdapterQuirks.flaky);
+    });
+  });
+
   group('copyWith', () {
     test('changes what it is given and keeps the rest', () {
       final q = AdapterQuirks.flaky.copyWith(noMultiPid: true, noDataRate: 0.5);

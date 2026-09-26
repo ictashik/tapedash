@@ -33,13 +33,6 @@ import 'package:tapedash/sim/profiles.dart';
 import 'package:tapedash/sim/scenarios.dart';
 import 'package:tapedash/sim/simulated_car.dart';
 
-/// The quirk presets by the name used on the command line.
-final Map<String, AdapterQuirks> quirkPresets = {
-  'none': AdapterQuirks.none,
-  'bluetooth_clone': AdapterQuirks.bluetoothClone,
-  'flaky': AdapterQuirks.flaky,
-};
-
 /// Bytes on the wire are Latin-1: an ELM327 speaks ASCII, and anything else is
 /// noise that has to survive the trip.
 const Latin1Codec _bytes = Latin1Codec(allowInvalid: true);
@@ -207,7 +200,7 @@ void _printList() {
     )
     ..writeln('quirks:')
     ..writeln(
-      quirkPresets.entries
+      AdapterQuirks.presets.entries
           .map((e) => '  ${e.key.padRight(16)} ${e.value}')
           .join('\n'),
     );
@@ -263,7 +256,7 @@ Future<void> main(List<String> args) async {
       ? VehicleProfiles.byName(options['profile']!)
       : scenario.profile;
   final quirks = options.containsKey('quirks')
-      ? (quirkPresets[options['quirks']] ??
+      ? (AdapterQuirks.presets[options['quirks']] ??
             _fail('no quirks "${options['quirks']}" (see --list)'))
       : scenario.quirks;
   final port = int.tryParse(options['port'] ?? '35000') ?? _fail('bad --port');
