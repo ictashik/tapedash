@@ -52,5 +52,5 @@ key.properties
 # Raw sessions from someone else's car stay out of the repo
 /recordings/private/
 # Simulator recordings are made by tool/record_sim.dart in a couple of seconds and
-# come out the same every time, so they are not kept: they are 0.4 to 2.6 MB each.
+# come out the same every time, so they are not kept: they are 0.2 to 2.6 MB each.
 /recordings/sim/*.log

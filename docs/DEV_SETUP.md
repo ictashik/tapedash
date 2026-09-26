@@ -28,6 +28,30 @@ tool/check_apk_size.sh
 
 Only the two ABIs we ship are built, and both must stay under 20 MB. Release builds are signed with the debug key for now. Never commit a keystore or `key.properties`; both are git-ignored.
 
+## The simulator tools
+
+The simulator is plain Dart, so these run under `dart` once `flutter pub get` has been run.
+
+```
+dart run tool/sim_server.dart --scenario city_stop_go --profile petrol_cvt_map
+dart run tool/sim_server.dart --list           # scenarios, profiles and adapter quirks
+dart run tool/record_sim.dart --scenario city_stop_go
+dart run tool/record_sim.dart --all            # all ten, in a couple of seconds
+```
+
+- **`tool/sim_server.dart`** is the simulated car and its ELM327 adapter over TCP, in real time, for trying the real WiFi transport without hardware. It serves one app at a time and starts the drive over when it ends.
+  - From an **Android emulator** the host is `10.0.2.2:35000`.
+  - From a **phone on USB**, run `adb reverse tcp:35000 tcp:35000` and connect to `127.0.0.1:35000`.
+  - It listens on `127.0.0.1` only. `--host 0.0.0.0` serves your network, which you only want on a network you trust.
+  - `--verbose` prints every command and reply, `--quirks flaky` turns on a misbehaving clone, and `--seed` fixes the noise.
+- **`tool/record_sim.dart`** writes a scenario as a session log in `recordings/sim/`: the raw ELM327 text between an app and the adapter, with the time of each piece. It runs on a fake clock, so a 30-minute drive takes a moment, and the same options give the same file. Nothing in `recordings/sim/` is kept in git.
+
+Both take `--help`. `nc` is enough to talk to the server by hand, as long as each command ends in a carriage return (`\r`), which is what an adapter waits for, and the connection stays open long enough for the answers:
+
+```
+(printf 'ATZ\rATE0\r0100\r'; sleep 5) | nc 127.0.0.1 35000
+```
+
 ## Emulators and devices (layer 5)
 
 Tests in `integration_test/` run the real app on an emulator or a phone (CLAUDE.md 10). They complement the headless tests and do not replace them.

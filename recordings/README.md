@@ -17,7 +17,7 @@ one line to an entry, and can be read and diffed.
 
 `dart run tool/record_sim.dart --scenario city_stop_go` records one drive, and
 `--all` records all ten in about two seconds. The same options give the same
-file, byte for byte, so these are not kept in git (they are 0.4 to 2.6 MB each);
+file, byte for byte, so these are not kept in git (they are 0.2 to 2.6 MB each);
 make them when you want them. `dart run tool/record_sim.dart --help` lists the
 options: profile, adapter quirks, seed and length.
 
