@@ -10,7 +10,7 @@ The whole idea: buy an ELM327, plug it into the OBD port, stick an old phone to 
 
 ## Status
 
-Pre-alpha, **Phase 0 (foundation)**. Nothing has been tried on a real car yet. Everything is built and tested against a built-in vehicle simulator first, and real hardware comes only after every simulator test passes. The roadmap is in [CLAUDE.md](CLAUDE.md) section 13.
+Pre-alpha. **Phase 0 (foundation) is done**; the simulator is next. Nothing has been tried on a real car yet. The plan is to build and test everything against a built-in vehicle simulator first, and to connect real hardware only after every simulator test passes. The roadmap is in [CLAUDE.md](CLAUDE.md) section 13.
 
 ## Principles
 
@@ -27,6 +27,9 @@ TapeDash is an aid, not a certified instrument. Set it up while parked. It is de
 
 - [CLAUDE.md](CLAUDE.md): architecture, data, offline guarantees, safety, performance budgets and the roadmap.
 - [DESIGN.md](DESIGN.md): the visual, motion and interaction spec.
+- [docs/STATUS.md](docs/STATUS.md): where the project is, and what has and has not been verified.
+- [docs/DEV_SETUP.md](docs/DEV_SETUP.md): toolchain, building, and running on emulators and phones.
+- [docs/DECISIONS.md](docs/DECISIONS.md): the choices made so far, and why.
 
 ## Building
 
