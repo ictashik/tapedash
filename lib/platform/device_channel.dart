@@ -73,15 +73,34 @@ class DeviceChannel implements DeviceFeatures {
 
   static double _toLux(Object? event) => (event! as num).toDouble();
 
+  // The Android side sends what the sensor gave it, [x, y, z] in the phone's
+  // own axes, plus the display rotation in quarter turns (Surface.ROTATION_*).
+  // The remapping to screen axes is here so it is unit-tested.
   static Acceleration _toAcceleration(Object? event) {
     final values = event! as List<Object?>;
-    if (values.length != 3) {
-      throw FormatException('Expected x, y and z, got ${values.length}', event);
+    if (values.length != 4) {
+      throw FormatException(
+        'Expected x, y, z and the display rotation, got ${values.length} values',
+        event,
+      );
     }
-    return Acceleration(
-      (values[0]! as num).toDouble(),
-      (values[1]! as num).toDouble(),
-      (values[2]! as num).toDouble(),
-    );
+    final x = (values[0]! as num).toDouble();
+    final y = (values[1]! as num).toDouble();
+    final z = (values[2]! as num).toDouble();
+    final quarterTurns = (values[3]! as num).toInt();
+
+    // The display is rotated by `quarterTurns` from the phone's natural
+    // orientation, so a reading in the phone's axes is turned back to follow
+    // the screen. Android's own sensor samples use the same mapping.
+    return switch (quarterTurns) {
+      0 => Acceleration(x, y, z),
+      1 => Acceleration(-y, x, z),
+      2 => Acceleration(-x, -y, z),
+      3 => Acceleration(y, -x, z),
+      _ => throw FormatException(
+        'Unknown display rotation $quarterTurns',
+        event,
+      ),
+    };
   }
 }

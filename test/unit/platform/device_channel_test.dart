@@ -1,7 +1,6 @@
 // DeviceChannel against mocked platform channels. The Android side
 // (DeviceChannel.kt) is not exercised here; see docs/STATUS.md for what has and
 // has not been verified on a device.
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -239,43 +238,115 @@ void main() {
   });
 
   group('acceleration', () {
-    test('emits x, y and z', () async {
-      messenger.setMockStreamHandler(
-        _acceleration,
-        MockStreamHandler.inline(
-          onListen: (arguments, events) {
-            events.success(Float64List.fromList([0.1, 9.81, -0.2]));
-            events.success(<Object?>[1, 2, 3]);
-            events.endOfStream();
-          },
-        ),
-      );
+    void emit(List<Object?> events) => messenger.setMockStreamHandler(
+      _acceleration,
+      MockStreamHandler.inline(
+        onListen: (arguments, sink) {
+          events.forEach(sink.success);
+          sink.endOfStream();
+        },
+      ),
+    );
+
+    test('a phone in its natural orientation is read as it is', () async {
+      emit([
+        [0.1, 9.81, -0.2, 0],
+      ]);
 
       expect(await DeviceChannel().acceleration.toList(), [
         const Acceleration(0.1, 9.81, -0.2),
+      ]);
+    });
+
+    // An upright phone reads gravity along its own y axis, up its natural top.
+    // The screen can be drawn a quarter turn at a time (the app is
+    // landscape-only, so even an upright phone is drawn turned), and then the
+    // same reading falls on a different screen axis. Worked out from the axes,
+    // not from the code: at rotation 1 the screen's up is the phone's +x and
+    // its right is the phone's -y, and so on round.
+    const gravity = [0.0, 9.81, 0.0];
+    final onScreen = {
+      0: const Acceleration(0, 9.81, 0),
+      1: const Acceleration(-9.81, 0, 0),
+      2: const Acceleration(0, -9.81, 0),
+      3: const Acceleration(9.81, 0, 0),
+    };
+    onScreen.forEach((quarterTurns, expected) {
+      test('display rotation $quarterTurns', () async {
+        emit([
+          [...gravity, quarterTurns],
+        ]);
+
+        expect(await DeviceChannel().acceleration.toList(), [expected]);
+      });
+    });
+
+    test(
+      'an acceleration towards the screen\'s right is +x in either landscape',
+      () async {
+        emit([
+          // Rotation 1: the phone's -y axis points to the screen's right.
+          [0.0, -3.0, 9.81, 1],
+          // Rotation 3: the phone's +y axis points to the screen's right.
+          [0.0, 3.0, 9.81, 3],
+        ]);
+
+        expect(await DeviceChannel().acceleration.toList(), [
+          const Acceleration(3, 0, 9.81),
+          const Acceleration(3, 0, 9.81),
+        ]);
+      },
+    );
+
+    test('z is never changed by the rotation', () async {
+      emit([
+        for (var turns = 0; turns < 4; turns++) [1.0, 2.0, 3.0, turns],
+      ]);
+
+      final readings = await DeviceChannel().acceleration.toList();
+
+      expect(readings.map((r) => r.z), everyElement(3.0));
+    });
+
+    test('accepts whole numbers from the codec', () async {
+      emit([
+        [1, 2, 3, 0],
+      ]);
+
+      expect(await DeviceChannel().acceleration.toList(), [
         const Acceleration(1, 2, 3),
       ]);
     });
 
-    test('a reading without exactly three values is an error', () async {
-      messenger.setMockStreamHandler(
-        _acceleration,
-        MockStreamHandler.inline(
-          onListen: (arguments, events) {
-            events.success(Float64List.fromList([1, 2]));
-            events.success(Float64List.fromList([1, 2, 3]));
-            events.endOfStream();
-          },
-        ),
-      );
+    test('a reading without exactly four values is an error', () async {
+      emit([
+        [1.0, 2.0, 3.0],
+        [1.0, 2.0, 3.0, 0, 9],
+        [1.0, 2.0, 3.0, 0],
+      ]);
       final errors = <Object>[];
 
       final readings = await DeviceChannel().acceleration
           .handleError(errors.add)
           .toList();
 
-      expect(errors.single, isA<FormatException>());
+      expect(errors, [isA<FormatException>(), isA<FormatException>()]);
       expect(readings, [const Acceleration(1, 2, 3)]);
+    });
+
+    test('an unknown display rotation is an error, not a guess', () async {
+      emit([
+        [1.0, 2.0, 3.0, 4],
+        [1.0, 2.0, 3.0, -1],
+      ]);
+      final errors = <Object>[];
+
+      final readings = await DeviceChannel().acceleration
+          .handleError(errors.add)
+          .toList();
+
+      expect(errors, hasLength(2));
+      expect(readings, isEmpty);
     });
 
     test('is one shared stream, separate from the light stream', () {
