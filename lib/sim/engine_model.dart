@@ -78,23 +78,22 @@ abstract class EngineModel {
     required double rpm,
     required double torqueNm,
     required double intakeAirC,
+    double frictionScale = 1,
   }) {
-    if (run(rpm: rpm, demand: 0, intakeAirC: intakeAirC).torqueNm >= torqueNm) {
-      return 0;
-    }
-    if (run(rpm: rpm, demand: 1, intakeAirC: intakeAirC).torqueNm <= torqueNm) {
-      return 1;
-    }
+    double torqueAt(double demand) => run(
+      rpm: rpm,
+      demand: demand,
+      intakeAirC: intakeAirC,
+      frictionScale: frictionScale,
+    ).torqueNm;
+
+    if (torqueAt(0) >= torqueNm) return 0;
+    if (torqueAt(1) <= torqueNm) return 1;
     var low = 0.0;
     var high = 1.0;
     for (var i = 0; i < 26; i++) {
       final mid = (low + high) / 2;
-      final torque = run(
-        rpm: rpm,
-        demand: mid,
-        intakeAirC: intakeAirC,
-      ).torqueNm;
-      if (torque < torqueNm) {
+      if (torqueAt(mid) < torqueNm) {
         low = mid;
       } else {
         high = mid;

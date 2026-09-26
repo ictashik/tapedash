@@ -96,8 +96,8 @@ class VehicleProfile {
     required this.supportedPids,
     this.dragAreaM2 = 0.68,
     this.rollingResistance = 0.011,
-    this.maxBrakeDecelMs2 = 8.0,
-    this.tractionLimitG = 0.42,
+    this.maxBrakeDecelMs2 = 7.5,
+    this.tractionLimitG = 0.36,
   });
 
   /// The name used on the command line and in recordings, such as
@@ -117,7 +117,9 @@ class VehicleProfile {
   /// Rolling resistance as a fraction of weight.
   final double rollingResistance;
 
-  /// The hardest the brakes can slow the car (CLAUDE.md 7.1: about 8 m/s2).
+  /// The hardest the brakes alone can slow the car. With drag, rolling
+  /// resistance and engine braking on top, the car decelerates at about 8 m/s2
+  /// at most (CLAUDE.md 7.1).
   final double maxBrakeDecelMs2;
 
   /// The most force the driven wheels can put down, as a fraction of weight.
