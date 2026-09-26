@@ -59,6 +59,32 @@ class AdapterQuirks {
     garbageRate: 0.005,
   );
 
+  /// The quirks that are switched on, in a line: `latency 80 ms +/- 40 ms,
+  /// drops first command`. `none` if there are none.
+  @override
+  String toString() {
+    final parts = <String>[
+      if (latency > Duration.zero || jitter > Duration.zero)
+        'latency ${latency.inMilliseconds} ms +/- ${jitter.inMilliseconds} ms',
+      if (dropFirstCommand) 'drops first command',
+      if (ignoreAdaptiveTiming) 'ignores adaptive timing',
+      if (noMultiPid) 'no multi-PID',
+      if (noDataRate > 0) 'NO DATA ${_percent(noDataRate)}',
+      if (missingPromptRate > 0)
+        'missing prompt ${_percent(missingPromptRate)}',
+      if (garbageRate > 0) 'garbage ${_percent(garbageRate)}',
+    ];
+    return parts.isEmpty ? 'none' : parts.join(', ');
+  }
+
+  static String _percent(double rate) {
+    final percent = rate * 100;
+    final text = percent == percent.roundToDouble()
+        ? percent.round().toString()
+        : percent.toStringAsFixed(1);
+    return '$text%';
+  }
+
   AdapterQuirks copyWith({
     Duration? latency,
     Duration? jitter,

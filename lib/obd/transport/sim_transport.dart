@@ -15,7 +15,8 @@ import 'transport.dart';
 /// It is the link, the adapter and the car's ECU in one, all on the given
 /// [Scheduler], so on a fake clock a 30-minute drive takes a moment. The
 /// adapter's quirks come from the scenario unless given, and so do the link
-/// faults: an `AdapterDisconnect` drops the link at its time in the drive, and
+/// faults. To keep one adapter across several links, as a real adapter that
+/// stays plugged in does, pass it as [adapter]: an `AdapterDisconnect` drops the link at its time in the drive, and
 /// nothing can connect until its outage is over.
 ///
 /// The car is not started here. Start it on the same scheduler; this only asks
@@ -31,15 +32,18 @@ class SimTransport implements Transport {
     this.connectDelay = const Duration(milliseconds: 400),
     int seed = 1,
     String version = 'ELM327 v1.5',
+    Elm327Simulator? adapter,
   }) {
-    adapter = Elm327Simulator(
-      ecu: SimulatedEcu(car: car),
-      quirks: quirks ?? car.scenario.quirks,
-      version: version,
-      seed: seed,
-    );
+    this.adapter =
+        adapter ??
+        Elm327Simulator(
+          ecu: SimulatedEcu(car: car),
+          quirks: quirks ?? car.scenario.quirks,
+          version: version,
+          seed: seed,
+        );
     _device = Elm327Device(
-      simulator: adapter,
+      simulator: this.adapter,
       scheduler: scheduler,
       seed: seed,
       onOutput: _deliver,
