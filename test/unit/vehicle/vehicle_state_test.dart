@@ -127,8 +127,8 @@ void main() {
       final rig = _Rig();
       addTearDown(rig.close);
 
-      expect(rig.state.isStale(null), isTrue);
-      expect(rig.state.isStale(rig.state.rpm.value), isTrue);
+      expect(rig.state.isStale(Sensor.rpm), isTrue);
+      expect(rig.state.isStale(Sensor.rpm), isTrue);
     });
 
     test('fresh until 1.5 s after it arrived, then stale', () {
@@ -137,9 +137,9 @@ void main() {
       rig.feed(Sensor.rpm, 800, 1000);
 
       rig.advanceTo(2500);
-      expect(rig.state.isStale(rig.state.rpm.value), isFalse);
+      expect(rig.state.isStale(Sensor.rpm), isFalse);
       rig.advanceTo(2501);
-      expect(rig.state.isStale(rig.state.rpm.value), isTrue);
+      expect(rig.state.isStale(Sensor.rpm), isTrue);
     });
 
     test('a new reading makes it fresh again', () {
@@ -147,11 +147,11 @@ void main() {
       addTearDown(rig.close);
       rig.feed(Sensor.rpm, 800, 0);
       rig.advanceTo(3000);
-      expect(rig.state.isStale(rig.state.rpm.value), isTrue);
+      expect(rig.state.isStale(Sensor.rpm), isTrue);
 
       rig.feed(Sensor.rpm, 850, 3000);
 
-      expect(rig.state.isStale(rig.state.rpm.value), isFalse);
+      expect(rig.state.isStale(Sensor.rpm), isFalse);
     });
 
     test('staleness counts from when it arrived, not when it was measured', () {
@@ -162,7 +162,7 @@ void main() {
 
       rig.advanceTo(2400);
 
-      expect(rig.state.isStale(rig.state.rpm.value), isFalse);
+      expect(rig.state.isStale(Sensor.rpm), isFalse);
     });
 
     test('the limit can be changed', () {
@@ -173,9 +173,63 @@ void main() {
       rig.feed(Sensor.rpm, 800, 0);
 
       rig.advanceTo(3000);
-      expect(rig.state.isStale(rig.state.rpm.value), isFalse);
+      expect(rig.state.isStale(Sensor.rpm), isFalse);
       rig.advanceTo(3001);
-      expect(rig.state.isStale(rig.state.rpm.value), isTrue);
+      expect(rig.state.isStale(Sensor.rpm), isTrue);
+    });
+
+    test('values that are read less often go stale later', () {
+      final rig = _Rig();
+      addTearDown(rig.close);
+      rig.feed(Sensor.rpm, 800, 0);
+      rig.feed(Sensor.load, 30, 0);
+      rig.feed(Sensor.coolant, 85, 0);
+
+      rig.advanceTo(1501);
+      expect(rig.state.isStale(Sensor.rpm), isTrue);
+      expect(rig.state.isStale(Sensor.load), isFalse);
+      expect(rig.state.isStale(Sensor.coolant), isFalse);
+      rig.advanceTo(3001);
+      expect(rig.state.isStale(Sensor.load), isTrue);
+      expect(rig.state.isStale(Sensor.coolant), isFalse);
+      rig.advanceTo(12001);
+      expect(rig.state.isStale(Sensor.coolant), isTrue);
+    });
+
+    test('how long each may go: 1.5 s, 3 s or 12 s', () {
+      final rig = _Rig();
+      addTearDown(rig.close);
+
+      for (final s in [Sensor.rpm, Sensor.speed, Sensor.throttle]) {
+        expect(rig.state.staleAfterFor(s), ms(1500), reason: s.name);
+      }
+      for (final s in [
+        Sensor.load,
+        Sensor.manifoldPressure,
+        Sensor.airFlow,
+        Sensor.fuelRate,
+      ]) {
+        expect(rig.state.staleAfterFor(s), ms(3000), reason: s.name);
+      }
+      for (final s in [
+        Sensor.coolant,
+        Sensor.intakeAir,
+        Sensor.fuelLevel,
+        Sensor.voltage,
+      ]) {
+        expect(rig.state.staleAfterFor(s), ms(12000), reason: s.name);
+      }
+    });
+
+    test('a slow sensor read every four seconds is never stale', () {
+      final rig = _Rig();
+      addTearDown(rig.close);
+
+      for (var t = 0; t <= 60000; t += 4000) {
+        rig.feed(Sensor.voltage, 14.1, t);
+        rig.advanceTo(t + 3999);
+        expect(rig.state.isStale(Sensor.voltage), isFalse, reason: 'at $t');
+      }
     });
 
     test('the age of a reading', () {

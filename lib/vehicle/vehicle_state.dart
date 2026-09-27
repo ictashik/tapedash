@@ -156,10 +156,19 @@ class VehicleState {
   /// How many readings of [sensor] were thrown away as impossible.
   int rejectedReadings(Sensor sensor) => _rejected[sensor] ?? 0;
 
-  /// Whether [reading] is missing, or has had no successor for longer than
-  /// [VehicleStateConfig.staleAfter].
-  bool isStale(Reading? reading) =>
-      reading == null || reading.age(clock.monotonic()) > config.staleAfter;
+  /// How long [sensor] may go without a new reading before it is stale: 1.5 s
+  /// for the values read every cycle, and longer for those read less often
+  /// (see [Sensor.staleFactor]).
+  Duration staleAfterFor(Sensor sensor) =>
+      config.staleAfter * sensor.staleFactor;
+
+  /// Whether [sensor] has never been read, or has had no new reading for longer
+  /// than [staleAfterFor].
+  bool isStale(Sensor sensor) {
+    final reading = _readings[sensor]!.value;
+    return reading == null ||
+        reading.age(clock.monotonic()) > staleAfterFor(sensor);
+  }
 
   /// Takes a measurement of [sensor]: [value] in its unit, read at [at] and
   /// received at [receivedAt], both on the monotonic clock.

@@ -55,8 +55,12 @@ class FakeTransport implements Transport {
     _states.add(next);
   }
 
+  /// Called each time [connect] is asked for.
+  void Function()? onConnect;
+
   @override
   Future<void> connect() {
+    onConnect?.call();
     setState(TransportState.connected);
     return Future<void>.value();
   }
