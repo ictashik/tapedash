@@ -47,7 +47,8 @@ class AdapterOutput {
 ///  - the blank line before the prompt: every reply ends with an extra line
 ///    terminator and then `>`;
 ///  - the two `\r` before the banner after a reset;
-///  - a space after the last byte of a data line when spaces are on;
+///  - a space after the last byte of a data line when spaces are on, and a
+///    space after the colon of a multi-frame line whatever the setting;
 ///  - `ATDP` naming the CAN protocols as `ISO 15765-4 (CAN 11/500)`.
 ///
 /// **Timing.** The datasheet gives no figures, so how long the adapter takes is
@@ -491,7 +492,9 @@ class Elm327Simulator {
         bytes.add(0);
       }
       final digit = (sequence & 0xF).toRadixString(16).toUpperCase();
-      lines.add('$digit:${_spaces ? ' ' : ''}${_hex(bytes)}');
+      // A space follows the colon whether or not spaces are on: the datasheet's
+      // example has one, and so does the other implementation checked against.
+      lines.add('$digit: ${_hex(bytes)}');
       offset = end;
       sequence++;
     }

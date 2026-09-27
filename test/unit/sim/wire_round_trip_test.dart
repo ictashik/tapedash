@@ -39,7 +39,9 @@ List<int> _payload(String reply) {
   ];
   if (lines.length > 1 && lines[1].startsWith('0:')) {
     final total = int.parse(lines.first, radix: 16);
-    final joined = [for (final l in lines.skip(1)) ...bytes(l.substring(2))];
+    final joined = [
+      for (final l in lines.skip(1)) ...bytes(l.substring(2).trim()),
+    ];
     return joined.take(total).toList();
   }
   return bytes(lines.single);

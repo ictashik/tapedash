@@ -360,6 +360,32 @@ void main() {
       ]);
     });
 
+    test(
+      'with the spaces off and a space after the colon, as another adapter has it',
+      () {
+        // Ircama's ELM327-emulator prints '0: ' whatever the spaces setting.
+        final messages = _messages(
+          '00A\r0: 41043F05440B\r1: 210C17B8000000\r>',
+        );
+
+        expect(messages, [
+          [0x41, 0x04, 0x3F, 0x05, 0x44, 0x0B, 0x21, 0x0C, 0x17, 0xB8],
+        ]);
+      },
+    );
+
+    test(
+      'and a last line that stops at the length, unpadded, as that adapter does',
+      () {
+        final messages = _messages(
+          '014\r0: 490201575030\r1: 5A5A5A39395A54\r2: 53333930303030\r>',
+        );
+
+        expect(messages!.single.length, 20);
+        expect(messages.single.take(3), [0x49, 0x02, 0x01]);
+      },
+    );
+
     test('a last line that is not padded', () {
       final messages = _messages('008\r0:43030420 0171\r1:0300\r>');
 
