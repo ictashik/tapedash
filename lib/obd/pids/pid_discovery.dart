@@ -39,6 +39,7 @@ class DiscoveryResult {
     this.ecuCount = 0,
     this.failure,
     this.searched = false,
+    this.incomplete = false,
   });
 
   /// The Mode 01 PIDs the car answers: the union over every ECU that replied.
@@ -54,7 +55,19 @@ class DiscoveryResult {
   /// Whether the adapter searched for a protocol on the way.
   final bool searched;
 
+  /// True if a range that the car said was there could not be read, even after
+  /// trying again, so some PIDs may be missing from [supported].
+  final bool incomplete;
+
   bool get ok => failure == null;
+}
+
+/// A discovery in progress, which can be stopped.
+class DiscoveryHandle {
+  bool _cancelled = false;
+
+  /// Stops asking, and never calls back.
+  void cancel() => _cancelled = true;
 }
 
 /// Asks the car which PIDs it supports (CLAUDE.md 8.2): PID 00 first, and then
@@ -66,34 +79,49 @@ abstract final class PidDiscovery {
   /// Runs discovery on [client] and calls [done] with what it found.
   ///
   /// The first request is the one that may make the adapter search for a
-  /// protocol, so it gets [firstTimeout]. A later range that gets no answer
-  /// ends discovery with what it has.
-  static void run(
+  /// protocol, so it gets [firstTimeout]. A later range that gets no usable
+  /// answer is asked again, up to [retries] times, since a range that the
+  /// car said was there and is missed leaves PIDs out for the whole session;
+  /// if it still fails, discovery ends with what it has, marked incomplete.
+  static DiscoveryHandle run(
     Elm327Client client,
     void Function(DiscoveryResult result) done, {
     Duration? firstTimeout,
+    int retries = 2,
   }) {
+    final handle = DiscoveryHandle();
     final supported = <int>{};
     var ecuCount = 0;
     var searched = false;
 
-    void ask(int base) {
+    void finish({Elm327Failure? failure, bool incomplete = false}) {
+      if (handle._cancelled) return;
+      done(
+        failure != null
+            ? DiscoveryResult(failure: failure, searched: searched)
+            : DiscoveryResult(
+                supported: supported,
+                ecuCount: ecuCount,
+                searched: searched,
+                incomplete: incomplete,
+              ),
+      );
+    }
+
+    void ask(int base, int attempt) {
       final first = base == 0x00;
       client.request(
         [0x01, base],
         (reply) {
+          if (handle._cancelled) return;
           searched = searched || reply.searched;
           if (!reply.ok) {
-            done(
-              first
-                  ? DiscoveryResult(failure: reply.failure, searched: searched)
-                  : DiscoveryResult(
-                      supported: supported,
-                      ecuCount: ecuCount,
-                      searched: searched,
-                    ),
-            );
-            return;
+            if (first) return finish(failure: reply.failure);
+            if (reply.failure != Elm327Failure.disconnected &&
+                attempt < retries) {
+              return ask(base, attempt + 1);
+            }
+            return finish(incomplete: true);
           }
           var next = false;
           var answered = 0;
@@ -104,27 +132,18 @@ abstract final class PidDiscovery {
             supported.addAll(support.pids);
             next = next || support.nextRange;
           }
-          if (first) ecuCount = answered;
-          if (first && answered == 0) {
-            done(
-              DiscoveryResult(
-                failure: Elm327Failure.garbled,
-                searched: searched,
-              ),
-            );
-            return;
+          if (answered == 0) {
+            // An answer that is not a support reply.
+            if (first) return finish(failure: Elm327Failure.garbled);
+            if (attempt < retries) return ask(base, attempt + 1);
+            return finish(incomplete: true);
           }
+          if (first) ecuCount = answered;
           final index = ranges.indexOf(base);
           if (next && index + 1 < ranges.length) {
-            ask(ranges[index + 1]);
+            ask(ranges[index + 1], 0);
           } else {
-            done(
-              DiscoveryResult(
-                supported: supported,
-                ecuCount: ecuCount,
-                searched: searched,
-              ),
-            );
+            finish();
           }
         },
         expectPrefix: [0x41, base],
@@ -132,6 +151,7 @@ abstract final class PidDiscovery {
       );
     }
 
-    ask(0x00);
+    ask(0x00, 0);
+    return handle;
   }
 }

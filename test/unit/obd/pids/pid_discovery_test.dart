@@ -4,6 +4,7 @@ import 'package:tapedash/obd/elm327/elm327_client.dart';
 import 'package:tapedash/obd/elm327/elm327_failure.dart';
 import 'package:tapedash/obd/pids/pid_discovery.dart';
 import 'package:tapedash/obd/transport/sim_transport.dart';
+import 'package:tapedash/obd/transport/transport.dart';
 import 'package:tapedash/sim/profiles.dart';
 import 'package:tapedash/sim/scenarios.dart';
 import 'package:tapedash/sim/simulated_car.dart';
@@ -225,24 +226,101 @@ void main() {
       expect(results.single.failure, Elm327Failure.noData);
     });
 
-    test('a later range failing ends discovery with what it has', () {
+    test(
+      'a later range that fails is asked again, and used if it then answers',
+      () {
+        PidDiscovery.run(client, results.add);
+        answer('41 00 98 3B 80 01');
+
+        answer('NO DATA');
+        expect(transport.writes.last, '0120\r');
+        answer('41 20 00 02 00 01');
+        answer('41 40 40 00 00 00');
+
+        expect(results.single.ok, isTrue);
+        expect(results.single.incomplete, isFalse);
+        expect(results.single.supported, contains(0x2F));
+        expect(results.single.supported, contains(0x42));
+        expect(transport.writes, ['0100\r', '0120\r', '0120\r', '0140\r']);
+      },
+    );
+
+    test(
+      'one that fails every time ends discovery with what it has, marked incomplete',
+      () {
+        PidDiscovery.run(client, results.add);
+        answer('41 00 98 3B 80 01');
+
+        answer('NO DATA');
+        answer('NO DATA');
+        answer('NO DATA');
+
+        expect(transport.writes, ['0100\r', '0120\r', '0120\r', '0120\r']);
+        expect(results.single.ok, isTrue);
+        expect(results.single.incomplete, isTrue);
+        expect(results.single.supported, {
+          0x01, 0x04, 0x05, 0x0B, 0x0C, 0x0D, 0x0F, 0x10, 0x11, //
+        });
+      },
+    );
+
+    test('noise in a later range is asked again too', () {
       PidDiscovery.run(client, results.add);
+      answer('41 00 98 3B 80 01');
+
+      answer('41 20 00 0\x7F 00 01');
+      answer('41 20 00 02 00 01');
+      answer('41 40 40 00 00 00');
+
+      expect(results.single.incomplete, isFalse);
+      expect(results.single.supported, contains(0x2F));
+    });
+
+    test('the number of retries can be changed', () {
+      PidDiscovery.run(client, results.add, retries: 0);
       answer('41 00 98 3B 80 01');
 
       answer('NO DATA');
 
-      expect(results.single.ok, isTrue);
-      expect(results.single.supported, {
-        0x01,
-        0x04,
-        0x05,
-        0x0B,
-        0x0C,
-        0x0D,
-        0x0F,
-        0x10,
-        0x11,
-      });
+      expect(transport.writes, ['0100\r', '0120\r']);
+      expect(results.single.incomplete, isTrue);
+    });
+
+    test(
+      'the first request is not asked again: that is for the caller to judge',
+      () {
+        PidDiscovery.run(client, results.add);
+
+        answer('NO DATA');
+
+        expect(transport.writes, ['0100\r']);
+        expect(results.single.failure, Elm327Failure.noData);
+      },
+    );
+
+    test('a link that goes is not tried again', () {
+      PidDiscovery.run(client, results.add);
+      answer('41 00 98 3B 80 01');
+
+      transport.setState(const TransportState.disconnected());
+
+      expect(results.single.incomplete, isTrue);
+      expect(transport.writes, ['0100\r', '0120\r']);
+    });
+
+    test('cancelling stops it, without a word', () {
+      final handle = PidDiscovery.run(client, results.add);
+      answer('41 00 98 3B 80 01');
+      handle.cancel();
+
+      answer('41 20 00 02 00 01');
+      clock.advance(const Duration(minutes: 1));
+
+      expect(results, isEmpty);
+      expect(transport.writes, [
+        '0100\r',
+        '0120\r',
+      ], reason: 'nothing more asked');
     });
 
     test('a support reply of the wrong length is a failure at the start', () {
@@ -268,18 +346,25 @@ void main() {
       expect(results.single.failure, Elm327Failure.timeout);
     });
 
-    test('the later ranges get the ordinary timeout', () {
-      PidDiscovery.run(
-        client,
-        results.add,
-        firstTimeout: const Duration(seconds: 12),
-      );
-      answer('41 00 98 3B 80 01');
+    test(
+      'the later ranges get the ordinary timeout, and then a second try',
+      () {
+        PidDiscovery.run(
+          client,
+          results.add,
+          firstTimeout: const Duration(seconds: 12),
+        );
+        answer('41 00 98 3B 80 01');
+        expect(transport.writes.length, 2);
 
-      clock.advance(const Duration(milliseconds: 1500));
+        clock.advance(const Duration(milliseconds: 1499));
+        expect(transport.writes.length, 2, reason: 'still waiting');
+        clock.advance(const Duration(milliseconds: 101));
 
-      expect(results.single.ok, isTrue);
-    });
+        expect(transport.writes, ['0100\r', '0120\r', '0120\r']);
+        expect(results, isEmpty);
+      },
+    );
 
     test(
       'the requests carry no count digit, since the ECUs are not yet known',

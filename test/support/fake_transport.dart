@@ -26,6 +26,10 @@ class FakeTransport implements Transport {
   /// still says it is connected.
   bool failWrites = false;
 
+  /// Called with each command written, without its carriage return, at the
+  /// moment it is written.
+  void Function(String command)? onCommand;
+
   /// Everything written, in order.
   final List<String> writes = [];
 
@@ -76,6 +80,12 @@ class FakeTransport implements Transport {
     writes.add(data);
     final c = clock;
     if (c != null) writeTimes.add(c.monotonic());
+    final handler = onCommand;
+    if (handler != null) {
+      for (final line in data.split('\r').where((l) => l.isNotEmpty)) {
+        handler(line);
+      }
+    }
     return Future<void>.value();
   }
 
