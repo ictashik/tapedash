@@ -3,8 +3,8 @@ import 'ecu.dart';
 import 'sim_random.dart';
 
 /// One piece of what the adapter sends, and when.
-class Elm327Chunk {
-  const Elm327Chunk(this.after, this.text);
+class AdapterChunk {
+  const AdapterChunk(this.after, this.text);
 
   /// When it goes out, counted from the moment the adapter started on the
   /// command. The echo is at zero; an answer comes later.
@@ -16,10 +16,10 @@ class Elm327Chunk {
 }
 
 /// Everything the adapter sends in answer to one command line, in order.
-class Elm327Reply {
-  const Elm327Reply(this.chunks);
+class AdapterOutput {
+  const AdapterOutput(this.chunks);
 
-  final List<Elm327Chunk> chunks;
+  final List<AdapterChunk> chunks;
 
   /// All of it as one string, as it would look once it had all arrived.
   String get text => chunks.map((c) => c.text).join();
@@ -161,7 +161,7 @@ class Elm327Simulator {
 
   /// Runs one command line, given as the characters before its carriage
   /// return, and returns what the adapter sends back.
-  Elm327Reply execute(String line) {
+  AdapterOutput execute(String line) {
     // Every character is echoed as it arrives, so whether that happens depends
     // on the setting from before this command changes it.
     final echo = _echo ? '$line\r' : '';
@@ -186,7 +186,7 @@ class Elm327Simulator {
 
   // ------------------------------------------------------------ AT commands
 
-  Elm327Reply _runAt(String command, String echo) {
+  AdapterOutput _runAt(String command, String echo) {
     switch (command) {
       case 'Z':
         return _reset(echo, _resetTime);
@@ -256,13 +256,13 @@ class Elm327Simulator {
     return _unknown(echo);
   }
 
-  Elm327Reply _ok(String echo) => _lines(echo, const ['OK']);
+  AdapterOutput _ok(String echo) => _lines(echo, const ['OK']);
 
-  Elm327Reply _unknown(String echo) => _lines(echo, const ['?']);
+  AdapterOutput _unknown(String echo) => _lines(echo, const ['?']);
 
   /// ATZ and ATWS: everything goes back to how it was at power-on, and the
   /// adapter says who it is. Two carriage returns come first.
-  Elm327Reply _reset(String echo, Duration took) {
+  AdapterOutput _reset(String echo, Duration took) {
     _restoreDefaults();
     _restoreProtocol();
     final out = _Builder()
@@ -271,7 +271,11 @@ class Elm327Simulator {
     return out.build();
   }
 
-  Elm327Reply _setProtocol(String command, String echo, {required bool save}) {
+  AdapterOutput _setProtocol(
+    String command,
+    String echo, {
+    required bool save,
+  }) {
     final argument = command.substring(2);
     final choice = _parseProtocol(argument);
     if (choice == null) return _unknown(echo);
@@ -318,7 +322,7 @@ class Elm327Simulator {
     return null;
   }
 
-  Elm327Reply _setTimeout(String argument, String echo) {
+  AdapterOutput _setTimeout(String argument, String echo) {
     final units = argument.length <= 2 && argument.isNotEmpty
         ? int.tryParse(argument, radix: 16)
         : null;
@@ -328,7 +332,7 @@ class Elm327Simulator {
     return _ok(echo);
   }
 
-  Elm327Reply _setHeader(String argument, String echo) {
+  AdapterOutput _setHeader(String argument, String echo) {
     final valid =
         RegExp(r'^[0-9A-F]+$').hasMatch(argument) &&
         (argument.length == 3 || argument.length == 6 || argument.length == 8);
@@ -350,7 +354,7 @@ class Elm327Simulator {
 
   // ---------------------------------------------------------- OBD requests
 
-  Elm327Reply _runObd(String hex, String echo) {
+  AdapterOutput _runObd(String hex, String echo) {
     if (!RegExp(r'^[0-9A-F]+$').hasMatch(hex)) return _unknown(echo);
 
     // An odd number of digits means the last one is not part of the request:
@@ -534,7 +538,7 @@ class Elm327Simulator {
 
   /// A reply of lines that arrives at once. After the lines comes a blank one,
   /// then the prompt; with nothing to say there is only the prompt.
-  Elm327Reply _lines(String echo, List<String> lines) {
+  AdapterOutput _lines(String echo, List<String> lines) {
     final body = lines.isEmpty
         ? ''
         : '${lines.map((l) => '$l$_nl').join()}$_nl';
@@ -545,8 +549,8 @@ class Elm327Simulator {
   }
 
   /// What a flaky adapter does to a reply.
-  Elm327Reply _applyQuirks(Elm327Reply reply, String echo) {
-    var chunks = List<Elm327Chunk>.of(reply.chunks);
+  AdapterOutput _applyQuirks(AdapterOutput reply, String echo) {
+    var chunks = List<AdapterChunk>.of(reply.chunks);
     if (quirks.garbageRate > 0 && _random.chance(quirks.garbageRate)) {
       chunks = _withGarbage(chunks, echo);
     }
@@ -555,20 +559,20 @@ class Elm327Simulator {
         chunks.isNotEmpty) {
       final last = chunks.last;
       if (last.text.endsWith('>')) {
-        chunks[chunks.length - 1] = Elm327Chunk(
+        chunks[chunks.length - 1] = AdapterChunk(
           last.after,
           last.text.substring(0, last.text.length - 1),
         );
       }
     }
-    return Elm327Reply(chunks);
+    return AdapterOutput(chunks);
   }
 
   static const List<int> _garbage = [0x00, 0x1B, 0x7F, 0x80, 0xA0, 0xFF];
 
   /// A few stray bytes in the answer. They come after the echo, which is
   /// the adapter repeating what it was sent and so is never damaged.
-  List<Elm327Chunk> _withGarbage(List<Elm327Chunk> chunks, String echo) {
+  List<AdapterChunk> _withGarbage(List<AdapterChunk> chunks, String echo) {
     if (chunks.isEmpty) return chunks;
     var index = 0;
     var skip = 0;
@@ -587,8 +591,8 @@ class Elm327Simulator {
       for (var i = 0, n = 1 + _random.nextInt(3); i < n; i++)
         _garbage[_random.nextInt(_garbage.length)],
     ]);
-    return List<Elm327Chunk>.of(chunks)
-      ..[index] = Elm327Chunk(
+    return List<AdapterChunk>.of(chunks)
+      ..[index] = AdapterChunk(
         chunks[index].after,
         '${text.substring(0, at)}$stray${text.substring(at)}',
       );
@@ -612,17 +616,17 @@ class _Attempt {
 
 /// Collects timed text, joining pieces that go out at the same time.
 class _Builder {
-  final List<Elm327Chunk> _chunks = [];
+  final List<AdapterChunk> _chunks = [];
 
   void add(Duration after, String text) {
     if (text.isEmpty) return;
     if (_chunks.isNotEmpty && _chunks.last.after == after) {
       final last = _chunks.removeLast();
-      _chunks.add(Elm327Chunk(after, last.text + text));
+      _chunks.add(AdapterChunk(after, last.text + text));
     } else {
-      _chunks.add(Elm327Chunk(after, text));
+      _chunks.add(AdapterChunk(after, text));
     }
   }
 
-  Elm327Reply build() => Elm327Reply(List.unmodifiable(_chunks));
+  AdapterOutput build() => AdapterOutput(List.unmodifiable(_chunks));
 }

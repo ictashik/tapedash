@@ -795,7 +795,7 @@ void main() {
   group('timing', () {
     Duration ofMs(int ms) => Duration(milliseconds: ms);
 
-    List<int> at(Elm327Reply reply) =>
+    List<int> at(AdapterOutput reply) =>
         reply.chunks.map((c) => c.after.inMilliseconds).toList();
 
     Elm327Simulator ready({AdapterQuirks quirks = AdapterQuirks.none}) =>
