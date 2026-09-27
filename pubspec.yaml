@@ -21,3 +21,9 @@ flutter:
   # Material widgets and icons are banned (DESIGN.md 13.1), so the Material
   # icon font is not bundled.
   uses-material-design: false
+
+  # The fonts are plain assets, and TapeFonts registers them in code. That
+  # awaits them before the first frame (the cold open never shows in a
+  # fallback face), and gives the app and the tests one code path.
+  assets:
+    - assets/fonts/

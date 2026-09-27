@@ -1,0 +1,15 @@
+source (sha256)  ->  output (sha256, bytes, glyphs)
+saira_Saira[wdth,wght].ttf  9d050fc5a01c85f74c4257c207d50b55d1e40c37308c642f974a2c5003231dde
+  -> Saira-Variable.ttf  fe7c0a06f58b8b73be9fe06d8835ab2b9007561e560533f14da41416435d2220  106296  258
+barlow_Barlow-Regular.ttf  95aa02c7c43096e0dd44d787ba6216864a67157e402adab59b35572e0c1577ea
+  -> Barlow-Regular.ttf  e44bbbd6d4af69b36838d859f3ac924144675cb9308a65ea5b196722e4ee5bf5  37012  317
+barlow_Barlow-Medium.ttf  f8906f762cb73dca441da034bc363b2d8e2e68bc10d5c05e58717646c20cc4b4
+  -> Barlow-Medium.ttf  b52c81ee4e1df0824285edd226b57c763bc982be87dce7ed009616be9be70354  36916  317
+barlow_Barlow-SemiBold.ttf  86577cb32f8abe3673db53ca0f4221e6856751a4f6730c867e00f720f8bb1fc5
+  -> Barlow-SemiBold.ttf  3e0e7f5828f88a337e1a0acf5691ce8925893ec60323100b2f83274576706ddd  38848  317
+barlowsemicondensed_BarlowSemiCondensed-Regular.ttf  e8c7242f612b13d026e18a94b63b0fd079e91a3faf009d1b6981dbb5f16d1153
+  -> BarlowSemiCondensed-Regular.ttf  111fade16075c419c15945bbd702a0ce3b43808c9f17541cf3c16bf629e812a5  37440  317
+barlowsemicondensed_BarlowSemiCondensed-Medium.ttf  4998b693a190b76f2b11315844345a8546c1e2e6a320905507a9eed04edf8b48
+  -> BarlowSemiCondensed-Medium.ttf  c91c7e8a84460c9945d7722616309dcbd69e5f8abc6732378de0a34b273057f0  37444  317
+barlowsemicondensed_BarlowSemiCondensed-SemiBold.ttf  bd299f4bc5b44d30be8d42e9bad3a5df7d66af1cd55d0ed72a8b8916360a1424
+  -> BarlowSemiCondensed-SemiBold.ttf  482a39e4bceacfb0be34ad4faa20167f5710ae37d1bfbcc0e1016d3be3d6532a  39296  317
