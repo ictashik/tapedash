@@ -37,3 +37,32 @@ abstract final class TapeTach {
   static const double defaultMaxRpm = 7000;
   static const double defaultRedlineRpm = 6500;
 }
+
+/// The shift horizon's geometry (DESIGN.md 6.4): a thin band across the top
+/// edge, 24 segments per side converging towards the centre.
+abstract final class TapeShiftHorizon {
+  /// The band's height, as a share of H.
+  static const double heightShareOfHeight = 0.018;
+
+  static const int segmentsPerSide = 24;
+
+  /// It starts filling this many rpm below the shift point, and is fully lit
+  /// at the shift point itself.
+  static const double fillsOverRpm = 1500;
+
+  /// Segment position thresholds (as a share of the way from the outer edge to
+  /// the centre): the first share is the accent colour, the next is caution,
+  /// the rest is critical.
+  static const double accentShare = 0.60;
+  static const double cautionShare = 0.25;
+  // The remaining 0.15 is critical.
+
+  /// At or above the shift point every segment flashes critical, at the
+  /// fastest rate DESIGN.md 11 allows.
+  static const double flashHz = 3;
+
+  /// The breathing glow of a CVT or automatic profile (shift light off): its
+  /// width at idle and at the redline, as a share of the half-band's width.
+  static const double breathingMinShare = 0.06;
+  static const double breathingMaxShare = 1.0;
+}
