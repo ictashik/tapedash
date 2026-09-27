@@ -83,6 +83,11 @@ class GlowSprite {
   /// Draws the sprite so that its core shape's top-left is at [x], [y]: the halo
   /// reaches [margin] beyond that. [color] tints it, and its alpha is the
   /// strength. It composites with `BlendMode.plus`, which only adds light.
+  ///
+  /// [size] is the full sprite's extent (core plus the margin on *both*
+  /// sides), not the core's — halving it to centre the sprite on a point
+  /// overshoots by [margin]. To centre on a point, call [drawCentered]
+  /// instead of doing that arithmetic by hand.
   void draw(
     ui.Canvas canvas,
     double x,
@@ -96,6 +101,24 @@ class GlowSprite {
     canvas.scale(scale);
     canvas.drawImage(image, ui.Offset.zero, paint);
     canvas.restore();
+  }
+
+  /// Draws the sprite so the core shape (not the halo) is centred on
+  /// [center] — the usual call for a puck, a dot or a needle tip. Prefer
+  /// this over [draw] whenever the goal is centring on a point.
+  void drawCentered(
+    ui.Canvas canvas,
+    ui.Offset center,
+    ui.Color color,
+    ui.Paint paint,
+  ) {
+    draw(
+      canvas,
+      center.dx - spec.width / 2,
+      center.dy - spec.height / 2,
+      color,
+      paint,
+    );
   }
 
   void dispose() {

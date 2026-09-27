@@ -375,10 +375,9 @@ class TachPainter extends CustomPainter {
       canvas.save();
       canvas.translate(mid.dx, mid.dy);
       canvas.rotate(-needleAngle * math.pi / 180 + math.pi / 2);
-      glow.draw(
+      glow.drawCentered(
         canvas,
-        -glow.size.width / 2 + glow.margin,
-        -glow.size.height / 2 + glow.margin,
+        Offset.zero,
         palette.accentGlow.withValues(alpha: haloStrength),
         Paint()..blendMode = ui.BlendMode.plus,
       );

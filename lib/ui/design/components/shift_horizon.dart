@@ -293,10 +293,9 @@ class ShiftHorizonPainter extends CustomPainter {
     canvas.save();
     canvas.translate(center.dx, center.dy);
     canvas.scale(widthShare, 1);
-    glow.draw(
+    glow.drawCentered(
       canvas,
-      -glow.size.width / 2,
-      -glow.size.height / 2,
+      Offset.zero,
       palette.accentGlow.withValues(alpha: 0.5 * palette.haloScale),
       Paint()..blendMode = ui.BlendMode.plus,
     );

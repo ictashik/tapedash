@@ -159,14 +159,12 @@ class _BloomPainter extends CustomPainter {
           TapeMotion.bloomScaleFrom +
           (TapeMotion.bloomScaleTo - TapeMotion.bloomScaleFrom) * t;
       final alpha = TapeOpacity.bloomStart * (1 - t);
-      final half = sprite.size.width / 2;
       canvas.save();
       canvas.translate(bloom.position.dx, bloom.position.dy);
       canvas.scale(scale);
-      sprite.draw(
+      sprite.drawCentered(
         canvas,
-        -half + sprite.margin,
-        -half + sprite.margin,
+        Offset.zero,
         color.withValues(alpha: alpha),
         _paint,
       );
