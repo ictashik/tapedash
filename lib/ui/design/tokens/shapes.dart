@@ -28,4 +28,11 @@ abstract final class TapeShape {
   /// gap of 10% of a segment's thickness between segments.
   static const double sevenSegmentSkewDegrees = 8;
   static const double sevenSegmentGap = 0.10;
+
+  /// A seven-segment digit's width and stroke, as shares of its height.
+  static const double sevenSegmentAspect = 0.62;
+  static const double sevenSegmentThickness = 0.15;
+
+  /// The space between two digits, as a share of the digit's height.
+  static const double sevenSegmentSpacing = 0.34;
 }

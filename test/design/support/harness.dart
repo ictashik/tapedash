@@ -4,6 +4,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tapedash/ui/design/motion/motion_clock.dart';
+import 'package:tapedash/ui/design/motion/motion_scope.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
 import 'package:tapedash/ui/design/render/tape_fonts.dart';
 import 'package:tapedash/ui/design/theme/tape_theme.dart';
@@ -28,20 +30,29 @@ Directory captureDirectory() {
 
 /// Wraps [child] the way the app does: an app shell for the media query, the
 /// design theme, the render kit, and the `void` canvas behind everything.
+///
+/// [motion] is the clock the components run on: a manual one by default, which
+/// the test steps.
 Widget tapeHarness({
   required Widget child,
   required TapeRenderKit kit,
   TapeThemeData? theme,
+  MotionClock? motion,
 }) {
+  final clock = motion ?? ManualMotionClock();
+  if (motion == null) addTearDown(clock.dispose);
   return WidgetsApp(
     color: TapeColors.voidColor,
     debugShowCheckedModeBanner: false,
-    builder: (context, _) => TapeRenderScope(
-      kit: kit,
-      child: TapeTheme(
-        data: theme ?? TapeThemeData(),
-        child: RepaintBoundary(
-          child: ColoredBox(color: TapeColors.voidColor, child: child),
+    builder: (context, _) => MotionScope.value(
+      clock: clock,
+      child: TapeRenderScope(
+        kit: kit,
+        child: TapeTheme(
+          data: theme ?? TapeThemeData(),
+          child: RepaintBoundary(
+            child: ColoredBox(color: TapeColors.voidColor, child: child),
+          ),
         ),
       ),
     ),

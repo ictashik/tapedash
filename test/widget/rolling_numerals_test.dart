@@ -6,7 +6,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/ui/design/components/rolling_numerals.dart';
-import 'package:tapedash/ui/design/motion/numeral_source.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
 import 'package:tapedash/ui/design/theme/palette.dart';
 import 'package:tapedash/ui/design/theme/tape_theme.dart';
@@ -14,47 +13,7 @@ import 'package:tapedash/ui/design/tokens/glow.dart';
 import 'package:tapedash/ui/design/tokens/livery.dart';
 
 import '../design/support/harness.dart';
-
-/// A source of a number that a test moves by hand.
-class _Number extends ChangeNotifier implements NumeralSource {
-  _Number(this._value, {this.has = true});
-
-  double _value;
-  double _staleness = 0;
-  bool has;
-  int listeners = 0;
-
-  bool get isListened => listeners > 0;
-
-  @override
-  void addListener(VoidCallback listener) {
-    listeners++;
-    super.addListener(listener);
-  }
-
-  @override
-  void removeListener(VoidCallback listener) {
-    listeners--;
-    super.removeListener(listener);
-  }
-
-  @override
-  double get value => _value;
-  set value(double v) {
-    _value = v;
-    notifyListeners();
-  }
-
-  @override
-  double get staleness => _staleness;
-  set staleness(double v) {
-    _staleness = v;
-    notifyListeners();
-  }
-
-  @override
-  bool get hasValue => has;
-}
+import '../design/support/numbers.dart';
 
 /// Counts how many times it is built.
 class _Builds extends StatelessWidget {
@@ -137,7 +96,7 @@ void main() {
       tester,
     ) async {
       setWindow(tester, const Size(640, 360));
-      final small = _Number(7);
+      final small = ManualNumber(7);
       addTearDown(small.dispose);
       await tester.pumpWidget(
         app(RollingNumerals(source: small, format: format3, size: size)),
@@ -154,7 +113,7 @@ void main() {
       tester,
     ) async {
       setWindow(tester, const Size(640, 360));
-      final n = _Number(1);
+      final n = ManualNumber(1);
       addTearDown(n.dispose);
       await tester.pumpWidget(
         app(RollingNumerals(source: n, format: format3, size: size)),
@@ -173,7 +132,7 @@ void main() {
       'digits step by one advance, right to left from the ones column',
       (tester) async {
         setWindow(tester, const Size(640, 360));
-        final n = _Number(1);
+        final n = ManualNumber(1);
         addTearDown(n.dispose);
         await tester.pumpWidget(
           app(RollingNumerals(source: n, format: format3, size: size)),
@@ -191,7 +150,7 @@ void main() {
       tester,
     ) async {
       setWindow(tester, const Size(640, 360));
-      final n = _Number(12.3);
+      final n = ManualNumber(12.3);
       addTearDown(n.dispose);
       await tester.pumpWidget(
         app(
@@ -223,7 +182,7 @@ void main() {
       tester,
     ) async {
       setWindow(tester, const Size(640, 360));
-      final n = _Number(1);
+      final n = ManualNumber(1);
       addTearDown(n.dispose);
       await tester.pumpWidget(
         app(RollingNumerals(source: n, format: format3, size: size)),
@@ -239,7 +198,7 @@ void main() {
       'Indian grouping puts a separator after the third and every second digit',
       (tester) async {
         setWindow(tester, const Size(640, 360));
-        final n = _Number(1);
+        final n = ManualNumber(1);
         addTearDown(n.dispose);
         await tester.pumpWidget(
           app(
@@ -276,7 +235,7 @@ void main() {
   group('drawing', () {
     testWidgets('draws its digits in the accent, on the void', (tester) async {
       setWindow(tester, const Size(640, 360));
-      final n = _Number(88);
+      final n = ManualNumber(88);
       addTearDown(n.dispose);
       await tester.pumpWidget(
         app(RollingNumerals(source: n, format: format3, size: size)),
@@ -296,7 +255,7 @@ void main() {
 
     testWidgets('draws nothing until it has a value', (tester) async {
       setWindow(tester, const Size(640, 360));
-      final n = _Number(88, has: false);
+      final n = ManualNumber(88, has: false);
       addTearDown(n.dispose);
       await tester.pumpWidget(
         app(RollingNumerals(source: n, format: format3, size: size)),
@@ -314,7 +273,7 @@ void main() {
         (NumeralRole.caution, 0xFFB020FF),
         (NumeralRole.critical, 0xFF3355FF),
       ]) {
-        final n = _Number(88);
+        final n = ManualNumber(88);
         await tester.pumpWidget(
           app(
             RollingNumerals(source: n, format: format3, size: size, role: role),
@@ -334,7 +293,7 @@ void main() {
 
     testWidgets('a stale value fades to the stale colour', (tester) async {
       setWindow(tester, const Size(640, 360));
-      final n = _Number(88);
+      final n = ManualNumber(88);
       addTearDown(n.dispose);
       await tester.pumpWidget(
         app(RollingNumerals(source: n, format: format3, size: size)),
@@ -361,7 +320,7 @@ void main() {
       'a negative value shows a minus sign when it is signed, and not otherwise',
       (tester) async {
         setWindow(tester, const Size(640, 360));
-        final n = _Number(-42);
+        final n = ManualNumber(-42);
         addTearDown(n.dispose);
 
         await tester.pumpWidget(
@@ -395,7 +354,7 @@ void main() {
       tester,
     ) async {
       setWindow(tester, const Size(640, 360));
-      final n = _Number(7);
+      final n = ManualNumber(7);
       addTearDown(n.dispose);
       await tester.pumpWidget(
         app(
@@ -433,7 +392,7 @@ void main() {
       tester,
     ) async {
       setWindow(tester, const Size(640, 360));
-      final n = _Number(100);
+      final n = ManualNumber(100);
       addTearDown(n.dispose);
       await tester.pumpWidget(
         app(
@@ -471,7 +430,7 @@ void main() {
     testWidgets('a new value repaints and does not rebuild', (tester) async {
       setWindow(tester, const Size(640, 360));
       _Builds.count = 0;
-      final n = _Number(10);
+      final n = ManualNumber(10);
       addTearDown(n.dispose);
       await tester.pumpWidget(
         app(
@@ -498,7 +457,7 @@ void main() {
 
     testWidgets('it is its own repaint boundary', (tester) async {
       setWindow(tester, const Size(640, 360));
-      final n = _Number(1);
+      final n = ManualNumber(1);
       addTearDown(n.dispose);
       await tester.pumpWidget(
         app(RollingNumerals(source: n, format: format3, size: size)),
@@ -509,7 +468,7 @@ void main() {
 
     testWidgets('it lets go of its source when removed', (tester) async {
       setWindow(tester, const Size(640, 360));
-      final n = _Number(1);
+      final n = ManualNumber(1);
       addTearDown(n.dispose);
       await tester.pumpWidget(
         app(RollingNumerals(source: n, format: format3, size: size)),
@@ -523,8 +482,8 @@ void main() {
 
     testWidgets('changing the source moves the listener', (tester) async {
       setWindow(tester, const Size(640, 360));
-      final a = _Number(1);
-      final b = _Number(2);
+      final a = ManualNumber(1);
+      final b = ManualNumber(2);
       addTearDown(a.dispose);
       addTearDown(b.dispose);
       await tester.pumpWidget(
@@ -545,7 +504,7 @@ void main() {
       TapeThemeData theme, {
       double halo = TapeGlow.heroHalo,
     }) async {
-      final n = _Number(88);
+      final n = ManualNumber(88);
       addTearDown(n.dispose);
       await tester.pumpWidget(
         app(
@@ -592,7 +551,7 @@ void main() {
 
     testWidgets('a halo adds light around the digits', (tester) async {
       setWindow(tester, const Size(640, 360));
-      final n = _Number(88);
+      final n = ManualNumber(88);
       addTearDown(n.dispose);
       await tester.pumpWidget(
         app(RollingNumerals(source: n, format: format3, size: size)),
@@ -614,7 +573,7 @@ void main() {
       'EMBER numerals are ember, and in Daylight they go ink.bright',
       (tester) async {
         setWindow(tester, const Size(640, 360));
-        final n = _Number(88);
+        final n = ManualNumber(88);
         addTearDown(n.dispose);
 
         int count(_Pixels p, int colour) {
@@ -655,7 +614,7 @@ void main() {
       tester,
     ) async {
       setWindow(tester, const Size(640, 360));
-      final n = _Number(88);
+      final n = ManualNumber(88);
       addTearDown(n.dispose);
 
       Future<int> ink(Livery livery) async {
@@ -681,7 +640,7 @@ void main() {
       tester,
     ) async {
       setWindow(tester, const Size(640, 360));
-      final n = _Number(88);
+      final n = ManualNumber(88);
       addTearDown(n.dispose);
 
       await tester.pumpWidget(
