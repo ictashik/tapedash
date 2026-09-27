@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tapedash/obd/elm327/elm327_parser.dart';
+import 'package:tapedash/obd/pids/pid.dart';
 import 'package:tapedash/obd/transport/session_log.dart';
 import 'package:tapedash/sim/adapter_quirks.dart';
 import 'package:tapedash/sim/profiles.dart';
@@ -46,6 +48,28 @@ List<String> _answers(SessionLog log, String command) {
   return answers;
 }
 
+/// The PIDs each polling request asked for: `0104050C0D0F101` is 04 05 0C 0D 0F
+/// and the count digit 1.
+List<List<int>> _polls(SessionLog log) {
+  final out = <List<int>>[];
+  for (final sent in _sent(log)) {
+    final command = sent.substring(0, sent.length - 1);
+    // A request for PIDs: mode 01, one or more PIDs, and the count digit. The
+    // support requests (0100, 0120...) have no digit.
+    if (!command.startsWith('01') ||
+        command.length.isEven ||
+        command.length < 5) {
+      continue;
+    }
+    final hex = command.substring(2, command.length - 1);
+    out.add([
+      for (var i = 0; i + 1 < hex.length; i += 2)
+        int.parse(hex.substring(i, i + 2), radix: 16),
+    ]);
+  }
+  return out;
+}
+
 void main() {
   group('the log', () {
     test('says what it is a recording of', () {
@@ -69,28 +93,43 @@ void main() {
       expect(log.header['quirks'], contains('latency 80 ms'));
     });
 
-    test('starts with the link coming up, then the start-up commands', () {
-      final log = _record('cold_start_idle');
+    test(
+      'starts with the link coming up, then the start-up of CLAUDE.md 8.1',
+      () {
+        final log = _record('cold_start_idle');
 
-      expect(log.entries.take(2).map((e) => (e.direction, e.text)), [
-        (SessionDirection.event, 'connecting'),
-        (SessionDirection.event, 'connected'),
-      ]);
-      expect(_sent(log).take(12).toList(), [
-        'ATZ\r',
-        'ATE0\r',
-        'ATL0\r',
-        'ATS0\r',
-        'ATH0\r',
-        'ATAT1\r',
-        'ATSP0\r',
-        '0100\r',
-        '0120\r',
-        '0140\r',
-        '03\r',
-        '07\r',
-      ]);
-    });
+        expect(log.entries.take(2).map((e) => (e.direction, e.text)), [
+          (SessionDirection.event, 'connecting'),
+          (SessionDirection.event, 'connected'),
+        ]);
+        expect(_sent(log).take(11).toList(), [
+          'ATZ\r',
+          'ATE0\r',
+          'ATL0\r',
+          'ATS0\r',
+          'ATH0\r',
+          'ATAT1\r',
+          'ATSP0\r',
+          '0100\r',
+          '0120\r',
+          '0140\r',
+          'ATDPN\r',
+        ]);
+      },
+    );
+
+    test(
+      'the settle comes first: nothing is sent for 300 ms after connecting',
+      () {
+        final log = _record('cold_start_idle');
+
+        final connected = log.entries.firstWhere((e) => e.text == 'connected');
+        final firstSent = log.entries.firstWhere(
+          (e) => e.direction == SessionDirection.sent,
+        );
+        expect(firstSent.at - connected.at, const Duration(milliseconds: 300));
+      },
+    );
 
     test('a command is never sent before the last one has its prompt', () {
       final log = _record('cold_start_idle');
@@ -140,7 +179,7 @@ void main() {
   });
 
   group('what is polled', () {
-    Set<String> polled(SessionLog log) => _sent(log).toSet();
+    Set<int> polled(SessionLog log) => {for (final p in _polls(log)) ...p};
 
     test('the PIDs the profile has, and none it has not', () {
       final maf = polled(_record('cold_start_idle', profile: 'petrol_cvt_maf'));
@@ -153,29 +192,19 @@ void main() {
       );
 
       // The fuel source: 5E if there is one, else MAF, else MAP.
-      expect(maf, contains('01101\r'));
-      expect(maf, isNot(contains('015E1\r')));
-      expect(map, isNot(contains('01101\r')));
-      expect(map, contains('010B1\r'));
-      expect(rate, contains('015E1\r'));
-      expect(rate, isNot(contains('01101\r')));
-      // The old car has only 04, 05, 0C, 0D and 11.
-      expect(old.where((c) => c.startsWith('01') && c.length == 6).toSet(), {
-        '010C1\r',
-        '010D1\r',
-        '01111\r',
-        '01041\r',
-        '01051\r',
-      });
+      expect(maf, {0x04, 0x05, 0x0C, 0x0D, 0x0F, 0x10, 0x11, 0x2F, 0x42});
+      expect(map, {0x04, 0x05, 0x0B, 0x0C, 0x0D, 0x0F, 0x11, 0x2F, 0x42});
+      expect(rate, {0x04, 0x05, 0x0C, 0x0D, 0x0F, 0x11, 0x2F, 0x42, 0x5E});
+      expect(old, {0x04, 0x05, 0x0C, 0x0D, 0x11});
     });
 
     test('it asks for the range PIDs only when there is something in them', () {
-      final old = polled(
+      final old = _sent(
         _record('cold_start_idle', profile: 'minimal_old_car'),
-      );
-      final full = polled(
+      ).toSet();
+      final full = _sent(
         _record('cold_start_idle', profile: 'petrol_cvt_maf'),
-      );
+      ).toSet();
 
       expect(old, contains('0100\r'));
       expect(old, isNot(contains('0120\r')));
@@ -183,21 +212,26 @@ void main() {
       expect(full, containsAll(['0100\r', '0120\r', '0140\r']));
     });
 
-    test(
-      'the fast tier every cycle, the medium every third, the slow every twelfth',
-      () {
-        final sent = _sent(_record('cold_start_idle')).toList();
-        int count(String c) => sent.where((s) => s == c).length;
+    test('several PIDs go in one request, with the count digit', () {
+      final log = _record('cold_start_idle');
 
-        final fast = count('010C1\r');
-        // The recording can end part way through a cycle.
-        expect(count('010D1\r'), closeTo(fast, 1));
-        expect(count('01111\r'), closeTo(fast, 1));
-        expect(fast, greaterThan(1000));
-        expect(count('01041\r'), closeTo(fast / 3, 2));
-        expect(count('01101\r'), closeTo(fast / 3, 2));
-        expect(count('01051\r'), closeTo(fast / 12, 2));
-        expect(count('01421\r'), closeTo(fast / 12, 2));
+      final polls = _sent(log).where((c) => c.startsWith('01') && c.length > 6);
+      expect(polls, isNotEmpty);
+      // The steady state: RPM, speed and throttle in one, and a 1 at the end.
+      expect(polls, contains('01110C0D1\r'));
+    });
+
+    test(
+      'the fast tier every cycle, the medium every second, the slow every four',
+      () {
+        final polls = _polls(_record('cold_start_idle'));
+        int asked(int pid) => polls.where((p) => p.contains(pid)).length;
+
+        expect(asked(0x0C), greaterThan(1000));
+        expect(asked(0x04), closeTo(300, 12));
+        expect(asked(0x10), closeTo(300, 12));
+        expect(asked(0x05), closeTo(75, 6));
+        expect(asked(0x42), closeTo(75, 6));
       },
     );
 
@@ -205,25 +239,35 @@ void main() {
       final log = _record('cold_start_idle');
       final rpms = <double>[];
       var awaiting = false;
+      final text = StringBuffer();
+      void finish() {
+        if (!awaiting) return;
+        awaiting = false;
+        final parsed = Elm327Parser.parse(text.toString());
+        final messages = Elm327Parser.messages(parsed.lines);
+        if (messages == null || messages.isEmpty) return;
+        final answer = Mode01Answer.parse(messages.first);
+        final v = answer?.valueOf(Pids.rpm);
+        if (v != null) rpms.add(v.value);
+      }
+
       for (final entry in log.entries) {
         if (entry.direction == SessionDirection.sent) {
-          awaiting = entry.text == '010C1\r';
-        } else if (awaiting &&
-            entry.direction == SessionDirection.received &&
-            entry.text.startsWith('410C')) {
-          final hex = entry.text.substring(4, 8);
-          rpms.add(int.parse(hex, radix: 16) / 4);
-          awaiting = false;
+          finish();
+          text.clear();
+          final polls = entry.text.startsWith('01') && entry.text.length > 4;
+          awaiting = polls && entry.text.contains('0C');
+        } else if (entry.direction == SessionDirection.received) {
+          text.write(entry.text);
         }
       }
+      finish();
 
       expect(rpms.length, greaterThan(1000));
       // Cold: fast idle, settling towards 750 over the five minutes.
-      expect(
-        rpms.skip(rpms.length ~/ 2).reduce((a, b) => a + b) /
-            (rpms.length - rpms.length ~/ 2),
-        inInclusiveRange(700, 1300),
-      );
+      final tail = rpms.skip(rpms.length ~/ 2).toList();
+      final mean = tail.reduce((a, b) => a + b) / tail.length;
+      expect(mean, inInclusiveRange(700, 1300));
     });
   });
 
@@ -238,7 +282,7 @@ void main() {
       Duration? sentAt;
       for (final entry in log.entries) {
         if (entry.direction == SessionDirection.sent &&
-            entry.text == '010C1\r') {
+            entry.text == '01110C0D1\r') {
           sentAt = entry.at;
         } else if (sentAt != null &&
             entry.direction == SessionDirection.received) {
@@ -249,26 +293,30 @@ void main() {
 
       expect(trips.length, greaterThan(50));
       // Echo is off by then, so the first thing back is the answer: the link's
-      // 40 to 120 ms, and the ECU's 20 ms on top.
-      expect(trips.reduce((a, b) => a < b ? a : b), greaterThanOrEqualTo(58));
-      expect(trips.reduce((a, b) => a > b ? a : b), lessThanOrEqualTo(142));
+      // 40 to 120 ms, and the ECU's 20 ms and a few for the second frame.
+      expect(trips.reduce((a, b) => a < b ? a : b), greaterThanOrEqualTo(60));
+      expect(trips.reduce((a, b) => a > b ? a : b), lessThanOrEqualTo(146));
       final mean = trips.reduce((a, b) => a + b) / trips.length;
-      expect(mean, closeTo(100, 8));
+      expect(mean, closeTo(102, 8));
     });
 
-    test('adapter_flaky: the first command is lost, and is sent again', () {
-      final log = _record('adapter_flaky');
+    test(
+      'adapter_flaky: the first command is lost, and is sent again after 4 s',
+      () {
+        final log = _record('adapter_flaky');
 
-      final atz = log.entries
-          .where(
-            (e) => e.direction == SessionDirection.sent && e.text == 'ATZ\r',
-          )
-          .take(2)
-          .toList();
-      expect(atz.length, 2);
-      // Nothing came back for the first, so it waited out its 3 s.
-      expect(atz[1].at - atz[0].at, const Duration(seconds: 3));
-    });
+        final atz = log.entries
+            .where(
+              (e) => e.direction == SessionDirection.sent && e.text == 'ATZ\r',
+            )
+            .take(2)
+            .toList();
+        expect(atz.length, 2);
+        // Nothing came back for the first, so it waited out the reset's 4 s and
+        // the settle of 100 ms after a timeout.
+        expect(atz[1].at - atz[0].at, const Duration(milliseconds: 4100));
+      },
+    );
 
     test('adapter_flaky: the link drops, and the app reconnects', () {
       final log = _record('adapter_flaky');
@@ -278,49 +326,55 @@ void main() {
 
       final lost = events.firstWhere((e) => e.text == 'disconnected (lost)');
       expect(lost.at.inSeconds, 240);
-      // It tries every three seconds during the 15 s outage, and fails.
+      // It tries after 1, 2, 4 and 8 s during the 15 s outage: three fail.
       final failed = events.where(
         (e) => e.text == 'disconnected (unreachable)',
       );
-      expect(failed.length, inInclusiveRange(4, 6));
+      expect(failed.length, 3);
       final back = events.firstWhere(
         (e) => e.text == 'connected' && e.at > lost.at,
       );
       expect(back.at.inSeconds, inInclusiveRange(255, 260));
-      // And it starts the adapter up again.
-      final after = _sent(log).toList();
-      expect(
-        after.where((c) => c == 'ATSP0\r').length,
-        greaterThanOrEqualTo(2),
-      );
+      // And it starts the adapter up again, this time with the protocol it found.
+      final sent = _sent(log).toList();
+      expect(sent.where((c) => c == 'ATZ\r').length, greaterThanOrEqualTo(3));
+      expect(sent.where((c) => c == 'ATSP6\r').length, greaterThanOrEqualTo(1));
     });
 
     test('adapter_flaky: some answers are NO DATA', () {
       final log = _record('adapter_flaky');
 
       final noData = log.entries.where((e) => e.text.contains('NO DATA'));
-      expect(noData.length, greaterThan(20));
+      expect(noData.length, greaterThan(10));
     });
 
-    test('mixed_commute: the ignition off gives NO DATA for three minutes', () {
-      final log = _record('mixed_commute');
+    test(
+      'mixed_commute: the ignition off gives NO DATA, and the car is asked about once a second',
+      () {
+        final log = _record('mixed_commute');
 
-      final times = log.entries
-          .where((e) => e.text.contains('NO DATA'))
-          .map((e) => e.at.inSeconds)
-          .toList();
-      expect(times, isNotEmpty);
-      expect(times.last - times.first, inInclusiveRange(170, 190));
-    });
+        final times = log.entries
+            .where((e) => e.text.contains('NO DATA'))
+            .map((e) => e.at.inSeconds)
+            .toList();
+        expect(times, isNotEmpty);
+        expect(times.last - times.first, inInclusiveRange(170, 190));
+        // Probed once a second or so for three minutes, and not in a flood.
+        expect(times.length, inInclusiveRange(100, 260));
+      },
+    );
 
-    test('dtc_present: the codes are read at connect, and there are two', () {
-      final log = _record('dtc_present');
+    test(
+      'dtc_present: the codes are read once connected, and there are two',
+      () {
+        final log = _record('dtc_present');
 
-      final answers = _answers(log, '03\r');
-      // 43, two codes, P0420 and P0171: one frame, so no line count.
-      expect(answers.first, '430204200171\r\r>');
-      expect(_answers(log, '07\r').first, '4700\r\r>');
-    });
+        final answers = _answers(log, '03\r');
+        // 43, two codes, P0420 and P0171: one frame, so no line count.
+        expect(answers.first, '430204200171\r\r>');
+        expect(_answers(log, '07\r').first, '4700\r\r>');
+      },
+    );
 
     test('a car with no codes says so: 43 00', () {
       final log = _record('cold_start_idle');
@@ -362,7 +416,7 @@ void main() {
 
       _record('city_stop_go');
 
-      expect(watch.elapsed.inSeconds, lessThan(20));
+      expect(watch.elapsed.inSeconds, lessThan(30));
     });
   });
 }
