@@ -21,3 +21,4 @@ screen at 2x) unless it says otherwise. `tool/build_frame.sh` adds one.
 | 14 | [014-shift-horizon.jpg](frames/014-shift-horizon.jpg) | `21e2a7a` | The shift horizon: 24-segment-per-side light bar converging to the centre, accent to caution to critical by position |
 | 15 | [015-bar-gauge.jpg](frames/015-bar-gauge.jpg) | `21e2a7a` | The vertical bar gauge: an accent.deep to accent.core fill, the etched normal band, a bright leading-edge line |
 | 16 | [016-telemetry-tile.jpg](frames/016-telemetry-tile.jpg) | `1ace648` | The telemetry tile: bracket frame, rolling value, a 60 s sparkline at 2 Hz, brackets tinting caution live as rpm crosses the threshold |
+| 17 | [017-eco-bar.jpg](frames/017-eco-bar.jpg) | `72b91b3` | The eco bar: a glowing puck centred on the car's own average km/L, moving right when more efficient, left when thirstier. |
