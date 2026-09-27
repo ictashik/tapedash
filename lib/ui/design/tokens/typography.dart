@@ -67,6 +67,10 @@ abstract final class TapeType {
   /// Where a digit's ink starts above the baseline, in em, overshoot included.
   static const double digitAboveBaselineEm = 0.696;
 
+  /// How far apart the digits of a rolling column are, in em: a little more than
+  /// a digit is tall, so that two digits passing each other do not touch.
+  static const double digitPitchEm = 0.95;
+
   /// Instrument labels are tracked out by 12% of their size (DESIGN.md 4.5).
   static const double labelTracking = 0.12;
 

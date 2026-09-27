@@ -7,6 +7,7 @@ import '../../../core/observable.dart';
 import '../../../vehicle/reading.dart';
 import '../tokens/motion_tokens.dart';
 import 'motion_clock.dart';
+import 'numeral_source.dart';
 import 'spring_value.dart';
 
 /// The last three steps of the smoothing pipeline that turns live data into
@@ -32,7 +33,8 @@ import 'spring_value.dart';
 /// It is a [Listenable] that tells its painters only when the value or the
 /// staleness has changed, and it asks the clock for frames only while there is
 /// something to do.
-class SmoothedSignal extends ChangeNotifier implements MotionDriven {
+class SmoothedSignal extends ChangeNotifier
+    implements MotionDriven, NumeralSource {
   SmoothedSignal({
     required this.motion,
     required this.clock,
@@ -89,6 +91,7 @@ class SmoothedSignal extends ChangeNotifier implements MotionDriven {
       lead < Duration.zero ? Duration.zero : (lead > maxLead ? maxLead : lead);
 
   /// The displayed value: on its spring, towards the latest sample.
+  @override
   double get value => _spring.value;
 
   /// How fast the displayed value is moving, in units per second.
@@ -106,9 +109,11 @@ class SmoothedSignal extends ChangeNotifier implements MotionDriven {
   bool get isNoisy => _flips >= 2;
 
   /// Whether there has been a reading yet. Until then there is nothing to show.
+  @override
   bool get hasValue => _last != null;
 
   /// 0 for a fresh value, rising to 1 as a stale value fades to its dim colour.
+  @override
   double get staleness => _staleness;
 
   /// Whether the value is stale now: nothing has arrived for [staleAfter].

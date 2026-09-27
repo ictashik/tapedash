@@ -47,6 +47,10 @@ abstract final class TapeColors {
   /// Needle cores and peak highlights only.
   static const Color inkHot = Color(0xFFFFFFFF);
 
+  /// The white that atlases and sprites are drawn in, before a colour role tints
+  /// them. It is not a colour anything is shown in.
+  static const Color spriteWhite = Color(0xFFFFFFFF);
+
   // Money. Champagne is the colour of money and is used for nothing else.
 
   static const Color moneyCore = Color(0xFFF3CF86);
