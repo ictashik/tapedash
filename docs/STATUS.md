@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-09-27, at the end of phase 2. Phases are in CLAUDE.md 13.
+Updated 2026-09-27, at the end of phase 3a. Phases are in CLAUDE.md 13.
 
 ## Where we are
 
@@ -9,12 +9,13 @@ Updated 2026-09-27, at the end of phase 2. Phases are in CLAUDE.md 13.
 | 0. Foundation | **Done** |
 | 1. Simulator | **Done** |
 | 2. OBD stack on the simulator (tag `v0.1.0-sim`) | **Done** |
-| 3a. Design system (tag `v0.2.0-design`) | Next |
-| 3b to 7 | Not started |
+| 3a. Design system (tag `v0.2.0-design`) | **Done** |
+| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | Next |
+| 4 to 7 | Not started |
 
-**Suggested tag: `v0.1.0-sim`**, on the commit that adds these notes. It has not been created; placing it is your call. Nothing has been pushed, and there is no remote.
+**Suggested tags, neither created:** `v0.1.0-sim` on `d5016d6` (end of phase 2) and `v0.2.0-design` on the commit that adds these notes (end of phase 3a). Placing them is your call. Nothing has been pushed, and there is no remote.
 
-There is still nothing to see: the app is one `void` canvas. Phase 2 is headless too, and the first real visuals arrive in phase 3a. Phases 0 and 1 are summarised in `docs/DECISIONS.md` and in the git history.
+There is something to see now: the app boots onto the `void` canvas with real grain and a vignette, and a dev button opens the Design Lab, a gallery of every component built so far in every livery and mode, running on the API 24 emulator with no exceptions. There is still no Drive page and no Strip; those are phase 3b. The design review package for this phase, with device screenshots and the two real bugs its own tests found, is `docs/design-review/phase-3a/`. Phases 0 to 2 are summarised in `docs/DECISIONS.md` and in the git history; phase 3a's design decisions are appended to the same file, below the phase 2 sections.
 
 ## Phase 2: what exists
 
@@ -111,13 +112,52 @@ To copy into `docs/HARDWARE_HANDOFF.md` when phase 6 writes it:
 - **Check the outlier limits against a real car:** a rev-blip must not be rejected as impossible (`VehicleState.rejectedReadings`).
 - **Compare the simulator's fuel figures with a real fill-up,** and tune the profile from real PID 5E, MAF and MAP readings.
 
-## Next: phase 3a, the design system (tag `v0.2.0-design`)
+## Phase 3a: what exists
 
-Fonts bundled and subset (with ₹ coverage checked), tokens, liveries, Daylight and Night modes, `TapeTheme`; `MotionClock`, spring tokens, the smoothing pipeline, phosphor and the detented odometer; the glyph atlas, glow cache, static layers, grain, seven-segment renderer, chamfer shapes and icon set; fidelity tier detection and the governor; the Design Lab with capture-all, driven by the simulator; the design lint, spring, odometer and phosphor tests; and a design review package covering components and motion only (CLAUDE.md 13, DESIGN.md 14.4).
+Everything under `lib/ui/design/`, plus `lib/ui/lab/design_lab.dart` and the app shell. Full detail, deviations and open questions are in `docs/design-review/phase-3a/README.md`; this is the inventory.
 
-What it starts from, because phase 2 already does it:
+| Piece | Where | Checked by |
+|---|---|---|
+| Fonts: Saira (variable), Barlow, Barlow Semi Condensed, all SIL OFL 1.1, subset from a pinned `google/fonts` commit, verified by SHA-256, 333 KB total | `assets/fonts/`, `tool/subset_fonts.sh` | 11 tests on the files themselves (coverage, licence, size) |
+| Colour, livery, type, spacing, stroke, shape, glow, opacity and motion tokens — every value from DESIGN.md 4–5 | `lib/ui/design/tokens/` | 40 tests, value by value against the spec |
+| `TapePalette`: a livery resolved in a mode, so Daylight and Night's rules live in one place; `ModeController` follows ambient light with the spec's thresholds and dwell; `Contrast` for WCAG ratios | `lib/ui/design/theme/` | 85 tests, including every livery x every mode against DESIGN.md 11's contrast rules |
+| `MotionClock` (virtual time, 50 ms frame clamp, `timeDilation`, zero cost at rest), `SpringValue` (retargets an analytic simulation from position and velocity), `PhosphorBank`, `OdometerLayout` (detent and carries), `SmoothedSignal` (lead compensation, spring, 1.5 s stale fade), `Timeline` | `lib/ui/design/motion/` | 190 tests: needle overshoot and settle time, no NaN, phosphor decay within 5%, the ones column identical for 7/77/107 |
+| Glyph atlas and seven-segment atlas (`drawRawAtlas` from preallocated buffers), glow-sprite cache, grain tile, VFD mesh, `Chamfer`, pixel snapping, `StaticLayer` | `lib/ui/design/render/` | 65 tests, plus device screenshots |
+| The 27-glyph icon set, path strings on a 24-unit grid | `lib/ui/design/icons/icons.dart` | 12 tests: the required set, everything inside the grid, every line an axis or 45° |
+| `TierDetector`, `TierGovernor`, `FrameProbe`, the fps cap on `MotionClock` | `lib/ui/design/fidelity/` | 37 tests |
+| `RollingNumerals`/`SairaNumerals`, `SevenSegmentNumerals`, the chamfer button, toggle, segmented selector, slider, list row, `TouchBloom`, `TapeBackdrop` | `lib/ui/design/components/` | 85 widget tests rendering and reading real pixels |
+| The design lint: no Material widgets, no colour/text-style/duration/spring literal outside `tokens/`, covering `lib/ui` and the app shell file | `test/design/design_lint_test.dart` | 33 tests, including on planted violations |
+| Design Lab: numerals/controls/icons tabs, livery/mode/tier/driving/driver-side/reduce-motion/slow-motion/aspect-frame switchers, a frame-timing graph, capture-all | `lib/ui/lab/design_lab.dart` | 8 widget tests; exercised live on the API 24 emulator (screenshots in the review package) |
+| App shell: fonts awaited before the first frame, the void canvas, the dev button into the Lab | `lib/app/app.dart`, `lib/main.dart` | 2 widget tests, 2 integration tests (real device) |
+| `DemoDrive`, `DataSource`/`DemoControl`: a looping simulated drive into a `VehicleState`, for 3b to read | `lib/app/demo_drive.dart`, `lib/ui/dev/` | compiles; not yet exercised, since nothing reads it (see the review package) |
 
-- `VehicleState` gives each reading as a value, the time it was measured (stamped at the middle of its round trip, DESIGN.md 5.2 step 1) and the time it arrived, after the outlier check (step 2), and says when a value is stale. Steps 3 to 5, the lead compensation, the spring and the render, are the UI's, and the lead is tuned after the hardware handoff.
-- Everything it exposes is an `Observable`, which the UI can listen to without rebuilding widgets (DESIGN.md 9.3), and the Design Lab can be driven by `SimulatedCar` the same way as the app will be.
+Numbers: **2,014 tests** (1,499 at the end of phase 2), about 30 seconds for all of them, plus 2 integration tests run on a real API 24 emulator. About 17,500 lines under `lib/`, 29,200 under `test/`, 1,400 under `tool/`. No dependency was added; the APK grew by the 333 KB of fonts plus the design system's own code, and is still well under budget: **12.0 MB (armeabi-v7a), 14.8 MB (arm64-v8a)**, both checked with `tool/check_apk_size.sh` against a real `--split-per-abi --release` build.
 
-What it needs from outside: the font files (Saira, Barlow and Barlow Semi Condensed, all OFL), fetched at development time from their upstream or supplied by you, and fonttools to subset them. Neither ships in the app. This is the first phase that produces something to look at, so it ends with the design review package, which is the only way you review the design (CLAUDE.md 1).
+Two real bugs were found by writing the Lab's own tests and are already fixed: the aspect-frame switcher did nothing until it was wired to actually letterbox the capture area, and `capture-all`'s image renderer needed to be made injectable after `RenderRepaintBoundary.toImage()` was found to hang under `flutter_test` when a `tester.pump()` shares its `runAsync` block (a framework quirk, not an app bug; recorded in the shell-quirks memory). Both are in the review package's README under "What nearly shipped broken."
+
+## What has not been verified (phase 3a)
+
+- **No golden-image tests yet** (DESIGN.md 14.1's matrix, every page x livery x mode). There are no pages until phase 3b; pixel-level assertions on components stand in for now.
+- **No frame-timing numbers from a demo drive** (DESIGN.md 9.4, CLAUDE.md 10 layer 5). There is no Drive page to profile. `docs/design-review/phase-3a/perf.md` says exactly what was and was not measured, and on what hardware (an emulator, not the reference device).
+- **`DemoDrive` has not been exercised against a screen.** It compiles; the phase-2 code underneath it is already proven; the new looping-restart logic has no test of its own until phase 3b wires it to something.
+- **The screen recording is not one.** `adb shell screenrecord` fails on the API 24 image (`Encoder failed`, already known per `DEV_SETUP.md`); the video in the review package is a still-frame sequence, said so plainly there.
+- **Only EMBER's Daylight and Night were checked by eye on a device;** the other three liveries were checked by the automated contrast tests only.
+
+## Known issues and notes (phase 3a)
+
+- **The capture-all sink writes to the system temp directory,** not real app storage — there is no device-feature decision for one yet (CLAUDE.md 5). Fine for now since the Lab is dev-only; noted as an open question in the review package for when store screenshots (DESIGN.md 12) are wanted.
+- **The dev button, not the debug overlay, opens the Lab.** CLAUDE.md 9's long-press debug overlay does not exist yet. The button matches its intended reachability rule (debug/profile builds, or `--dart-define=TAPEDASH_DEV=true`), and is an open question for whether it moves behind the overlay once that exists.
+- **The design lint covers `lib/ui` and `lib/app/app.dart` only,** not all of `lib/app`: service wiring like `demo_drive.dart`'s poll-loop interval is not part of the design system.
+
+## Next: phase 3b, cockpit and HUD (tag `v0.3.0-sim`)
+
+Components: tach arc, tapes, shift horizon, bar gauges, telemetry tiles, eco bar, money readout and the Money Tape, status strip, alerts, road view. The Strip navigation, Motion <-> Parked, the five Drive clusters, ignition and shutdown sequences, connection states. HUD layouts, flips, the alignment pattern. Demo Mode (wiring `DemoDrive` to a real screen), onboarding with the cold open and demo path, and the brand (icon, launch theme, wordmark). Layer 4 and 4b tests; a design review package (CLAUDE.md 13).
+
+What it starts from, because phase 3a already does it:
+
+- Every component it needs a base for exists and is in the Lab: numerals in both faces, the controls, the icon set, the motion core, the render primitives, the fidelity system.
+- `TapeTheme`, `TapePalette` and `ModeController` are ready for a real page to read.
+- `DemoDrive` and the `DataSource`/`DemoControl` interfaces are ready to wire to Drive, so pages never need to know whether Demo Mode or a real adapter is behind the `VehicleState` they read.
+- `VehicleState` gives each reading as a value, the time it was measured (stamped at the middle of its round trip, DESIGN.md 5.2 step 1) and the time it arrived, after the outlier check (step 2), and says when a value is stale. `SmoothedSignal` (phase 3a) does the rest of the pipeline, steps 3 to 5.
+
+This is the phase the tach arc, the Strip and the first live cluster arrive in, so it ends with a design review package covering real driving screens, not just components (CLAUDE.md 13, DESIGN.md 14.4).

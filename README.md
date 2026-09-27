@@ -10,11 +10,13 @@ The whole idea: buy an ELM327, plug it into the OBD port, stick an old phone to 
 
 ## Status
 
-Pre-alpha. **Phases 0 (foundation), 1 (the simulator) and 2 (the OBD stack on the simulator) are done**; the design system is next. There is nothing to see in the app yet. Nothing has been tried on a real car, and nothing has been checked against a real ELM327 adapter. The plan is to build and test everything against a built-in vehicle simulator first, and to connect real hardware only after every simulator test passes. The roadmap is in [CLAUDE.md](CLAUDE.md) section 13.
+Pre-alpha. **Phases 0 (foundation), 1 (the simulator), 2 (the OBD stack on the simulator) and 3a (the design system) are done**; the cockpit and HUD are next. There is no Drive page yet, but the design system is real and running: the app boots onto the void canvas with a dev button into the Design Lab, a gallery of the components built so far (rolling numerals in Saira and as VFD seven-segments, the chamfer button, toggle, segmented selector, slider, list row, the 27-glyph icon set) in every livery and mode, tried on a real Android 7.0 emulator. See [docs/design-review/phase-3a/](docs/design-review/phase-3a/) for screenshots and what was and wasn't verified. Nothing has been tried on a real car, and nothing has been checked against a real ELM327 adapter. The plan is to build and test everything against a built-in vehicle simulator first, and to connect real hardware only after every simulator test passes. The roadmap is in [CLAUDE.md](CLAUDE.md) section 13.
 
 The simulator is a physical car, a scripted driver, an ELM327 adapter that prints byte-accurate text, a GPS, and a set of adapter faults, all pure Dart. `dart run tool/sim_server.dart` serves it over TCP, and `dart run tool/record_sim.dart` records a drive as a replayable session log.
 
 On top of it sits the OBD stack, also pure Dart: an ELM327 client and start-up, PID decoders, a poller with tiers and batching, fault codes, a session that reconnects, and a vehicle state that checks and smooths what it reads. In tests it reads a whole simulated drive in seconds and compares the result with the simulator's ground truth.
+
+The design system turns that data into an instrument: tokens for every colour, spring and typeface (DESIGN.md 4–5); a motion core built on one shared vsync clock, so numerals roll with a detented mechanical feel and nothing snaps or jumps; a glyph atlas and a seven-segment renderer for the VFD livery, both drawn with batched `drawAtlas` calls rather than per-frame text layout; and a fidelity system that picks and governs how much of it a phone can afford. All of it lives in the Design Lab before it composes into a real screen.
 
 ## Principles
 
@@ -34,6 +36,7 @@ TapeDash is an aid, not a certified instrument. Set it up while parked. It is de
 - [docs/STATUS.md](docs/STATUS.md): where the project is, and what has and has not been verified.
 - [docs/DEV_SETUP.md](docs/DEV_SETUP.md): toolchain, building, and running on emulators and phones.
 - [docs/DECISIONS.md](docs/DECISIONS.md): the choices made so far, and why.
+- [docs/design-review/](docs/design-review/): what each UI phase looked like, with screenshots, and what was and wasn't verified (CLAUDE.md 1).
 
 ## Building
 
