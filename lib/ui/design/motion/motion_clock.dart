@@ -37,6 +37,12 @@ abstract class MotionClock {
 
   void detach(MotionDriven driven);
 
+  /// Holds the clock to at most [fps] frames a second, or lifts the limit with
+  /// null. The fidelity governor uses it for the 30 fps fallback (DESIGN.md 9.1).
+  /// Motion carries on at its true speed, in coarser steps.
+  set maxFps(int? fps);
+  int? get maxFps;
+
   /// Stops ticking and lets go of everything.
   void dispose();
 }
@@ -46,6 +52,16 @@ abstract class _SteppedClock extends MotionClock {
   final List<MotionDriven> _driven = [];
   Duration _now = Duration.zero;
   bool _stepping = false;
+  int? _maxFps;
+
+  @override
+  int? get maxFps => _maxFps;
+
+  @override
+  set maxFps(int? fps) {
+    assert(fps == null || fps > 0);
+    _maxFps = fps;
+  }
 
   @override
   Duration get now => _now;
@@ -125,6 +141,13 @@ class VsyncMotionClock extends _SteppedClock {
 
   void _onTick(Duration elapsed) {
     final seconds = (elapsed - _last).inMicroseconds / 1e6;
+    final cap = _maxFps;
+    if (cap != null) {
+      // Wait until enough time has passed for a frame at the cap, then step by
+      // all of it. A tick a little early is let through, since vsync ticks are
+      // never exactly a frame apart.
+      if (seconds < (1 / cap) * 0.9) return;
+    }
     _last = elapsed;
     step(seconds);
   }

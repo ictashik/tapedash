@@ -112,6 +112,14 @@ abstract final class TapeMotion {
   /// comes on or goes off (DESIGN.md 4.4).
   static const Duration modeDwell = Duration(seconds: 10);
 
+  /// The runtime governor steps a tier down when the 90th percentile frame has
+  /// been over budget for 5 s, judged second by second over the last second of
+  /// frames, and shows the step as a 400 ms crossfade (DESIGN.md 9.2). A window
+  /// longer than a second would keep counting a bad stretch after it had ended.
+  static const Duration governorOverBudget = Duration(seconds: 5);
+  static const Duration governorWindow = Duration(seconds: 1);
+  static const Duration tierCrossfade = Duration(milliseconds: 400);
+
   /// Nothing may flash faster than this (DESIGN.md 11).
   static const double maxFlashHz = 3;
 
