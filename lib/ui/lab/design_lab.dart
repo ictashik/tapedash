@@ -59,13 +59,39 @@ typedef CaptureSink = Future<void> Function(String filename, Uint8List png);
 /// launch flag (CLAUDE.md 9, DESIGN.md 13.2) — for now, from the dev button on the
 /// void screen, since the Strip and its pages arrive in phase 3b.
 class DesignLab extends StatefulWidget {
-  const DesignLab({super.key, this.onClose, this.captureSink});
+  const DesignLab({
+    super.key,
+    this.onClose,
+    this.captureSink,
+    this.captureRenderer,
+  });
 
   final VoidCallback? onClose;
 
   /// Where "capture all" writes. Defaults to the app's temporary directory; see
   /// [defaultCaptureSink].
   final CaptureSink? captureSink;
+
+  /// Turns the captured widget key into PNG bytes. Defaults to
+  /// [renderKeyToPng], the real rasteriser; a test gives its own, since driving
+  /// `RenderRepaintBoundary.toImage` through repeated frame pumps in the same
+  /// `tester.runAsync` block the sweep uses does not settle under
+  /// `flutter_test` (a framework limitation, not a claim about the real
+  /// renderer, which the design review package's device captures exercise
+  /// directly).
+  final Future<Uint8List?> Function(GlobalKey key)? captureRenderer;
+
+  /// Rasterises whatever [key]'s `RepaintBoundary` holds to PNG bytes, or null
+  /// if it is not attached.
+  static Future<Uint8List?> renderKeyToPng(GlobalKey key) async {
+    final boundary =
+        key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    if (boundary == null) return null;
+    final image = await boundary.toImage(pixelRatio: 2);
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    return data?.buffer.asUint8List();
+  }
 
   /// Writes [png] to `<system temp>/tapedash-lab/<filename>.png`.
   ///
@@ -175,6 +201,7 @@ class _DesignLabState extends State<DesignLab> {
       _captureStatus = 'Capturing…';
     });
     final sink = widget.captureSink ?? DesignLab.defaultCaptureSink;
+    final render = widget.captureRenderer ?? DesignLab.renderKeyToPng;
     var count = 0;
     final savedLivery = _settings.livery;
     final savedMode = _settings.modeSetting;
@@ -194,7 +221,7 @@ class _DesignLabState extends State<DesignLab> {
             });
             await WidgetsBinding.instance.endOfFrame;
             await WidgetsBinding.instance.endOfFrame;
-            final png = await _renderKeyToPng(_captureKey);
+            final png = await render(_captureKey);
             if (png != null) {
               await sink(LabCapture(tab, livery, mode).filename, png);
               count++;
@@ -211,16 +238,6 @@ class _DesignLabState extends State<DesignLab> {
         _capturing = false;
       });
     }
-  }
-
-  Future<Uint8List?> _renderKeyToPng(GlobalKey key) async {
-    final boundary =
-        key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-    if (boundary == null) return null;
-    final image = await boundary.toImage(pixelRatio: 2);
-    final data = await image.toByteData(format: ui.ImageByteFormat.png);
-    image.dispose();
-    return data?.buffer.asUint8List();
   }
 
   @override
@@ -241,13 +258,30 @@ class _DesignLabState extends State<DesignLab> {
               children: [
                 _topBar(theme),
                 Expanded(
-                  child: RepaintBoundary(
-                    key: _captureKey,
-                    child: ColoredBox(
-                      color: theme.palette.canvas,
-                      child: _tabContent(theme),
-                    ),
-                  ),
+                  // A chosen aspect frame (DESIGN.md 13.2) letterboxes the
+                  // gallery so a component can be checked at 18:9 or 20:9
+                  // without the phone itself being that shape. Native fills
+                  // the space, with no frame imposed.
+                  child: _settings.frame.ratio == null
+                      ? RepaintBoundary(
+                          key: _captureKey,
+                          child: ColoredBox(
+                            color: theme.palette.canvas,
+                            child: _tabContent(theme),
+                          ),
+                        )
+                      : Center(
+                          child: AspectRatio(
+                            aspectRatio: _settings.frame.ratio!,
+                            child: RepaintBoundary(
+                              key: _captureKey,
+                              child: ColoredBox(
+                                color: theme.palette.canvas,
+                                child: _tabContent(theme),
+                              ),
+                            ),
+                          ),
+                        ),
                 ),
                 _bottomBar(theme),
                 if (_settings.showFrameGraph) _frameGraph(theme),
