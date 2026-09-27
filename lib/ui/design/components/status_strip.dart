@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
@@ -10,6 +9,7 @@ import '../motion/motion_scope.dart';
 import '../render/chamfer.dart';
 import '../theme/palette.dart';
 import '../theme/tape_theme.dart';
+import '../tokens/motion_tokens.dart';
 import '../tokens/opacity.dart';
 import '../tokens/status_strip.dart';
 import '../tokens/strokes.dart';
@@ -112,10 +112,10 @@ class StatusStripLeftState extends State<StatusStripLeft>
   double pulseAlpha() => pulseAlphaAt(_phase);
 
   static double pulseAlphaAt(double phaseSeconds) {
-    final t =
-        (math.sin(2 * math.pi * TapeStatusStrip.searchPulseHz * phaseSeconds) +
-            1) /
-        2;
+    final t = TapeMotion.pulseShare(
+      phaseSeconds,
+      TapeStatusStrip.searchPulseHz,
+    );
     return TapeStatusStrip.searchPulseAlphaMin +
         (TapeStatusStrip.searchPulseAlphaMax -
                 TapeStatusStrip.searchPulseAlphaMin) *

@@ -128,6 +128,15 @@ abstract final class TapeMotion {
   /// Nothing may flash faster than this (DESIGN.md 11).
   static const double maxFlashHz = 3;
 
+  /// A smooth 0-to-1 breathing pulse at [hz], for the components that
+  /// "pulse" or "breathe" rather than hard-flash: the status strip's
+  /// searching adapter at 0.5 Hz, an alert's critical bracket at 1 Hz. Both
+  /// are well under [maxFlashHz], which bounds a hard on/off flash (the
+  /// shift horizon's redline) -- a different, sharper kind of motion this
+  /// sine does not produce.
+  static double pulseShare(double phaseSeconds, double hz) =>
+      (math.sin(2 * math.pi * hz * phaseSeconds) + 1) / 2;
+
   /// Burn-in protection (DESIGN.md 4.1): the whole cluster drifts by up to this
   /// many logical pixels, one step of a 3x3 cycle every 3 minutes, eased over
   /// 8 s.
