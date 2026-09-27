@@ -105,6 +105,10 @@ abstract final class TapeMotion {
   static const Duration peakHold = Duration(seconds: 3);
   static const Duration peakFade = Duration(seconds: 1);
 
+  /// How long ambient light must stay past a threshold before Daylight or Night
+  /// comes on or goes off (DESIGN.md 4.4).
+  static const Duration modeDwell = Duration(seconds: 10);
+
   /// Nothing may flash faster than this (DESIGN.md 11).
   static const double maxFlashHz = 3;
 
