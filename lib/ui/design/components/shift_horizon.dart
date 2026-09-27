@@ -305,5 +305,9 @@ class ShiftHorizonPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(ShiftHorizonPainter old) =>
-      old.palette != palette || old.glow != glow;
+      old.palette != palette ||
+      old.glow != glow ||
+      // As TachArc's painter: catch a swapped rpm signal even before its own
+      // `repaint:` listenable next notifies.
+      !identical(old.state.widget.rpm, state.widget.rpm);
 }

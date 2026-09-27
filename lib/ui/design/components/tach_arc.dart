@@ -489,7 +489,11 @@ class TachPainter extends CustomPainter {
   bool shouldRepaint(TachPainter old) =>
       old.palette != palette ||
       old.glow != glow ||
-      old.devicePixelRatio != devicePixelRatio;
+      old.devicePixelRatio != devicePixelRatio ||
+      // A caller that swaps in a new rpm signal (a rebuild recreating its
+      // inputs, or a test) needs a repaint even before that object's own
+      // `repaint:` listenable next notifies.
+      !identical(old.state.widget.rpm, state.widget.rpm);
 }
 
 /// How much of a segment's angular slot is filled (DESIGN.md 6.2): kept as its

@@ -18,3 +18,5 @@ screen at 2x) unless it says otherwise. `tool/build_frame.sh` adds one.
 | 11 | [011-lab-controls-device.jpg](frames/011-lab-controls-device.jpg) | `62fb1bb` | The Design Lab's controls tab on device: the chamfer button, the toggle mid-glow, the segmented selector |
 | 12 | [012-lab-aspect-frame-device.jpg](frames/012-lab-aspect-frame-device.jpg) | `62fb1bb` | The aspect-frame switcher actually letterboxing to 20:9 on device, after a bug the Lab's own tests caught |
 | 13 | [013-tach-arc.jpg](frames/013-tach-arc.jpg) | `d65614a` | The tach arc: chamfered segments, a light-blade needle, the redline zone in critical red past 6,500 rpm |
+| 14 | [014-shift-horizon.jpg](frames/014-shift-horizon.jpg) | `21e2a7a` | The shift horizon: 24-segment-per-side light bar converging to the centre, accent to caution to critical by position |
+| 15 | [015-bar-gauge.jpg](frames/015-bar-gauge.jpg) | `21e2a7a` | The vertical bar gauge: an accent.deep to accent.core fill, the etched normal band, a bright leading-edge line |
