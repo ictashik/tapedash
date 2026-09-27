@@ -13,3 +13,7 @@ screen at 2x) unless it says otherwise. `tool/build_frame.sh` adds one.
 | 6 | [006-mode-daylight.jpg](frames/006-mode-daylight.jpg) | `e5e107a` | Daylight mode on EMBER: halos off, and the numerals switch to ink.bright because the accent is under 10:1 |
 | 7 | [007-mode-night.jpg](frames/007-mode-night.jpg) | `e5e107a` | Night mode on EMBER: halos halved |
 | 8 | [008-icon-set.jpg](frames/008-icon-set.jpg) | `e5e107a` | The icon set: 27 glyphs drawn in code on a 24-unit grid, lines along an axis or at 45 degrees, circles the only curve |
+| 9 | [009-app-shell-device.jpg](frames/009-app-shell-device.jpg) | `62fb1bb` | The app, for real: on the API 24 emulator, the void canvas with grain, and the one way in until phase 3b's Strip exists |
+| 10 | [010-lab-numerals-device.jpg](frames/010-lab-numerals-device.jpg) | `62fb1bb` | The Design Lab, on device: numerals tab, real halos, real grain, the livery and mode switchers live |
+| 11 | [011-lab-controls-device.jpg](frames/011-lab-controls-device.jpg) | `62fb1bb` | The Design Lab's controls tab on device: the chamfer button, the toggle mid-glow, the segmented selector |
+| 12 | [012-lab-aspect-frame-device.jpg](frames/012-lab-aspect-frame-device.jpg) | `62fb1bb` | The aspect-frame switcher actually letterboxing to 20:9 on device, after a bug the Lab's own tests caught |
