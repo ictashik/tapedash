@@ -21,6 +21,9 @@ abstract final class TapeShape {
   static const double toggleWidth = 48;
   static const double toggleHeight = 26;
 
+  /// The touch bloom's radius at full size (DESIGN.md 6.16).
+  static const double touchBloomRadius = 56;
+
   /// The tach's segments fill this share of their angular slot (DESIGN.md 6.2).
   static const double segmentFill = 0.70;
 
