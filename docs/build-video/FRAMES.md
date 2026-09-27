@@ -23,3 +23,4 @@ screen at 2x) unless it says otherwise. `tool/build_frame.sh` adds one.
 | 16 | [016-telemetry-tile.jpg](frames/016-telemetry-tile.jpg) | `1ace648` | The telemetry tile: bracket frame, rolling value, a 60 s sparkline at 2 Hz, brackets tinting caution live as rpm crosses the threshold |
 | 17 | [017-eco-bar.jpg](frames/017-eco-bar.jpg) | `72b91b3` | The eco bar: a glowing puck centred on the car's own average km/L, moving right when more efficient, left when thirstier. |
 | 18 | [018-status-strip.jpg](frames/018-status-strip.jpg) | `04a9cb7` | The status strip: the adapter glyph turns caution and gains a caption once parked -- SEARCHING pulses at 0.5 Hz while connecting. |
+| 19 | [019-alerts.jpg](frames/019-alerts.jpg) | `944ff41` | A critical alert: the coolant gauge itself turns critical, and a chamfered bracket pulses at 1 Hz around it. |
