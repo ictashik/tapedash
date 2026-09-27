@@ -231,12 +231,15 @@ class Elm327Client {
   /// the adapter finish as soon as they are in, where otherwise it waits out
   /// its timeout for more. [expectPrefix] is the start of the answer that this
   /// request is for, such as `[0x41, 0x0C]`: an answer that does not start
-  /// with it is skipped as belonging to some other request.
+  /// with it is skipped as belonging to some other request. [acceptPrefixes]
+  /// says the same for a request that has more than one kind of answer, such as
+  /// a positive reply and a negative one.
   void request(
     List<int> bytes,
     void Function(Elm327Reply reply) done, {
     int? responses,
     List<int>? expectPrefix,
+    List<List<int>>? acceptPrefixes,
     Duration? timeout,
   }) {
     final hex = [
@@ -249,7 +252,7 @@ class Elm327Client {
             : '$hex${responses.toRadixString(16).toUpperCase()}',
         timeout: timeout ?? timing.requestTimeout,
         isRequest: true,
-        expectPrefix: expectPrefix,
+        prefixes: [?expectPrefix, ...?acceptPrefixes],
         expected: responses != null && responses > 0 ? responses : null,
         done: done,
       ),
@@ -378,11 +381,10 @@ class Elm327Client {
   /// The messages that start with what the job expects.
   List<List<int>> _matching(_Job job, List<List<int>>? messages) {
     if (messages == null) return const [];
-    final prefix = job.expectPrefix;
-    if (prefix == null) return messages;
+    if (job.prefixes.isEmpty) return messages;
     return [
       for (final m in messages)
-        if (_startsWith(m, prefix)) m,
+        if (job.prefixes.any((prefix) => _startsWith(m, prefix))) m,
     ];
   }
 
@@ -530,14 +532,16 @@ class _Job {
     required this.timeout,
     required this.isRequest,
     required this.done,
-    this.expectPrefix,
+    this.prefixes = const [],
     this.expected,
   });
 
   final String text;
   final Duration timeout;
   final bool isRequest;
-  final List<int>? expectPrefix;
+
+  /// The starts an answer may have: none means any answer will do.
+  final List<List<int>> prefixes;
   final int? expected;
   final void Function(Elm327Reply reply) done;
 }

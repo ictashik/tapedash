@@ -667,6 +667,63 @@ void main() {
       },
     );
 
+    test(
+      'several kinds of answer can be accepted, and the rest are skipped',
+      () {
+        final rig = _Rig();
+        addTearDown(rig.close);
+        rig.client.request(
+          [0x04],
+          rig.replies.add,
+          acceptPrefixes: [
+            [0x44],
+            [0x7F, 0x04],
+          ],
+        );
+
+        rig.transport.receive('41 0C 1A F8\r\r>');
+        expect(rig.replies, isEmpty, reason: 'a poll reply is neither');
+        rig.transport.receive('7F 04 22\r\r>');
+
+        expect(rig.last.messages.single, [0x7F, 0x04, 0x22]);
+        expect(rig.client.skippedReplies, 1);
+      },
+    );
+
+    test('the positive kind is accepted too', () {
+      final rig = _Rig();
+      addTearDown(rig.close);
+      rig.client.request(
+        [0x04],
+        rig.replies.add,
+        acceptPrefixes: [
+          [0x44],
+          [0x7F, 0x04],
+        ],
+      );
+
+      rig.transport.receive('44\r\r>');
+
+      expect(rig.last.messages.single, [0x44]);
+    });
+
+    test('an expected prefix and accepted prefixes are both allowed', () {
+      final rig = _Rig();
+      addTearDown(rig.close);
+      rig.client.request(
+        [0x01, 0x0C],
+        rig.replies.add,
+        expectPrefix: [0x41, 0x0C],
+        acceptPrefixes: [
+          [0x7F, 0x01],
+        ],
+      );
+
+      rig.transport.receive('7F 01 12\r\r>');
+
+      expect(rig.last.messages.single, [0x7F, 0x01, 0x12]);
+    });
+
     test('an error is for whichever request is waiting', () {
       final rig = _Rig();
       addTearDown(rig.close);
