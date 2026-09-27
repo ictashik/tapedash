@@ -98,6 +98,9 @@ abstract final class TapeMotion {
   /// out. A glyph half-way between two positions is half faded.
   static const double odometerFadeDistance = 1;
 
+  /// The longest lead compensation allowed (DESIGN.md 5.2).
+  static const Duration maxLead = Duration(milliseconds: 150);
+
   /// The needle's trail is sampled this often (DESIGN.md 6.2).
   static const Duration trailInterval = Duration(milliseconds: 30);
 
