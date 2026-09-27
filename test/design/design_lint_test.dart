@@ -8,8 +8,11 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// Where the rules hold. The app shell composes the UI, so it is held to them too.
-const _linted = ['lib/ui', 'lib/app'];
+/// Where the rules hold. The app shell composes the UI, so it is held to them too;
+/// the rest of lib/app (service wiring such as the demo drive) is not UI and is
+/// not linted.
+const _linted = ['lib/ui'];
+const _lintedFiles = ['lib/app/app.dart'];
 
 /// The one place design constants may be written.
 const _tokens = 'lib/ui/design/tokens/';
@@ -90,62 +93,61 @@ final List<_Rule> _rules = [
 /// Every rule broken under `<root>/lib`, as `path:line: message`.
 List<String> findDesignViolations(Directory root) {
   final violations = <String>[];
-  for (final dir in _linted) {
-    final directory = Directory('${root.path}/$dir');
-    if (!directory.existsSync()) continue;
-    final files =
-        directory
+  final files = <File>[
+    for (final dir in _linted)
+      if (Directory('${root.path}/$dir').existsSync())
+        ...Directory('${root.path}/$dir')
             .listSync(recursive: true)
             .whereType<File>()
-            .where((f) => f.path.endsWith('.dart'))
-            .toList()
-          ..sort((a, b) => a.path.compareTo(b.path));
+            .where((f) => f.path.endsWith('.dart')),
+    for (final path in _lintedFiles)
+      if (File('${root.path}/$path').existsSync()) File('${root.path}/$path'),
+  ]..sort((a, b) => a.path.compareTo(b.path));
 
-    for (final file in files) {
-      final path = file.path.substring(root.path.length + 1);
-      final inTokens = path.startsWith(_tokens);
-      var inBlock = false;
-      final lines = file.readAsLinesSync();
-      for (var i = 0; i < lines.length; i++) {
-        var line = lines[i];
-        // Block comments, then line comments, then the insides of strings.
-        if (inBlock) {
-          final end = line.indexOf('*/');
-          if (end < 0) continue;
-          line = line.substring(end + 2);
-          inBlock = false;
+  for (final file in files) {
+    final path = file.path.substring(root.path.length + 1);
+    final inTokens = path.startsWith(_tokens);
+    var inBlock = false;
+    final lines = file.readAsLinesSync();
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      // Block comments, then line comments, then the insides of strings.
+      if (inBlock) {
+        final end = line.indexOf('*/');
+        if (end < 0) continue;
+        line = line.substring(end + 2);
+        inBlock = false;
+      }
+      while (true) {
+        final start = line.indexOf('/*');
+        if (start < 0) break;
+        final end = line.indexOf('*/', start + 2);
+        if (end < 0) {
+          line = line.substring(0, start);
+          inBlock = true;
+          break;
         }
-        while (true) {
-          final start = line.indexOf('/*');
-          if (start < 0) break;
-          final end = line.indexOf('*/', start + 2);
-          if (end < 0) {
-            line = line.substring(0, start);
-            inBlock = true;
-            break;
-          }
-          line = line.substring(0, start) + line.substring(end + 2);
-        }
-        line = line.replaceFirst(RegExp(r'//.*$'), '');
-        // A Material import is checked on the raw line, since it is a string.
-        final imports = RegExp(
-          r'''^\s*(?:import|export)\s+['"]''',
-        ).hasMatch(line);
-        if (!imports) {
-          line = line.replaceAll(
-            RegExp(
-              r"'(?:\\.|[^'\\])*'|"
-              r'"(?:\\.|[^"\\])*"',
-            ),
-            "''",
-          );
-        }
+        line = line.substring(0, start) + line.substring(end + 2);
+      }
+      line = line.replaceFirst(RegExp(r'//.*$'), '');
+      // A Material import is checked on the raw line, since it is a string.
+      final imports = RegExp(
+        r'''^\s*(?:import|export)\s+['"]''',
+      ).hasMatch(line);
+      if (!imports) {
+        line = line.replaceAll(
+          RegExp(
+            r"'(?:\\.|[^'\\])*'|"
+            r'"(?:\\.|[^"\\])*"',
+          ),
+          "''",
+        );
+      }
 
-        for (final rule in _rules) {
-          if (rule.tokensOnly && inTokens) continue;
-          if (rule.pattern.hasMatch(line)) {
-            violations.add('$path:${i + 1}: ${rule.message}');
-          }
+      for (final rule in _rules) {
+        if (rule.tokensOnly && inTokens) continue;
+        if (rule.pattern.hasMatch(line)) {
+          violations.add('$path:${i + 1}: ${rule.message}');
         }
       }
     }
@@ -154,7 +156,7 @@ List<String> findDesignViolations(Directory root) {
 }
 
 void main() {
-  test('lib/ui and lib/app follow the design rules', () {
+  test('lib/ui and the app shell follow the design rules', () {
     expect(findDesignViolations(Directory.current), isEmpty);
   });
 
@@ -288,14 +290,18 @@ final d = Duration.zero;
       expect(findDesignViolations(root), isEmpty);
     });
 
-    test('holds lib/app to the same rules, and leaves the rest alone', () {
-      write('lib/app/shell.dart', 'final w = Scaffold(body: b);\n');
-      write('lib/sim/x.dart', 'final w = Scaffold(body: b);\n');
+    test(
+      'holds the app shell file to the same rules, and leaves the rest of lib/app alone',
+      () {
+        write('lib/app/app.dart', 'final w = Scaffold(body: b);\n');
+        write('lib/app/demo_drive.dart', 'final w = Scaffold(body: b);\n');
+        write('lib/sim/x.dart', 'final w = Scaffold(body: b);\n');
 
-      expect(findDesignViolations(root), [
-        'lib/app/shell.dart:1: Scaffold is a Material widget, which the design bans (DESIGN.md 13.1)',
-      ]);
-    });
+        expect(findDesignViolations(root), [
+          'lib/app/app.dart:1: Scaffold is a Material widget, which the design bans (DESIGN.md 13.1)',
+        ]);
+      },
+    );
 
     test('reports each violation with its file and line', () {
       write('lib/ui/pages/a.dart', '''

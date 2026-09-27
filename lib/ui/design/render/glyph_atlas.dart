@@ -79,6 +79,10 @@ class GlyphAtlasSpec {
 abstract final class GlyphSet {
   /// The minus sign is U+2212, not a hyphen (DESIGN.md 4.5).
   static const String numerals = '0123456789.,−+×₹%°:/';
+
+  /// The letters of the wordmark (DESIGN.md 12), drawn from an atlas too, so it can
+  /// carry a halo.
+  static const String wordmark = 'TAPEDASH';
 }
 
 /// One glyph in an atlas.

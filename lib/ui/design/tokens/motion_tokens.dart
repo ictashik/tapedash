@@ -112,6 +112,11 @@ abstract final class TapeMotion {
   /// comes on or goes off (DESIGN.md 4.4).
   static const Duration modeDwell = Duration(seconds: 10);
 
+  /// One step of the Design Lab's value slider, for its sample readings
+  /// (DESIGN.md 13.2). Not a value the design draws with; it just keeps a literal
+  /// out of the Lab's own code, alongside the others here.
+  static const Duration labNudgeStep = Duration(milliseconds: 100);
+
   /// The runtime governor steps a tier down when the 90th percentile frame has
   /// been over budget for 5 s, judged second by second over the last second of
   /// frames, and shows the step as a 400 ms crossfade (DESIGN.md 9.2). A window
