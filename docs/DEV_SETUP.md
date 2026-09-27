@@ -36,7 +36,7 @@ The simulator is plain Dart, so these run under `dart` once `flutter pub get` ha
 dart run tool/sim_server.dart --scenario city_stop_go --profile petrol_cvt_map
 dart run tool/sim_server.dart --list           # scenarios, profiles and adapter quirks
 dart run tool/record_sim.dart --scenario city_stop_go
-dart run tool/record_sim.dart --all            # all ten, in a couple of seconds
+dart run tool/record_sim.dart --all            # all ten, in about ten seconds
 ```
 
 - **`tool/sim_server.dart`** is the simulated car and its ELM327 adapter over TCP, in real time, for trying the real WiFi transport without hardware. It serves one app at a time and starts the drive over when it ends.
@@ -44,13 +44,29 @@ dart run tool/record_sim.dart --all            # all ten, in a couple of seconds
   - From a **phone on USB**, run `adb reverse tcp:35000 tcp:35000` and connect to `127.0.0.1:35000`.
   - It listens on `127.0.0.1` only. `--host 0.0.0.0` serves your network, which you only want on a network you trust.
   - `--verbose` prints every command and reply, `--quirks flaky` turns on a misbehaving clone, and `--seed` fixes the noise.
-- **`tool/record_sim.dart`** writes a scenario as a session log in `recordings/sim/`: the raw ELM327 text between an app and the adapter, with the time of each piece. It runs on a fake clock, so a 30-minute drive takes a moment, and the same options give the same file. Nothing in `recordings/sim/` is kept in git.
+- **`tool/record_sim.dart`** writes a scenario as a session log in `recordings/sim/`: the raw ELM327 text between the app's own OBD stack and the adapter, with the time of each piece. It runs on a fake clock, so a 30-minute drive takes a moment, and the same options give the same file. Nothing in `recordings/sim/` is kept in git. See [recordings/README.md](../recordings/README.md) for the format and for replaying.
 
 Both take `--help`. `nc` is enough to talk to the server by hand, as long as each command ends in a carriage return (`\r`), which is what an adapter waits for, and the connection stays open long enough for the answers:
 
 ```
 (printf 'ATZ\rATE0\r0100\r'; sleep 5) | nc 127.0.0.1 35000
 ```
+
+### Cross-checking against a third-party ELM327
+
+`tool/crosscheck_emulator.dart` runs the OBD stack in real time over TCP against [Ircama's ELM327-emulator](https://github.com/Ircama/ELM327-emulator), to see that what the stack reads is not only what our own simulator prints. It is a separate process, and needs Python 3:
+
+```
+python3 -m venv /tmp/emu && /tmp/emu/bin/pip install ELM327-emulator
+sleep 3000 | /tmp/emu/bin/python -m elm -n 35100 -s car &
+dart run tool/crosscheck_emulator.dart --port 35100
+pkill -f "elm -n 35100"
+```
+
+- The `sleep` keeps the emulator's input open. It serves TCP on 127.0.0.1. `-s engineoff` starts it with the engine off, to see the session wait for the ignition and probe once a second.
+- The tool runs for 20 seconds (`--seconds`) and prints the adapter, its protocol and PIDs, the polling and the last value of each sensor. It exits 0 if it connected and read RPM and speed, and 1 if not.
+- **The emulator is CC BY-NC-SA 4.0,** which cannot be mixed into Apache-2.0 code. Run it, and never copy from it. Keep the virtual environment outside the project, and out of git.
+- It is not part of `tool/verify.sh` or CI. It needs the emulator installed and takes real time.
 
 ## Emulators and devices (layer 5)
 

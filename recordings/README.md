@@ -16,15 +16,26 @@ one line to an entry, and can be read and diffed.
 ## `sim/`: made by the simulator
 
 `dart run tool/record_sim.dart --scenario city_stop_go` records one drive, and
-`--all` records all ten in about two seconds. The same options give the same
-file, byte for byte, so these are not kept in git (they are 0.2 to 2.6 MB each);
-make them when you want them. `dart run tool/record_sim.dart --help` lists the
-options: profile, adapter quirks, seed and length.
+`--all` records all ten in about ten seconds. The same options give the same
+file, byte for byte, so these are not kept in git (they are 0.3 to 5.3 MB each,
+23 MB for the ten); make them when you want them.
+`dart run tool/record_sim.dart --help` lists the options: profile, adapter
+quirks, seed and length.
 
-The client that makes the traffic is a small script that stands in for the app's
-OBD stack, which does not exist yet. It starts the adapter up, asks which PIDs the
-car has, reads the fault codes and polls in fast, medium and slow tiers. It does
-not read the answers.
+The traffic is the app's own. The recorder runs the real OBD stack, an
+`ObdSession`, on the simulated car: it starts the adapter up, asks which PIDs the
+car has, reads the fault codes once it is connected, and polls in fast, medium
+and slow tiers with batching. So a recording shows what the app really sends.
+
+## Replaying
+
+`ReplayTransport` (`lib/obd/transport/replay_transport.dart`) plays a recording
+back into the stack. It does not follow the clock: each command gets the next
+recorded reply to the same command, with its pieces at the offsets they had. A
+recording made by one build can therefore be played into another, even if the
+commands go out in a different order or at different times. A command that is not
+in the recording gets `?`, and an exchange that got no reply in the recording
+gets none in the replay.
 
 ## `real/`: made in a real car (after the hardware handoff)
 

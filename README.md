@@ -10,9 +10,11 @@ The whole idea: buy an ELM327, plug it into the OBD port, stick an old phone to 
 
 ## Status
 
-Pre-alpha. **Phases 0 (foundation) and 1 (the simulator) are done**; the OBD stack on top of the simulator is next. There is nothing to see in the app yet. Nothing has been tried on a real car, and nothing has been checked against a real ELM327 adapter. The plan is to build and test everything against a built-in vehicle simulator first, and to connect real hardware only after every simulator test passes. The roadmap is in [CLAUDE.md](CLAUDE.md) section 13.
+Pre-alpha. **Phases 0 (foundation), 1 (the simulator) and 2 (the OBD stack on the simulator) are done**; the design system is next. There is nothing to see in the app yet. Nothing has been tried on a real car, and nothing has been checked against a real ELM327 adapter. The plan is to build and test everything against a built-in vehicle simulator first, and to connect real hardware only after every simulator test passes. The roadmap is in [CLAUDE.md](CLAUDE.md) section 13.
 
 The simulator is a physical car, a scripted driver, an ELM327 adapter that prints byte-accurate text, a GPS, and a set of adapter faults, all pure Dart. `dart run tool/sim_server.dart` serves it over TCP, and `dart run tool/record_sim.dart` records a drive as a replayable session log.
+
+On top of it sits the OBD stack, also pure Dart: an ELM327 client and start-up, PID decoders, a poller with tiers and batching, fault codes, a session that reconnects, and a vehicle state that checks and smooths what it reads. In tests it reads a whole simulated drive in seconds and compares the result with the simulator's ground truth.
 
 ## Principles
 
