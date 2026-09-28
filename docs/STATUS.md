@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-09-27, at the end of phase 3a. Phases are in CLAUDE.md 13.
+Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. The screens that compose them do not yet. Phases are in CLAUDE.md 13.
 
 ## Where we are
 
@@ -10,12 +10,52 @@ Updated 2026-09-27, at the end of phase 3a. Phases are in CLAUDE.md 13.
 | 1. Simulator | **Done** |
 | 2. OBD stack on the simulator (tag `v0.1.0-sim`) | **Done** |
 | 3a. Design system (tag `v0.2.0-design`) | **Done** |
-| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | Next |
+| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | **In progress: all components done, screens not started** |
 | 4 to 7 | Not started |
 
-**Suggested tags, neither created:** `v0.1.0-sim` on `d5016d6` (end of phase 2) and `v0.2.0-design` on the commit that adds these notes (end of phase 3a). Placing them is your call. Nothing has been pushed, and there is no remote.
+**Suggested tags, neither created:** `v0.1.0-sim` on `d5016d6` (end of phase 2) and `v0.2.0-design` on `62fb1bb` (end of phase 3a). Placing them is your call. Nothing has been pushed, and there is no remote.
 
-There is something to see now: the app boots onto the `void` canvas with real grain and a vignette, and a dev button opens the Design Lab, a gallery of every component built so far in every livery and mode, running on the API 24 emulator with no exceptions. There is still no Drive page and no Strip; those are phase 3b. The design review package for this phase, with device screenshots and the two real bugs its own tests found, is `docs/design-review/phase-3a/`. Phases 0 to 2 are summarised in `docs/DECISIONS.md` and in the git history; phase 3a's design decisions are appended to the same file, below the phase 2 sections.
+There is something to see now: the app boots onto the `void` canvas with real grain and a vignette, and a dev button opens the Design Lab, a gallery of every component built so far in every livery and mode, running on the API 24 emulator with no exceptions. There is still no Drive page and no Strip; those are the rest of phase 3b, below. The design review package for phase 3a, with device screenshots and the two real bugs its own tests found, is `docs/design-review/phase-3a/`. Phases 0 to 2 are summarised in `docs/DECISIONS.md` and in the git history; phase 3a's design decisions are appended to the same file, below the phase 2 sections.
+
+## Phase 3b so far: every component
+
+DESIGN.md 6 and CLAUDE.md 13 name eleven components for this phase. All eleven exist, each built in the Design Lab pattern (a capture test first, fixed against what it actually showed, then a widget-test suite against real pixels, then `tool/verify.sh`, one commit per component) rather than assembled straight into a screen.
+
+| Component | DESIGN.md | Where | Tests |
+|---|---|---|---|
+| Rolling numerals (Saira and seven-segment) | 6.1 | phase 3a | phase 3a |
+| Tach arc | 6.2 | `lib/ui/design/components/tach_arc.dart` | 17 |
+| Vertical tape (speed/RPM, "tapes") | 6.3 | `vertical_tape.dart` | 12 |
+| Shift horizon | 6.4 | `shift_horizon.dart` | 17 |
+| Bar gauges | 6.5 | `bar_gauge.dart` | 8 |
+| Telemetry tiles | 6.6 | `telemetry_tile.dart` | 10 |
+| Eco bar | 6.7 | `eco_bar.dart` | 16, plus `glow_cache_test.dart`'s 5 (below) |
+| Money readout and the Money Tape | 6.8 | `money.dart` | 9 |
+| Status strip | 6.9 | `status_strip.dart` | 15 |
+| Alerts (`AlertHysteresis`, the slot glyph, the critical bracket, the caution line) | 6.10 | `alerts.dart` | 18 |
+| Road view | 6.11 | `road_view.dart` | 16 |
+
+Plus `test/widget/glow_cache_test.dart` (5 tests): `GlowSprite.drawCentered`, added when the eco bar's capture shot showed its halo sitting beside the puck rather than around it (below).
+
+**Two of these were nearly missed entirely.** CLAUDE.md 13's phase 3b bullet names all eleven, but partway through this phase a summarised context window's own running notes of "what's left" had quietly dropped the vertical tape, and it was built only because the filesystem was checked against CLAUDE.md's list directly rather than against those notes. The same direct check, repeated afterwards on principle, turned up the Money Tape missing too. Both are now built; the lesson (verify against the source document, not a summary of it) is worth remembering for the remaining phase 3b bullets below, which have not had this check run against them a second time since.
+
+**Real bugs their own tests or capture shots found, not just written and left:**
+- The tach arc's and shift horizon's segment-lighting sync skipped the very first frame (no previous index to diff against).
+- `shouldRepaint` on the tach arc, shift horizon, bar gauge and telemetry tile compared values but not a swapped `SmoothedSignal` object's identity, so a fresh signal with the same current value kept showing the old paint.
+- `GlowSprite.draw` was misused by halving `size` (core plus the margin on *both* sides) as if it were the core's own half-size, overshooting a centred halo by one margin per axis -- shipped once already in the shift horizon's breathing glow before the eco bar's own capture caught it in a second component. Fixed once, at the source, with `GlowSprite.drawCentered`.
+- The telemetry tile's bracket colour was computed once in `build()` from a live value, not read fresh in `paint()`, so a value crossing a threshold between rebuilds left a stale colour on screen.
+- The road view's hero speed numeral centred `RollingNumerals`' full fixed-width digit reservation, not the commonly-2-digit content sitting in its right two thirds, reading well right of centre; its speed streaks landed mostly off-screen because their lateral offset scaled additively against a road edge that was already most of the frame's width near the bottom.
+- The Money Tape's stack-settle spring was retargeted to a bare block count while the painter treated its value as total pixel length -- tens of pixels off. Separately, normal Money Tape blocks used `money.core` (the digits' own tone) instead of `money.deep`, which DESIGN.md 6.8 asks for and which `TapePalette` had no getter for at all; both champagne tones read the same at a glance, and only a pixel-level fill-colour test caught it.
+
+**Known, deliberate gaps, not oversights:**
+- The road view's money-readout overlay (DESIGN.md 6.11's driver-side flank) is a reserved, currently-empty slot: the money engine that would feed it live is phase 4 (CLAUDE.md 13).
+- The Money Tape does not yet compact groups of blocks into ₹5 and then ₹10 blocks with a merge animation and a scale label (DESIGN.md 6.8). It just keeps growing. This needs its own focused pass.
+
+Numbers: **2,154 tests** (2,014 at the end of phase 3a), a few seconds for the whole suite excluding goldens (none exist yet; see phase 3a's own note). 22 build-video frames captured against real renders as each component landed, in `docs/build-video/`, per commit in `FRAMES.md`.
+
+## Phase 3b, still to do
+
+The Strip navigation (horizontal swipe with parallax, vertical swipe for cluster change, the page tape, motion lock), Motion <-> Parked, the five Drive clusters (Apex, Tape, Minimal, Telemetry, Road) composed from the components above, ignition and shutdown sequences, connection states. HUD layouts, the flips, the alignment pattern. Demo Mode (wiring the already-built `DemoDrive` to a real screen), onboarding with the cold open and demo path, and the brand (icon, launch theme, wordmark) -- the launcher and splash icons are still Flutter's defaults. Layer 4 and 4b tests once real pages exist to run them against. A design review package covering real driving screens, per CLAUDE.md 13 and DESIGN.md 14.4 -- none of this phase's work has been reviewed as screens yet, only as components in the Lab.
 
 ## Phase 2: what exists
 
@@ -149,15 +189,12 @@ Two real bugs were found by writing the Lab's own tests and are already fixed: t
 - **The dev button, not the debug overlay, opens the Lab.** CLAUDE.md 9's long-press debug overlay does not exist yet. The button matches its intended reachability rule (debug/profile builds, or `--dart-define=TAPEDASH_DEV=true`), and is an open question for whether it moves behind the overlay once that exists.
 - **The design lint covers `lib/ui` and `lib/app/app.dart` only,** not all of `lib/app`: service wiring like `demo_drive.dart`'s poll-loop interval is not part of the design system.
 
-## Next: phase 3b, cockpit and HUD (tag `v0.3.0-sim`)
+## What phase 3b starts its remaining work from
 
-Components: tach arc, tapes, shift horizon, bar gauges, telemetry tiles, eco bar, money readout and the Money Tape, status strip, alerts, road view. The Strip navigation, Motion <-> Parked, the five Drive clusters, ignition and shutdown sequences, connection states. HUD layouts, flips, the alignment pattern. Demo Mode (wiring `DemoDrive` to a real screen), onboarding with the cold open and demo path, and the brand (icon, launch theme, wordmark). Layer 4 and 4b tests; a design review package (CLAUDE.md 13).
+Because phase 3a already did it, on top of the components section above:
 
-What it starts from, because phase 3a already does it:
-
-- Every component it needs a base for exists and is in the Lab: numerals in both faces, the controls, the icon set, the motion core, the render primitives, the fidelity system.
 - `TapeTheme`, `TapePalette` and `ModeController` are ready for a real page to read.
 - `DemoDrive` and the `DataSource`/`DemoControl` interfaces are ready to wire to Drive, so pages never need to know whether Demo Mode or a real adapter is behind the `VehicleState` they read.
 - `VehicleState` gives each reading as a value, the time it was measured (stamped at the middle of its round trip, DESIGN.md 5.2 step 1) and the time it arrived, after the outlier check (step 2), and says when a value is stale. `SmoothedSignal` (phase 3a) does the rest of the pipeline, steps 3 to 5.
 
-This is the phase the tach arc, the Strip and the first live cluster arrive in, so it ends with a design review package covering real driving screens, not just components (CLAUDE.md 13, DESIGN.md 14.4).
+This is the phase the Strip and the first live cluster arrive in, so it ends with a design review package covering real driving screens, not just components (CLAUDE.md 13, DESIGN.md 14.4).
