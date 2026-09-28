@@ -12,8 +12,11 @@ import 'motion_clock.dart';
 /// a dropped frame cannot make it jump either.
 ///
 /// It is a [Listenable]: painters repaint from it, and it tells them nothing
-/// once it has come to rest.
-class SpringValue extends ChangeNotifier implements MotionDriven {
+/// once it has come to rest. It is also a [ValueListenable], so anything that
+/// wants the value as a value (a flow delegate's repaint, a mapped signal)
+/// can take it as one.
+class SpringValue extends ChangeNotifier
+    implements MotionDriven, ValueListenable<double> {
   SpringValue({
     required this.clock,
     required this._spec,
@@ -37,6 +40,7 @@ class SpringValue extends ChangeNotifier implements MotionDriven {
   bool _disposed = false;
 
   /// Where the value is now.
+  @override
   double get value => _value;
 
   /// How fast it is moving, in units per second.

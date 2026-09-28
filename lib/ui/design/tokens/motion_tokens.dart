@@ -157,6 +157,20 @@ abstract final class TapeMotion {
   /// L0, L1, L2 and L3.
   static const List<double> parallax = [0.1, 0.6, 1.0, 1.05];
 
+  /// How far a swipe toward a locked page can pull the strip into the locked
+  /// side before it stops, as a share of the page width (DESIGN.md 7.1's
+  /// rubber-band). Firm: the lock is a rule, not a suggestion.
+  static const double lockedSwipeGive = 0.08;
+
+  /// A release faster than this, in pages per second, is a fling: it moves
+  /// one page in its own direction rather than settling to the nearest
+  /// (DESIGN.md 7.1).
+  static const double pageFlingVelocity = 0.35;
+
+  /// How long the lock glyph shows after a swipe toward a locked page
+  /// (DESIGN.md 7.1).
+  static const Duration lockGlyph = Duration(milliseconds: 800);
+
   /// Touch bloom (DESIGN.md 6.16): scale and alpha at the start and end.
   static const double bloomScaleFrom = 0.6;
   static const double bloomScaleTo = 1.4;
