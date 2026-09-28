@@ -51,6 +51,16 @@ class DriveSignals {
          clock: clock,
          spring: TapeSprings.needle,
        ),
+       load = SmoothedSignal(
+         motion: motion,
+         clock: clock,
+         spring: TapeSprings.needle,
+       ),
+       voltage = SmoothedSignal(
+         motion: motion,
+         clock: clock,
+         spring: TapeSprings.needle,
+       ),
        throttle = SmoothedSignal(
          motion: motion,
          clock: clock,
@@ -72,6 +82,8 @@ class DriveSignals {
     speed.bind(vehicle.speed);
     coolant.bind(vehicle.coolant);
     throttle.bind(vehicle.throttle);
+    load.bind(vehicle.load);
+    voltage.bind(vehicle.voltage);
     vehicle.motion.addListener(_onMotion);
     _adapter = _MappedListenable(_connection, _adapterStateFor);
   }
@@ -87,6 +99,14 @@ class DriveSignals {
   final SmoothedSignal speed;
   final SmoothedSignal coolant;
   final SmoothedSignal throttle;
+
+  /// Calculated engine load %, and the module voltage V. Real sensors
+  /// (`VehicleState.load`/`.voltage`, the poller's medium and slow tiers),
+  /// bound like the four above; the Telemetry cluster's grid is the first
+  /// reader, which is why they arrive now and not with the earlier
+  /// clusters.
+  final SmoothedSignal load;
+  final SmoothedSignal voltage;
 
   /// m/s^2, from `VehicleState.motion` (itself from the change in smoothed
   /// OBD speed, CLAUDE.md 8.8) -- the road view's body pitch (DESIGN.md
@@ -156,6 +176,8 @@ class DriveSignals {
     speed.dispose();
     coolant.dispose();
     throttle.dispose();
+    load.dispose();
+    voltage.dispose();
     longitudinalAcceleration.dispose();
     lateralAcceleration.dispose();
     _mode.dispose();
