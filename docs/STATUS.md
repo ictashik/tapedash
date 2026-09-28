@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. Two of the five Drive clusters (Apex, Road) render against a real `DemoDrive`; the other three, and everything that makes them one page, do not yet. Phases are in CLAUDE.md 13.
+Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. Three of the five Drive clusters (Apex, Road, Tape) render against a real `DemoDrive`; the other two, and everything that makes them one page, do not yet. Phases are in CLAUDE.md 13.
 
 ## Where we are
 
@@ -10,7 +10,7 @@ Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 n
 | 1. Simulator | **Done** |
 | 2. OBD stack on the simulator (tag `v0.1.0-sim`) | **Done** |
 | 3a. Design system (tag `v0.2.0-design`) | **Done** |
-| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | **In progress: all components done, 2 of 5 Drive clusters done** |
+| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | **In progress: all components done, 3 of 5 Drive clusters done** |
 | 4 to 7 | Not started |
 
 **Suggested tags, neither created:** `v0.1.0-sim` on `d5016d6` (end of phase 2) and `v0.2.0-design` on `62fb1bb` (end of phase 3a). Placing them is your call. Nothing has been pushed, and there is no remote.
@@ -89,9 +89,23 @@ The first widget-test run found a real bug -- in the test, not the component. Th
 
 Numbers as of this section: **2,175 tests** (2,171 before), `1714f59` at HEAD for the feature, nothing pushed, no tags.
 
+## Phase 3b: the Tape cluster
+
+The Tape cluster (DESIGN.md 7.3.2, the brand layout) is the third real screen, on the same real `DemoDrive` + `DriveSignals` wiring as Apex and Road. The speed tape sits on the left and the RPM tape on the right, both with their trend vectors (the tapes carry those themselves, DESIGN.md 6.3), filling the centre zone between the shared horizon and floor zones (DESIGN.md 4.7's 0.10H/0.16H); each readout box straddles its tape's inner edge facing the centre. The shared horizon gets exactly the content Apex gives it, since the horizon is shared chrome rather than per-cluster layout -- a reading, noted in the class's doc comment for the design review to confirm.
+
+| Piece | Where | Tests |
+|---|---|---|
+| `TapeCluster`: the two tapes on the centre zone's flanks, the shared horizon, the RPM tape banded at the redline | `lib/ui/pages/drive/tape_cluster.dart` | 4, plus a capture test against real drives |
+
+**What it honestly omits:** the centre's instant km/L and eco bar, and the floor's ₹ THIS TRIP (DESIGN.md 7.3.2) -- `fuel/`, `money/` and `trips/` are phase 4, so the centre is simply empty and the floor simply absent. The speed tape's tinted band waits the same way: DESIGN.md 6.3 tints from "the user's speed threshold", which arrives with the coach's thresholds (phase 5); the RPM tape's band is real now, at the same redline the tach arc uses.
+
+The capture pass (highway, city, aggressive_city) found no component bug this time. It did force two readings worth keeping: the trend vector's edge choice for a left-readout tape is coherent, not wrong (the line hugs the box's scale-side edge on both tapes, symmetric under mirroring -- eyeballing the highway shot suggested otherwise at first), and the corner clock glyph both it and the committed Apex frame show is shared accepted behaviour, not a cluster regression. Two setup mistakes were caught before they could look like component bugs: `NumeralFormat` used without its import (the compiler reported the misleading "not a constant expression" at the const constructor rather than "isn't defined"), and one unused import caught by the gate's analyze.
+
+Numbers as of this section: **2,179 tests** (2,175 before), `6af6856` at HEAD for the feature, nothing pushed, no tags.
+
 ## Phase 3b, still to do
 
-**Immediate next step:** the other three Drive clusters -- Tape, Minimal, Telemetry (DESIGN.md 7.3.2-7.3.4) -- are genuinely new layout work, not wiring like Road was. Each wants `CenteredNumeral` for its own hero-style readout; read `lib/ui/design/components/centered_numeral.dart`'s doc comment before building any of them (the naive centring approach is wrong and was hit twice). Tape needs the vertical tapes with trend vectors; Minimal is the hero plus a thin RPM line; Telemetry is a 2x3 grid of `telemetry_tile`s -- see what each honestly omits (money, km/L, load and MAP/MAF tiles have no real source before phase 4) the same way Apex and Road did. See `handoff.md` at the repo root for exact next steps and session context.
+**Immediate next step:** the last two Drive clusters -- Minimal and Telemetry (DESIGN.md 7.3.3-7.3.4). Minimal is a hero speed with `CenteredNumeral` plus a thin RPM line under the digits and a small money readout in the driver-side corner (money absent before phase 4, like every cluster); Telemetry is a 2x3 grid of `telemetry_tile`s with the shift horizon on top, and several of its candidate tiles (load, MAP/MAF, voltage, intake air, km/L) have no real source before phase 4 -- compose from what is real, omit the rest, the way every cluster so far has. See `handoff.md` at the repo root for exact next steps and session context.
 
 Then: the Strip navigation (horizontal swipe with parallax, vertical swipe for cluster change, the page tape, motion lock), Motion <-> Parked, ignition and shutdown sequences, connection states. HUD layouts, the flips, the alignment pattern. Demo Mode (wiring the already-built `DemoDrive` to a real screen -- the clusters' capture tests are proofs of concept for this, not the real wiring, which belongs in `lib/app/`), onboarding with the cold open and demo path, and the brand (icon, launch theme, wordmark) -- the launcher and splash icons are still Flutter's defaults. Layer 4 and 4b tests once real pages exist to run them against. A design review package covering real driving screens, per CLAUDE.md 13 and DESIGN.md 14.4 -- none of this phase's work has been reviewed as screens yet, only as components in the Lab.
 
