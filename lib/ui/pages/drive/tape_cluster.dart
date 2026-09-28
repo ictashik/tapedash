@@ -74,6 +74,7 @@ class TapeCluster extends StatelessWidget {
             child: StatusStripLeft(
               adapter: signals.adapter,
               gpsHasFix: signals.gpsHasFix,
+              parkedShare: signals.parkedShare,
             ),
           ),
           Positioned(
@@ -83,6 +84,7 @@ class TapeCluster extends StatelessWidget {
               time: signals.wallClock,
               use24Hour: MediaQuery.alwaysUse24HourFormatOf(context),
               phoneHot: signals.phoneHot,
+              parkedShare: signals.parkedShare,
             ),
           ),
 

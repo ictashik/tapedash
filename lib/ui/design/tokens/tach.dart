@@ -32,6 +32,12 @@ abstract final class TapeTach {
   /// Unlit segments at or above the redline still carry this much tint.
   static const double redlineGhostTint = 0.20;
 
+  /// The Parked choreography (DESIGN.md 7.2): the arc dims to this share of
+  /// its brightness, and its segments thin to this share of their depth --
+  /// "thins and dims to 60%", both effects to the same 60%.
+  static const double parkedBrightness = 0.60;
+  static const double parkedDepthShare = 0.60;
+
   /// Default range, for a profile that has not set its own (DESIGN.md 7.7's
   /// simulator default): 0 to 7,000, shift/redline at 6,500.
   static const double defaultMaxRpm = 7000;

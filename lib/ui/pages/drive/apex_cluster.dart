@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../design/components/bar_gauge.dart';
 import '../../design/components/centered_numeral.dart';
+import '../../design/components/parked_scale.dart';
 import '../../design/components/rolling_numerals.dart';
 import '../../design/components/shift_horizon.dart';
 import '../../design/components/status_strip.dart';
@@ -17,13 +18,20 @@ import 'drive_signals.dart';
 /// inside the tach arc, the coolant gauge on the flank away from the driver,
 /// the shift horizon and status strip on the horizon.
 ///
+/// The parked choreography (DESIGN.md 7.2) reads the one parked share the
+/// signals carry: parked, the tach arc thins and dims to 60% (stagger 0) and
+/// the hero shrinks to primary size (stagger 1, the spec's own order); in
+/// motion the reverse runs inside the 300 ms the motion return allows.
+///
 /// **What is not here yet, on purpose:** the driver-side flank's ₹ THIS TRIP
 /// and ₹/KM, the coolant flank's instant km/L, the floor's eco bar and trip
-/// distance/time. All five need `fuel/`, `money/` or `trips/` (CLAUDE.md 13's
-/// phase 4), none of which exist yet, and CLAUDE.md 1 asks for honest
-/// numbers over an invented one, so these slots are simply absent rather
-/// than shown with a placeholder or a fake value. `DriveSignals`'s own doc
-/// comment says the same for whoever reaches for one of them next.
+/// distance/time, and the flanks' unfolded detail panels (trip stats, fuel,
+/// calibration) the Parked choreography asks for. All need `fuel/`, `money/`
+/// or `trips/` (CLAUDE.md 13's phase 4), none of which exist yet, and
+/// CLAUDE.md 1 asks for honest numbers over an invented one, so these slots
+/// are simply absent rather than shown with a placeholder or a fake value.
+/// `DriveSignals`'s own doc comment says the same for whoever reaches for
+/// one of them next.
 class ApexCluster extends StatelessWidget {
   const ApexCluster({
     super.key,
@@ -40,6 +48,7 @@ class ApexCluster extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = TapeTheme.of(context);
     final tachBox = TachArc.boxSideOf(height);
+    final type = TypeScale.forHeight(height);
     final onDriverSideRight = theme.driverSide == DriverSide.right;
 
     return SizedBox(
@@ -49,6 +58,8 @@ class ApexCluster extends StatelessWidget {
         children: [
           // Horizon: the shift horizon across the top, the status strip's
           // two flanks either side of it (DESIGN.md 6.9's "on either side").
+          // Parked, the strip's glyphs gain their captions (DESIGN.md 6.9's
+          // "text labels appear in Parked mode"), on the same parked share.
           Positioned(
             top: TapeSpace.s2,
             left: 0,
@@ -67,6 +78,7 @@ class ApexCluster extends StatelessWidget {
             child: StatusStripLeft(
               adapter: signals.adapter,
               gpsHasFix: signals.gpsHasFix,
+              parkedShare: signals.parkedShare,
             ),
           ),
           Positioned(
@@ -76,10 +88,13 @@ class ApexCluster extends StatelessWidget {
               time: signals.wallClock,
               use24Hour: MediaQuery.alwaysUse24HourFormatOf(context),
               phoneHot: signals.phoneHot,
+              parkedShare: signals.parkedShare,
             ),
           ),
 
-          // Centre: the tach arc ringing the hero speed and its label.
+          // Centre: the tach arc ringing the hero speed and its label. The
+          // arc thins and dims first (stagger 0), the hero follows (stagger
+          // 1), the order DESIGN.md 7.2 itself lists them in.
           Center(
             child: SizedBox(
               width: tachBox,
@@ -87,16 +102,25 @@ class ApexCluster extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  TachArc(rpm: signals.rpm, heightReference: height),
+                  TachArc(
+                    rpm: signals.rpm,
+                    heightReference: height,
+                    parkedShare: signals.parkedShare,
+                  ),
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CenteredNumeral(
-                        source: signals.speed,
-                        format: const NumeralFormat(integerDigits: 3),
-                        typicalIntegerDigits: 2,
-                        size: TypeScale.forHeight(height).hero,
-                        role: NumeralRole.bright,
+                      ParkedScale(
+                        share: signals.parkedShare,
+                        parkedScaleShare: type.primary / type.hero,
+                        staggerIndex: 1,
+                        child: CenteredNumeral(
+                          source: signals.speed,
+                          format: const NumeralFormat(integerDigits: 3),
+                          typicalIntegerDigits: 2,
+                          size: type.hero,
+                          role: NumeralRole.bright,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       const TapeLabel('KM/H'),

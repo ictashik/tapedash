@@ -45,6 +45,7 @@ void main() {
       () => StatusStripLeft(
         adapter: ValueNotifier(AdapterLinkState.flowing),
         gpsHasFix: ValueNotifier(true),
+        parkedShare: ValueNotifier(0),
       ),
     );
     await shot(
@@ -53,6 +54,7 @@ void main() {
       () => StatusStripLeft(
         adapter: ValueNotifier(AdapterLinkState.searching),
         gpsHasFix: ValueNotifier(false),
+        parkedShare: ValueNotifier(0),
       ),
     );
     await shot(
@@ -61,7 +63,7 @@ void main() {
       () => StatusStripLeft(
         adapter: ValueNotifier(AdapterLinkState.lost),
         gpsHasFix: ValueNotifier(false),
-        parked: true,
+        parkedShare: ValueNotifier(1),
       ),
     );
   }, skip: !enabled);
@@ -74,6 +76,7 @@ void main() {
         time: ValueNotifier(DateTime(2026, 1, 1, 14, 7)),
         use24Hour: true,
         phoneHot: ValueNotifier(false),
+        parkedShare: ValueNotifier(0),
       ),
     );
     await shot(
@@ -84,7 +87,7 @@ void main() {
         use24Hour: false,
         phoneHot: ValueNotifier(true),
         demoMode: true,
-        parked: true,
+        parkedShare: ValueNotifier(1),
       ),
     );
   }, skip: !enabled);

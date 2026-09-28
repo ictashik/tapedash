@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../../design/components/centered_numeral.dart';
+import '../../design/components/parked_scale.dart';
 import '../../design/components/rolling_numerals.dart';
 import '../../design/components/shift_horizon.dart';
 import '../../design/components/status_strip.dart';
@@ -21,6 +22,9 @@ import 'drive_signals.dart';
 /// "Hero speed only" is read as the centre zone's content, not the
 /// horizon's.
 ///
+/// The parked choreography (DESIGN.md 7.2) reads the same parked share the
+/// other clusters do: parked, the hero shrinks to primary size.
+///
 /// **What is not here yet, on purpose:** the driver-side corner's small
 /// money readout (DESIGN.md 7.3.3), which needs `money/` (CLAUDE.md 13's
 /// phase 4). Absent rather than faked (CLAUDE.md 1), like every cluster's
@@ -39,6 +43,7 @@ class MinimalCluster extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final type = TypeScale.forHeight(height);
     return SizedBox(
       width: width,
       height: height,
@@ -63,6 +68,7 @@ class MinimalCluster extends StatelessWidget {
             child: StatusStripLeft(
               adapter: signals.adapter,
               gpsHasFix: signals.gpsHasFix,
+              parkedShare: signals.parkedShare,
             ),
           ),
           Positioned(
@@ -72,12 +78,15 @@ class MinimalCluster extends StatelessWidget {
               time: signals.wallClock,
               use24Hour: MediaQuery.alwaysUse24HourFormatOf(context),
               phoneHot: signals.phoneHot,
+              parkedShare: signals.parkedShare,
             ),
           ),
 
           // The hero, in the centre zone between horizon and floor, with
-          // the thin RPM line under its digits. (The driver-side corner's
-          // money readout is phase 4's; see this class's own doc comment.)
+          // the thin RPM line under its digits. Parked, the hero shrinks to
+          // primary size on the parked share (DESIGN.md 7.2). (The
+          // driver-side corner's money readout is phase 4's; see this
+          // class's own doc comment.)
           Positioned(
             top: height * TapeSpace.horizonShare,
             bottom: height * TapeSpace.floorShare,
@@ -87,12 +96,16 @@ class MinimalCluster extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CenteredNumeral(
-                    source: signals.speed,
-                    format: const NumeralFormat(integerDigits: 3),
-                    typicalIntegerDigits: 2,
-                    size: TypeScale.forHeight(height).hero,
-                    role: NumeralRole.bright,
+                  ParkedScale(
+                    share: signals.parkedShare,
+                    parkedScaleShare: type.primary / type.hero,
+                    child: CenteredNumeral(
+                      source: signals.speed,
+                      format: const NumeralFormat(integerDigits: 3),
+                      typicalIntegerDigits: 2,
+                      size: type.hero,
+                      role: NumeralRole.bright,
+                    ),
                   ),
                   const SizedBox(height: TapeSpace.s2),
                   SizedBox(

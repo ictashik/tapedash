@@ -9,6 +9,7 @@ import '../../../vehicle/vehicle_state.dart';
 import '../../design/components/status_strip.dart' show AdapterLinkState;
 import '../../design/motion/motion_clock.dart';
 import '../../design/motion/observable_listenable.dart';
+import '../../design/motion/parked_share.dart';
 import '../../design/motion/smoothing_pipeline.dart';
 import '../../design/motion/wall_clock.dart';
 import '../../design/tokens/motion_tokens.dart';
@@ -85,6 +86,15 @@ class DriveSignals {
     load.bind(vehicle.load);
     voltage.bind(vehicle.voltage);
     vehicle.motion.addListener(_onMotion);
+    _parkedFlag = _MappedListenable<DrivingMode, bool>(
+      _mode,
+      (m) => m == DrivingMode.parked,
+    );
+    parkedShare = ParkedShare(
+      source: _parkedFlag,
+      clock: motion,
+      initiallyParked: _mode.value == DrivingMode.parked,
+    );
     _adapter = _MappedListenable(_connection, _adapterStateFor);
   }
 
@@ -126,6 +136,17 @@ class DriveSignals {
   final ObservableListenable<DrivingMode> _mode;
   final ObservableListenable<ConnectionStatus> _connection;
   late final _MappedListenable<ConnectionStatus, AdapterLinkState> _adapter;
+
+  /// The parked share (DESIGN.md 7.2), driven by [mode]: 1 parked, 0 in
+  /// motion. The whole screen's Parked choreography reads this one value --
+  /// the tach arc thinning and dimming, the hero shrinking to primary size,
+  /// the status strip's captions -- so every piece moves on the same spring,
+  /// staggered off it, and one built later never races one already on screen.
+  late final ParkedShare parkedShare;
+
+  /// The parked-or-motion flag [parkedShare] follows, mapped off [_mode];
+  /// not owned by the share, so [dispose] lets go of it separately.
+  late final _MappedListenable<DrivingMode, bool> _parkedFlag;
 
   /// Motion or parked (DESIGN.md 7.2), straight from `VehicleState.mode`.
   ValueListenable<DrivingMode> get mode => _mode;
@@ -180,6 +201,8 @@ class DriveSignals {
     voltage.dispose();
     longitudinalAcceleration.dispose();
     lateralAcceleration.dispose();
+    parkedShare.dispose();
+    _parkedFlag.dispose();
     _mode.dispose();
     _adapter.dispose();
     _connection.dispose();

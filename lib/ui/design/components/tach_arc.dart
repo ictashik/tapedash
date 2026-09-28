@@ -1,9 +1,8 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-
 import '../fidelity/fidelity_tier.dart';
 import '../motion/motion_clock.dart';
 import '../motion/motion_scope.dart';
@@ -37,6 +36,7 @@ class TachArc extends StatefulWidget {
     super.key,
     required this.rpm,
     required this.heightReference,
+    this.parkedShare,
     this.maxRpm = TapeTach.defaultMaxRpm,
     this.redlineRpm = TapeTach.defaultRedlineRpm,
   });
@@ -48,6 +48,12 @@ class TachArc extends StatefulWidget {
   /// The landscape screen's height, H: every size here is a share of it
   /// (DESIGN.md 4.5, 6.2).
   final double heightReference;
+
+  /// The parked share (DESIGN.md 7.2), when the caller composes this arc
+  /// into a screen that has one: the arc thins and dims to 60% as it goes to
+  /// 1, and repaints with it as it moves. Null (the default) leaves the arc
+  /// always at full strength, the way a Lab drive of the arc alone does.
+  final ValueListenable<double>? parkedShare;
 
   final double maxRpm;
   final double redlineRpm;
@@ -221,12 +227,18 @@ class TachArcState extends State<TachArc> implements MotionDriven {
         dimension: side,
         child: CustomPaint(
           painter: TachPainter(
-            listenable: Listenable.merge([widget.rpm, bank!, repaint]),
+            listenable: Listenable.merge([
+              widget.rpm,
+              bank!,
+              repaint,
+              ?widget.parkedShare,
+            ]),
             state: this,
             palette: theme.palette,
             profile: theme.profile,
             glow: glow,
             devicePixelRatio: dpr,
+            parkedShare: widget.parkedShare,
           ),
         ),
       ),
@@ -250,6 +262,7 @@ class TachPainter extends CustomPainter {
     required this.profile,
     required this.glow,
     required this.devicePixelRatio,
+    this.parkedShare,
   }) : super(repaint: listenable);
 
   final TachArcState state;
@@ -258,18 +271,36 @@ class TachPainter extends CustomPainter {
   final GlowSprite glow;
   final double devicePixelRatio;
 
+  /// The parked share, when the caller composes this arc into a screen that
+  /// has one (DESIGN.md 7.2): the arc thins and dims to 60% as it goes to 1.
+  final ValueListenable<double>? parkedShare;
+
   final Paint _fillPaint = Paint()..style = ui.PaintingStyle.fill;
   final Paint _strokePaint = Paint()..style = ui.PaintingStyle.stroke;
   final Path _path = Path();
   ui.Picture? _staticPicture;
   Object? _staticKey;
 
+  /// The parked share, 0 in Motion and 1 parked, clamped to its own band:
+  /// the one number every parked rule here reads.
+  double get parked {
+    final value = parkedShare?.value ?? 0.0;
+    return value.clamp(0.0, 1.0);
+  }
+
+  /// The share of a colour's own alpha to draw with, `1` in Motion falling
+  /// to [TapeTach.parkedBrightness] parked (DESIGN.md 7.2's "dims to 60%").
+  double get dim => 1.0 + (TapeTach.parkedBrightness - 1.0) * parked;
+
+  /// The segment depth's own share, thinned by the same parked rule.
+  double get depthShare => 1.0 + (TapeTach.parkedDepthShare - 1.0) * parked;
+
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
     final h = state.widget.heightReference;
     final r = TachArc.radiusOf(h);
-    final depth = TapeTach.segmentDepthShareOfHeight * h;
+    final depth = TapeTach.segmentDepthShareOfHeight * h * depthShare;
     final outer = r + depth / 2;
     final inner = r - depth / 2;
     final bank = state.bank!;
@@ -313,7 +344,8 @@ class TachPainter extends CustomPainter {
             )!
           : palette.track;
       final litColor = inRedline ? palette.critical : palette.accentCore;
-      _fillPaint.color = Color.lerp(unlitColor, litColor, level)!;
+      final lerped = Color.lerp(unlitColor, litColor, level)!;
+      _fillPaint.color = lerped.withValues(alpha: lerped.a * dim);
       Chamfer.polygonInto(
         _path,
         ArcGeometry.trapezoid(center, inner, outer, segStart, segEnd),
@@ -331,11 +363,14 @@ class TachPainter extends CustomPainter {
     if (state.peakValue <= 0) return;
     final age = state.peakAge();
     if (age >= TapeMotion.peakHold + TapeMotion.peakFade) return;
-    final alpha = age <= TapeMotion.peakHold
-        ? 1.0
-        : 1.0 -
-              (age - TapeMotion.peakHold).inMicroseconds /
-                  TapeMotion.peakFade.inMicroseconds.toDouble();
+    final alpha =
+        (age <= TapeMotion.peakHold
+            ? 1.0
+            : 1.0 -
+                  (age - TapeMotion.peakHold).inMicroseconds /
+                      TapeMotion.peakFade.inMicroseconds.toDouble()) *
+        dim;
+    if (alpha <= 0) return;
     final angle = state.angleForRpm(state.peakValue);
     _strokePaint
       ..color = palette.inkBright.withValues(alpha: alpha.clamp(0.0, 1.0))
@@ -355,7 +390,8 @@ class TachPainter extends CustomPainter {
           (state.trailHead - 1 - k + state.trailAngles.length) %
           state.trailAngles.length;
       final angle = state.trailAngles[idx];
-      final alpha = math.pow(0.5, k + 1).toDouble() * 0.8;
+      final alpha = math.pow(0.5, k + 1).toDouble() * 0.8 * dim;
+      if (alpha <= 0) continue;
       _drawBlade(
         canvas,
         center,
@@ -369,7 +405,7 @@ class TachPainter extends CustomPainter {
 
   void _paintNeedle(Canvas canvas, Offset center, double r) {
     final needleAngle = state.angleForRpm(state.widget.rpm.value);
-    final haloStrength = TapeTach.needleHaloStrength * palette.haloScale;
+    final haloStrength = TapeTach.needleHaloStrength * palette.haloScale * dim;
     if (haloStrength > 0.01) {
       final mid = ArcGeometry.pointAt(center, r, needleAngle);
       canvas.save();
@@ -383,12 +419,15 @@ class TachPainter extends CustomPainter {
       );
       canvas.restore();
     }
+    final bladeColor = palette.inkHotEverywhere
+        ? TapeColors.inkHot
+        : palette.accentCore;
     _drawBlade(
       canvas,
       center,
       r,
       needleAngle,
-      palette.inkHotEverywhere ? TapeColors.inkHot : palette.accentCore,
+      bladeColor.withValues(alpha: bladeColor.a * dim),
       TapeTach.needleCoreStroke,
     );
   }
@@ -489,6 +528,7 @@ class TachPainter extends CustomPainter {
       old.palette != palette ||
       old.glow != glow ||
       old.devicePixelRatio != devicePixelRatio ||
+      !identical(old.parkedShare, parkedShare) ||
       // A caller that swaps in a new rpm signal (a rebuild recreating its
       // inputs, or a test) needs a repaint even before that object's own
       // `repaint:` listenable next notifies.

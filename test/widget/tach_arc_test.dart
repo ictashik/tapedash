@@ -2,6 +2,7 @@
 // redline zone, phosphor decay above the needle, the trail and peak hold.
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/core/fake_clock.dart';
@@ -53,6 +54,7 @@ void main() {
     double maxRpm = 7000,
     double redline = 6500,
     TapeThemeData? theme,
+    ValueListenable<double>? parkedShare,
   }) async {
     setWindow(tester, const Size(700, 700));
     final key = GlobalKey<TachArcState>();
@@ -66,6 +68,7 @@ void main() {
             key: key,
             rpm: rpm,
             heightReference: 360,
+            parkedShare: parkedShare,
             maxRpm: maxRpm,
             redlineRpm: redline,
           ),
@@ -291,6 +294,45 @@ void main() {
       expect(all.where((p) => p == 0x5CE1FFFF).length, 0);
       expect(canvas, isNot(0));
     });
+
+    testWidgets(
+      'parked, the same readings draw the same segments thinned and dimmed '
+      'to 60% (DESIGN.md 7.2)',
+      (tester) async {
+        final share = ValueNotifier(0.0);
+        addTearDown(share.dispose);
+        await show(
+          tester,
+          theme: TapeThemeData(livery: Liveries.ion),
+          parkedShare: share,
+        );
+        ingest(7000); // every segment fully lit
+        motion.advance(const Duration(seconds: 2));
+        await tester.pump();
+        final motionFrame = await pixels(tester);
+
+        share.value = 1.0; // parked: the choreography takes over
+        motion.advance(TapeMotion.motionReturn);
+        await tester.pump();
+        final parkedFrame = await pixels(tester);
+
+        int accent(Uint32List f) => f.where((p) => p == 0x5CE1FFFF).length;
+        // Motion: the lit segments are the exact accent.
+        expect(accent(motionFrame), greaterThan(500));
+        // Parked: dimmed to 60% of the brightness, no exact accent ink left.
+        expect(accent(parkedFrame), 0);
+
+        // And thinner: the same lit segments drawn at 60% of their radial
+        // depth light strictly less of the frame than at full depth.
+        int tinted(Uint32List f) => f.where((p) {
+          final g = (p >> 16) & 0xFF;
+          final b = (p >> 8) & 0xFF;
+          return g > 100 && b > 140; // accent-tinted ink of either strength
+        }).length;
+        expect(tinted(parkedFrame), lessThan(tinted(motionFrame)));
+        expect(tinted(parkedFrame), greaterThan(500), reason: 'still drawn');
+      },
+    );
   });
 
   group('cost', () {

@@ -7,6 +7,7 @@ import 'package:tapedash/core/observable.dart';
 import 'package:tapedash/obd/obd_session.dart';
 import 'package:tapedash/ui/design/components/status_strip.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
+import 'package:tapedash/ui/design/tokens/motion_tokens.dart';
 import 'package:tapedash/ui/pages/drive/drive_signals.dart';
 import 'package:tapedash/vehicle/sensor.dart';
 import 'package:tapedash/vehicle/vehicle_state.dart';
@@ -89,6 +90,39 @@ void main() {
       run(const Duration(seconds: 1));
       expect(signals.mode.value, DrivingMode.motion);
     });
+  });
+
+  group('parkedShare (DESIGN.md 7.2)', () {
+    test('starts parked with a parked vehicle, at rest', () {
+      expect(signals.mode.value, DrivingMode.parked);
+      expect(signals.parkedShare.value, 1);
+      expect(motion.attachedCount, 0);
+    });
+
+    test('the car starting to move returns it inside the 300 ms budget', () {
+      ingest(Sensor.rpm, 1500);
+      ingest(Sensor.speed, 40);
+      run(TapeMotion.motionReturn);
+
+      expect(signals.mode.value, DrivingMode.motion);
+      expect(signals.parkedShare.value, closeTo(0, 0.05));
+    });
+
+    test(
+      'parks again after its 5 s stop dwell, from wherever the fall had got',
+      () {
+        ingest(Sensor.rpm, 1500);
+        ingest(Sensor.speed, 40);
+        run(TapeMotion.motionReturn);
+        // An immediate stop: the park dwell runs from here, and the screen is
+        // still mid-return to motion when the park takes over from it.
+        ingest(Sensor.speed, 0);
+        run(const Duration(seconds: 6));
+
+        expect(signals.mode.value, DrivingMode.parked);
+        expect(signals.parkedShare.value, closeTo(1, 0.05));
+      },
+    );
   });
 
   group('adapter (DESIGN.md 6.9)', () {

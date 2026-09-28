@@ -33,8 +33,9 @@ enum AdapterLinkState {
 }
 
 /// The status strip's left flank (DESIGN.md 6.9): the adapter glyph, then the
-/// GPS glyph. Glyphs only in Motion mode; a caption appears under each one in
-/// Parked mode.
+/// GPS glyph. Glyphs only in Motion mode; a caption fades in under each one
+/// as the parked share rises (the Parked choreography's "glyph labels become
+/// text", DESIGN.md 7.2), and the column widens to fit it on the same share.
 ///
 /// GPS has no elaborated states in DESIGN.md beyond being grouped here, and
 /// unlike the adapter it is only ever a fallback (CLAUDE.md 8.6): no fix is
@@ -45,12 +46,17 @@ class StatusStripLeft extends StatefulWidget {
     super.key,
     required this.adapter,
     required this.gpsHasFix,
-    this.parked = false,
+    required this.parkedShare,
   });
 
   final ValueListenable<AdapterLinkState> adapter;
   final ValueListenable<bool> gpsHasFix;
-  final bool parked;
+
+  /// The parked share (DESIGN.md 7.2), 0 in Motion and 1 parked: the
+  /// captions fade in on it and the columns widen with them, so the strip's
+  /// glyphs-to-text move is part of the screen's own choreography, not a
+  /// hard switch of its own.
+  final ValueListenable<double> parkedShare;
 
   @override
   State<StatusStripLeft> createState() => StatusStripLeftState();
@@ -133,43 +139,54 @@ class StatusStripLeftState extends State<StatusStripLeft>
   @override
   Widget build(BuildContext context) {
     final palette = TapeTheme.of(context).palette;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: glyphColumnWidth(widget.parked),
-          height: _glyphColumnHeight(widget.parked),
-          child: CustomPaint(
-            painter: AdapterGlyphPainter(
-              listenable: Listenable.merge([widget.adapter, repaint]),
-              state: this,
-              palette: palette,
-              parked: widget.parked,
+    final share = widget.parkedShare;
+    return ListenableBuilder(
+      listenable: share,
+      builder: (context, _) {
+        final parked = share.value.clamp(0.0, 1.0);
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: glyphColumnWidth(parked),
+              height: _glyphColumnHeight(parked),
+              child: CustomPaint(
+                painter: AdapterGlyphPainter(
+                  listenable: Listenable.merge([
+                    widget.adapter,
+                    repaint,
+                    share,
+                  ]),
+                  state: this,
+                  palette: palette,
+                  parkedShare: share,
+                ),
+              ),
             ),
-          ),
-        ),
-        SizedBox(width: TapeStatusStrip.gap * 2),
-        SizedBox(
-          width: glyphColumnWidth(widget.parked),
-          height: _glyphColumnHeight(widget.parked),
-          child: CustomPaint(
-            painter: GpsGlyphPainter(
-              listenable: widget.gpsHasFix,
-              hasFix: widget.gpsHasFix,
-              palette: palette,
-              parked: widget.parked,
+            SizedBox(width: TapeStatusStrip.gap * 2),
+            SizedBox(
+              width: glyphColumnWidth(parked),
+              height: _glyphColumnHeight(parked),
+              child: CustomPaint(
+                painter: GpsGlyphPainter(
+                  listenable: Listenable.merge([widget.gpsHasFix, share]),
+                  hasFix: widget.gpsHasFix,
+                  palette: palette,
+                  parkedShare: share,
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }
 
-double _glyphColumnHeight(bool parked) =>
+double _glyphColumnHeight(double parked) =>
     TapeStatusStrip.glyphSize +
-    (parked ? TapeStatusStrip.gap + TapeStatusStrip.captionSize + 2 : 0);
+    parked * (TapeStatusStrip.gap + TapeStatusStrip.captionSize + 2);
 
 /// A ping with no value attached, for a motion-driven painter's own repaint
 /// trigger (there is nothing else for its `Listenable` to merge in).
@@ -177,24 +194,30 @@ class StatusStripRepaintPing extends ChangeNotifier {
   void ping() => notifyListeners();
 }
 
-/// The width a glyph column needs: just the icon in Motion mode, or wide
-/// enough for its caption in Parked mode (DESIGN.md 6.9's captions can be
-/// wider than the 20 lp icon they sit under -- "SEARCHING", "PHONE HOT" --
-/// so a column narrower than its own caption would run into its neighbour).
-double glyphColumnWidth(bool parked) =>
-    parked ? TapeStatusStrip.captionColumnWidth : TapeStatusStrip.glyphSize;
+/// The width a glyph column needs at the parked share it is at: just the
+/// icon in Motion, widening to fit its caption as the share rises, so two
+/// neighbouring columns part smoothly (DESIGN.md 6.9's captions can be wider
+/// than the 20 lp icon they sit under -- "SEARCHING", "PHONE HOT" -- so a
+/// column narrower than its own caption would run into its neighbour).
+/// Exposed for a direct test.
+double glyphColumnWidth(double parked) => ui.lerpDouble(
+  TapeStatusStrip.glyphSize,
+  TapeStatusStrip.captionColumnWidth,
+  parked.clamp(0.0, 1.0),
+)!;
 
-/// Draws the icon centred at the top of its box, and -- when [parked] -- a
-/// caption centred underneath, both read live in [paint] rather than cached
-/// at build time (DESIGN.md 9.3), since the adapter and GPS states can each
-/// change without the page around this strip rebuilding.
+/// Draws the icon centred at the top of its box, and -- at the parked share
+/// it is given -- the caption fading in underneath, both read live in
+/// [paint] rather than cached at build time (DESIGN.md 9.3), since the
+/// adapter and GPS states can each change without the page around this
+/// strip rebuilding.
 void _paintGlyphColumn(
   Canvas canvas,
   Size size,
   TapeIcon icon,
   Color color,
   double strokeScale,
-  bool parked,
+  double parked,
   String caption,
   Color captionColor,
 ) {
@@ -206,13 +229,14 @@ void _paintGlyphColumn(
     color,
     strokeScale: strokeScale,
   );
-  if (!parked) return;
+  final alpha = parked.clamp(0.0, 1.0);
+  if (alpha <= 0) return;
   final painter = TextPainter(
     text: TextSpan(
       text: caption.toUpperCase(),
       style: TapeType.label(
         size: TapeStatusStrip.captionSize,
-        color: captionColor,
+        color: captionColor.withValues(alpha: captionColor.a * alpha),
       ),
     ),
     textDirection: TextDirection.ltr,
@@ -231,12 +255,12 @@ class AdapterGlyphPainter extends CustomPainter {
     required Listenable listenable,
     required this.state,
     required this.palette,
-    required this.parked,
+    required this.parkedShare,
   }) : super(repaint: listenable);
 
   final StatusStripLeftState state;
   final TapePalette palette;
-  final bool parked;
+  final ValueListenable<double> parkedShare;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -254,7 +278,7 @@ class AdapterGlyphPainter extends CustomPainter {
       TapeIcon.adapter,
       color,
       palette.strokeScale,
-      parked,
+      parkedShare.value,
       caption,
       palette.label,
     );
@@ -263,7 +287,7 @@ class AdapterGlyphPainter extends CustomPainter {
   @override
   bool shouldRepaint(AdapterGlyphPainter old) =>
       old.palette != palette ||
-      old.parked != parked ||
+      !identical(old.parkedShare, parkedShare) ||
       !identical(old.state.widget.adapter, state.widget.adapter);
 }
 
@@ -272,12 +296,12 @@ class GpsGlyphPainter extends CustomPainter {
     required Listenable listenable,
     required this.hasFix,
     required this.palette,
-    required this.parked,
+    required this.parkedShare,
   }) : super(repaint: listenable);
 
   final ValueListenable<bool> hasFix;
   final TapePalette palette;
-  final bool parked;
+  final ValueListenable<double> parkedShare;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -291,7 +315,7 @@ class GpsGlyphPainter extends CustomPainter {
       TapeIcon.gps,
       color,
       palette.strokeScale,
-      parked,
+      parkedShare.value,
       fix ? 'gps' : 'no fix',
       palette.label,
     );
@@ -300,7 +324,7 @@ class GpsGlyphPainter extends CustomPainter {
   @override
   bool shouldRepaint(GpsGlyphPainter old) =>
       old.palette != palette ||
-      old.parked != parked ||
+      !identical(old.parkedShare, parkedShare) ||
       !identical(old.hasFix, hasFix);
 }
 
@@ -310,37 +334,44 @@ class GpsGlyphPainter extends CustomPainter {
 /// The DEMO badge is not gated by Motion/Parked -- CLAUDE.md 7.6 is explicit
 /// that it "is always visible" -- and neither is the clock, which is already
 /// textual in both modes; only the phone-hot glyph's caption follows the
-/// glyphs-only-in-Motion rule.
+/// glyphs-to-text rule, on the same parked share the left flank runs on
+/// (DESIGN.md 7.2), so both flanks move as one choreography.
 class StatusStripRight extends StatelessWidget {
   const StatusStripRight({
     super.key,
     required this.time,
     required this.use24Hour,
     required this.phoneHot,
+    required this.parkedShare,
     this.demoMode = false,
-    this.parked = false,
   });
 
   final ValueListenable<DateTime> time;
   final bool use24Hour;
   final ValueListenable<bool> phoneHot;
+  final ValueListenable<double> parkedShare;
   final bool demoMode;
-  final bool parked;
 
   @override
   Widget build(BuildContext context) {
     final theme = TapeTheme.of(context);
     final palette = theme.palette;
-    return SizedBox(
-      height: _glyphColumnHeight(parked),
-      child: CustomPaint(
-        painter: StatusStripRightPainter(
-          listenable: Listenable.merge([time, phoneHot]),
-          right: this,
-          palette: palette,
-          numeralWeight: theme.livery.numeralWeight,
-        ),
-      ),
+    return ListenableBuilder(
+      listenable: parkedShare,
+      builder: (context, _) {
+        final parked = parkedShare.value.clamp(0.0, 1.0);
+        return SizedBox(
+          height: _glyphColumnHeight(parked),
+          child: CustomPaint(
+            painter: StatusStripRightPainter(
+              listenable: Listenable.merge([time, phoneHot, parkedShare]),
+              right: this,
+              palette: palette,
+              numeralWeight: theme.livery.numeralWeight,
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -360,6 +391,7 @@ class StatusStripRightPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     var x = 0.0;
+    final parked = right.parkedShare.value.clamp(0.0, 1.0);
 
     final clock = TextPainter(
       text: TextSpan(
@@ -377,7 +409,7 @@ class StatusStripRightPainter extends CustomPainter {
 
     if (right.phoneHot.value) {
       x += TapeStatusStrip.gap * 2;
-      final columnWidth = glyphColumnWidth(right.parked);
+      final columnWidth = glyphColumnWidth(parked);
       canvas.save();
       canvas.translate(x, 0);
       _paintGlyphColumn(
@@ -386,7 +418,7 @@ class StatusStripRightPainter extends CustomPainter {
         TapeIcon.phoneHot,
         palette.caution,
         palette.strokeScale,
-        right.parked,
+        parked,
         'phone hot',
         palette.label,
       );
@@ -438,7 +470,7 @@ class StatusStripRightPainter extends CustomPainter {
       old.palette != palette ||
       old.right.use24Hour != right.use24Hour ||
       old.right.demoMode != right.demoMode ||
-      old.right.parked != right.parked ||
+      !identical(old.right.parkedShare, right.parkedShare) ||
       !identical(old.right.time, right.time) ||
       !identical(old.right.phoneHot, right.phoneHot);
 }

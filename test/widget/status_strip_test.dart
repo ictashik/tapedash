@@ -73,10 +73,14 @@ void main() {
 
   group('glyphColumnWidth (DESIGN.md 6.9)', () {
     test(
-      'is just the glyph in Motion, and a wider caption column in Parked',
+      'is just the glyph in Motion, and a wider caption column when parked',
       () {
-        expect(glyphColumnWidth(false), 20);
-        expect(glyphColumnWidth(true), greaterThan(20));
+        expect(glyphColumnWidth(0), 20);
+        expect(glyphColumnWidth(1), greaterThan(20));
+        // Partway between: the columns part on the share, not in a jump.
+        final mid = glyphColumnWidth(0.5);
+        expect(mid, greaterThan(20));
+        expect(mid, lessThan(glyphColumnWidth(1)));
       },
     );
   });
@@ -115,7 +119,7 @@ void main() {
       WidgetTester tester, {
       required ValueNotifier<AdapterLinkState> adapter,
       required ValueNotifier<bool> gpsHasFix,
-      bool parked = false,
+      ValueNotifier<double>? parkedShare,
     }) async {
       setWindow(tester, const Size(200, 60));
       final key = GlobalKey<StatusStripLeftState>();
@@ -129,7 +133,7 @@ void main() {
               key: key,
               adapter: adapter,
               gpsHasFix: gpsHasFix,
-              parked: parked,
+              parkedShare: parkedShare ?? ValueNotifier(0),
             ),
           ),
         ),
@@ -208,13 +212,14 @@ void main() {
       },
     );
 
-    testWidgets('captions are absent in Motion and present in Parked', (
+    testWidgets('captions are absent in Motion and present when parked', (
       tester,
     ) async {
       // renderImage captures the whole fixed test window, which is the same
       // size either way, so the check is not the image's own dimensions but
-      // how much of it is actually drawn on: Parked adds caption text on top
-      // of the same glyphs, so it lights strictly more pixels.
+      // how much of it is actually drawn on: a parked share of 1 adds
+      // caption text on top of the same glyphs, so it lights strictly more
+      // pixels.
       int litCount(Uint32List frame) => frame.where((p) {
         final r = (p >> 24) & 0xFF;
         final g = (p >> 16) & 0xFF;
@@ -227,11 +232,18 @@ void main() {
       final gps = ValueNotifier(false);
       addTearDown(gps.dispose);
 
-      await showLeft(tester, adapter: adapter, gpsHasFix: gps, parked: false);
+      await showLeft(tester, adapter: adapter, gpsHasFix: gps);
       await tester.pump();
       final motionLit = litCount(await pixels(tester));
 
-      await showLeft(tester, adapter: adapter, gpsHasFix: gps, parked: true);
+      final share = ValueNotifier(1.0);
+      addTearDown(share.dispose);
+      await showLeft(
+        tester,
+        adapter: adapter,
+        gpsHasFix: gps,
+        parkedShare: share,
+      );
       await tester.pump();
       final parkedLit = litCount(await pixels(tester));
 
@@ -286,6 +298,7 @@ void main() {
               time: time,
               use24Hour: true,
               phoneHot: phoneHot,
+              parkedShare: ValueNotifier(0),
             ),
           ),
         ),
@@ -306,6 +319,7 @@ void main() {
               time: time,
               use24Hour: true,
               phoneHot: phoneHot,
+              parkedShare: ValueNotifier(0),
               demoMode: true,
             ),
           ),
@@ -336,6 +350,7 @@ void main() {
               time: time,
               use24Hour: true,
               phoneHot: phoneHot,
+              parkedShare: ValueNotifier(0),
             ),
           ),
         ),

@@ -5,6 +5,7 @@ import '../../../vehicle/vehicle_state.dart' show DrivingMode;
 import '../../design/components/controls/tape_button.dart';
 import '../../design/icons/icons.dart';
 import '../../design/motion/motion_clock.dart';
+import '../../design/motion/parked_share.dart';
 import '../../design/motion/spring_value.dart';
 import '../../design/theme/palette.dart';
 import '../../design/theme/tape_theme.dart';
@@ -190,13 +191,9 @@ class _StaggeredDockButton extends StatelessWidget {
     );
   }
 
-  /// The button's own rise: the dock's own rise, with the button's own
-  /// stagger starting [TapeMotion.stagger] after its own index.
-  static double _ownRise(int index, double rise) {
-    // The stagger: one share of the dock's own rise per button, in the
-    // dock's own six-item budget (DESIGN.md 5.7), so four buttons stagger
-    // at 0, 1/6, 2/6 and 3/6 of the rise.
-    final start = index / 6.0;
-    return ((rise - start) / (1 - start)).clamp(0.0, 1.0);
-  }
+  /// The button's own rise: the dock's own rise, read through the shared
+  /// stagger (DESIGN.md 5.7), so four buttons stagger at 0, 1/6, 2/6 and 3/6
+  /// of the rise, on the one formula the choreography sources once.
+  static double _ownRise(int index, double rise) =>
+      ParkedShare.staggered(rise, index);
 }
