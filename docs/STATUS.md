@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. The screens that compose them do not yet. Phases are in CLAUDE.md 13.
+Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. Two of the five Drive clusters (Apex, Road) render against a real `DemoDrive`; the other three, and everything that makes them one page, do not yet. Phases are in CLAUDE.md 13.
 
 ## Where we are
 
@@ -10,7 +10,7 @@ Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 n
 | 1. Simulator | **Done** |
 | 2. OBD stack on the simulator (tag `v0.1.0-sim`) | **Done** |
 | 3a. Design system (tag `v0.2.0-design`) | **Done** |
-| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | **In progress: all components done, screens not started** |
+| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | **In progress: all components done, 2 of 5 Drive clusters done** |
 | 4 to 7 | Not started |
 
 **Suggested tags, neither created:** `v0.1.0-sim` on `d5016d6` (end of phase 2) and `v0.2.0-design` on `62fb1bb` (end of phase 3a). Placing them is your call. Nothing has been pushed, and there is no remote.
@@ -70,11 +70,30 @@ The Apex cluster (DESIGN.md 7.3.1, Drive's default) now exists and renders again
 
 Numbers as of this section: **2,171 tests** (2,154 at the end of "every component" above), tree clean, `dd282e9` at HEAD, nothing pushed, no tags.
 
+## Phase 3b: the Road cluster
+
+The Road cluster (DESIGN.md 7.3.5) is the second real screen, and stays a near-pure composition on purpose: the road view (DESIGN.md 6.11, complete since "every component" above) already draws its own overlays -- the hero speed top-centre and the RPM bar along its horizon -- and DESIGN.md 6.11's overlay list is the whole of this cluster's chrome (no status strip or flanks are named for Road, unlike Apex), so none are added. It runs on the same real `DemoDrive` + `DriveSignals` wiring as Apex.
+
+| Piece | Where | Tests |
+|---|---|---|
+| `RoadCluster`: `RoadView` full-bleed on the shared `DriveSignals`, max RPM pinned to `TapeTach.defaultMaxRpm` (the tach arc's and shift horizon's own default; a per-profile range comes with phase 4's vehicle setup) | `lib/ui/pages/drive/road_cluster.dart` | 4, plus a capture test against real drives |
+
+**What it honestly omits:** the money readout on the driver-side flank (DESIGN.md 6.11) -- `money/` is phase 4, and `RoadView` already reserves the slot and takes a `moneySlot` widget, so phase 4 only has to pass one in. The car also does not roll yet: the accelerometer pipeline does not exist, `DriveSignals.lateralAcceleration` is never ingested into, and `RoadView` renders a valueless signal as 0/no-roll (the same working degradation as before).
+
+Two tests worth their cost, both measured through real pixels (`test/widget/pages/road_cluster_test.dart`):
+
+- The horizon RPM bar's fill maps the cluster's rpm through the tach default max (2100/7000, ~30% of the frame) -- a cluster-level choice its own test can now pin, since `RoadView`'s own suite passes a different max.
+- Night mode's headlight cone (DESIGN.md 6.11) is measurably present through the cluster's wiring: a plain-road patch below the car's base lifts against the identical daylight frame. It is subtle enough that eyeballing the night capture alone could not settle it; the pixel test did, and that is why the test exists.
+
+The first widget-test run found a real bug -- in the test, not the component. The pixel fingerprint was written as a `Color` literal (`0xFF5CE1FF`) instead of the byte order `toByteData` reads back on this platform (`0xRRGGBBAA`, so `0x5CE1FFFF`), and the bar read as absent from the whole frame. A probe of the actual packed values settled which side was wrong (the captures plainly showed the bar). The constant now follows the convention the Apex test established (`0x1296FFFF` for accent.deep there is the same packing), with the byte order written down in the test's own comment so the next pixel test does not repeat the detour.
+
+Numbers as of this section: **2,175 tests** (2,171 before), `1714f59` at HEAD for the feature, nothing pushed, no tags.
+
 ## Phase 3b, still to do
 
-**Immediate next step:** a `RoadCluster` wrapper (composing the already-complete `RoadView` with `DriveSignals`, the way `ApexCluster` composes the tach arc) is the cheapest remaining cluster -- `longitudinalAcceleration` is already wired, and `RoadView` already degrades gracefully with no lateral signal. See `handoff.md` at the repo root for exact next steps and session context.
+**Immediate next step:** the other three Drive clusters -- Tape, Minimal, Telemetry (DESIGN.md 7.3.2-7.3.4) -- are genuinely new layout work, not wiring like Road was. Each wants `CenteredNumeral` for its own hero-style readout; read `lib/ui/design/components/centered_numeral.dart`'s doc comment before building any of them (the naive centring approach is wrong and was hit twice). Tape needs the vertical tapes with trend vectors; Minimal is the hero plus a thin RPM line; Telemetry is a 2x3 grid of `telemetry_tile`s -- see what each honestly omits (money, km/L, load and MAP/MAF tiles have no real source before phase 4) the same way Apex and Road did. See `handoff.md` at the repo root for exact next steps and session context.
 
-Then: the other three Drive clusters (Tape, Minimal, Telemetry) composed from the components above, each using `CenteredNumeral` for its own hero-style readout. The Strip navigation (horizontal swipe with parallax, vertical swipe for cluster change, the page tape, motion lock), Motion <-> Parked, ignition and shutdown sequences, connection states. HUD layouts, the flips, the alignment pattern. Demo Mode (wiring the already-built `DemoDrive` to a real screen -- `ApexCluster`'s own capture test is a proof of concept for this, not the real wiring, which belongs in `lib/app/`), onboarding with the cold open and demo path, and the brand (icon, launch theme, wordmark) -- the launcher and splash icons are still Flutter's defaults. Layer 4 and 4b tests once real pages exist to run them against. A design review package covering real driving screens, per CLAUDE.md 13 and DESIGN.md 14.4 -- none of this phase's work has been reviewed as screens yet, only as components in the Lab.
+Then: the Strip navigation (horizontal swipe with parallax, vertical swipe for cluster change, the page tape, motion lock), Motion <-> Parked, ignition and shutdown sequences, connection states. HUD layouts, the flips, the alignment pattern. Demo Mode (wiring the already-built `DemoDrive` to a real screen -- the clusters' capture tests are proofs of concept for this, not the real wiring, which belongs in `lib/app/`), onboarding with the cold open and demo path, and the brand (icon, launch theme, wordmark) -- the launcher and splash icons are still Flutter's defaults. Layer 4 and 4b tests once real pages exist to run them against. A design review package covering real driving screens, per CLAUDE.md 13 and DESIGN.md 14.4 -- none of this phase's work has been reviewed as screens yet, only as components in the Lab.
 
 ## Phase 2: what exists
 
