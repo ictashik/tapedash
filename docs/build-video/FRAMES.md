@@ -26,3 +26,4 @@ screen at 2x) unless it says otherwise. `tool/build_frame.sh` adds one.
 | 19 | [019-alerts.jpg](frames/019-alerts.jpg) | `944ff41` | A critical alert: the coolant gauge itself turns critical, and a chamfered bracket pulses at 1 Hz around it. |
 | 20 | [020-road-view.jpg](frames/020-road-view.jpg) | `89dd1da` | The road view at 120 km/h: converging lane lines, truthful-motion dashes, speed streaks and the hero speed readout. |
 | 21 | [021-vertical-tape.jpg](frames/021-vertical-tape.jpg) | `390010f` | The vertical tape: the aircraft-style RPM instrument, scrolling past a fixed readout, with a redline band and a trend vector -- the instrument TapeDash is named for. |
+| 22 | [022-money-tape.jpg](frames/022-money-tape.jpg) | `56de0ba` | The Money Tape: each block is a rupee, styled by where it went -- normal, hollow for idling, notched for hard acceleration, solid for high speed. |
