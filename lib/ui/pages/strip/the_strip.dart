@@ -226,8 +226,6 @@ class TheStripState extends State<TheStrip> {
   }
 
   void _settle(double at, double velocity) {
-    // ignore: avoid_print
-    print('settle: at $at, velocity $velocity');
     final (min, max) = reachOf(widget.mode.value);
     final wanted = settleTarget(at, velocity);
     final clamped = wanted.clamp(min, max).toInt();
