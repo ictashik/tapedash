@@ -4,27 +4,24 @@ Written 2026-09-28, at the end of a session that built the Road, Tape, Minimal a
 
 ## Where things stand right now
 
-- HEAD is `53b4935` on `main`. Tree is clean. Nothing has been pushed; there is no remote. No tags exist (`v0.1.0-sim` and `v0.2.0-design` are suggested but not placed -- see `docs/STATUS.md`).
-- `./tool/verify.sh` is green: 2,188 tests, offline check clean.
-- **All five Drive clusters now exist** (`lib/ui/pages/drive/`: `apex_cluster.dart`, `road_cluster.dart`, `tape_cluster.dart`, `minimal_cluster.dart`, `telemetry_cluster.dart`), each rendering against a real `DemoDrive` (the actual OBD stack from phases 1-2), each with a capture test (`test/design/capture/*_cluster_capture_test.dart`) and a pixel-level widget test suite (`test/widget/pages/*_cluster_test.dart`). Per-cluster details and the design decisions they recorded: `docs/STATUS.md`'s three "Phase 3b: the ..." cluster sections.
-- `DriveSignals` now carries `load` and `voltage` too (real sensors, bound the same way as the signals before them; the Telemetry grid was their first reader). Its doc comment is the map of what is wired and what is deliberately absent.
-- 27 build-video frames registered, one per piece of work, `docs/build-video/FRAMES.md`.
+- HEAD is `09b96d2` on `main`. Tree is clean. Nothing has been pushed; there is no remote. No tags exist (`v0.1.0-sim` and `v0.2.0-design` are suggested but not placed -- see `docs/STATUS.md`).
+- `./tool/verify.sh` is green: 2,197 tests, offline check clean.
+- **All five Drive clusters exist** (`lib/ui/pages/drive/`: `apex_cluster.dart`, `road_cluster.dart`, `tape_cluster.dart`, `minimal_cluster.dart`, `telemetry_cluster.dart`), each rendering against a real `DemoDrive`, each with a capture test and a pixel-level widget test suite. Per-cluster details and the design decisions they recorded: `docs/STATUS.md`'s "Phase 3b: the ..." cluster sections.
+- **The Strip exists** (`lib/ui/pages/strip/`): five pages, Drive at home in the centre, a horizontal swipe on spring.page with the spring chasing the finger and the hand's own velocity carrying into the settle, parallax in the tiers that allow it (the canvas drifts at 0.1x, wide enough to cover the whole drift range; the flow delegate loosens the canvas child's own constraints, which the viewport's tight ones would otherwise clamp back to one page wide), the page tape (the current page's tick lit, the rest etched, the locked pages carrying the lock in place of their dash), the motion lock (a swipe toward a locked page rubber-bands against the reachable edge and shows the lock glyph for 800 ms; a page left on when the car starts moving returns to the nearest reachable page on spring.snap inside the 300 ms), and honest placeholders for the four non-Drive pages. The strip does not rebuild for its own motion (one Flow, its delegate reading the spring fresh per frame, painting only the children whose own span meets the viewport), and a page inside the window builds once and never again while the strip moves within it.
+- 28 build-video frames registered, one per piece of work, `docs/build-video/FRAMES.md`.
 - The user has been getting periodic progress reports and wants build-video material as work lands. Keep registering frames with `tool/build_frame.sh` as each piece lands, the same as every commit so far.
 
-## Immediate next step: the Strip navigation (DESIGN.md 7.1)
+## Immediate next step: the vertical cluster reel, then the parked dock
 
-The clusters are done; what makes them one page is not. This is the next piece, and the first genuinely *interactive* one of the phase:
+The Strip's pages move; what is left of 7.1's own bullet list is the vertical reel inside Drive and the parked dock:
 
-- Horizontal swipe between `REVIEW · MONEY · [DRIVE] · COACH · HISTORY` on `spring.page` with parallax in Tiers 2 and 3 (L0 0.1x, L1 0.6x, L2 1.0x, L3 1.05x). Needs placeholder Money/Review/Coach/History pages to swipe to -- honest placeholders (an empty parked panel carrying the page's name and a note that its content is phase 4/5), not fake data screens. The Dock/Money/Drive pages' real content comes later.
-- Vertical swipe on Drive changes the cluster layout (Apex, Tape, Minimal, Telemetry, Road), reel-like, choice persists.
-- The page tape: five ticks in the floor's bottom 8 lp; current page lit; locked ticks show the lock.
-- Motion lock: while moving, only Money and Drive are reachable; swiping towards a locked page rubber-bands back with a small lock glyph for 800 ms.
-- The parked dock: rises into the floor zone when parked, Garage / Pit Stop / Diagnostics / HUD buttons (48 lp chamfer buttons, glyph plus label).
-- The Drive-to-Money shared-element transition: the hero speed shrinks and flies to Money's status corner while the floor's value grows and flies to Money's centre. The number you were watching never disappears; it travels. Money's own centre value is phase 4, so the arrival target may have to be the placeholder's slot, documented.
+- **The vertical reel (DESIGN.md 7.3):** a vertical swipe on Drive cycles the five cluster layouts with a reel-like transition, and the choice persists. The clusters are already built; a `DrivePage` becomes the strip's Drive slot and wraps them in a vertical Flow, the same chase-and-settle pattern the strip uses, with the chosen index held in the page's own state so a horizontal page move does not tear it down. A reel has no lock of its own: a cluster switch is safe anywhere.
+- **The parked dock (DESIGN.md 7.1):** rises into the floor zone when parked, with Garage, Pit Stop, Diagnostics and HUD -- chamfer buttons, glyph plus label. The destinations do not exist yet (their real screens are phase 4/5), so the buttons arrive disabled and documented rather than dead-tap placeholders. The dock rises on spring.reveal staggered and falls on spring.snap inside the 300 ms the motion return allows (DESIGN.md 7.2's "motion mode always wins").
+- **The shared-element transition (DESIGN.md 7.1):** from Drive to Money, the hero speed shrinks and flies to Money's status corner while the floor's value grows to Money's centre. Money's own centre value is phase 4, so the Money-side landing is the placeholder's slot for now, documented. The double-tap that toggles the HUD belongs with the HUD's own piece, not this.
 
-Re-read DESIGN.md 7.1 in full before building any of it, and §5.7 (choreography) and §7.2 (the Motion/Parked rule the lock depends on). The park/motion state already exists and is wired (`VehicleState.mode` -> `DriveSignals.mode`, DESIGN.md 7.2's exact rule was built in phase 2); what's missing is UI reacting to it.
+The drags in the strip's own widget tests pace the hand's own moves in steps (`moveBy` in a few events with frames advanced between them), so the gesture's own velocity at the release is real -- a drag's single `moveBy` in one event leaves no velocity for the release to carry, and the settle then reads a hand that was still moving as one that had stopped.
 
-A vertical swipe between five cluster widgets is worth a capture test *while swiping* (mid-transition frames), not just at rest -- the reel-like transition is where a bad choice (a naive PageView, a wrong parallax share) shows.
+Re-read DESIGN.md 7.1 and 7.3 again before either piece, plus §5.7 (choreography) and §7.2 (the motion rule the dock rises and falls on). The chase-and-settle pattern and the open window the strip already uses are the model for both.
 
 ## The workflow every component, cluster and screen has followed
 
