@@ -53,9 +53,28 @@ Plus `test/widget/glow_cache_test.dart` (5 tests): `GlowSprite.drawCentered`, ad
 
 Numbers: **2,154 tests** (2,014 at the end of phase 3a), a few seconds for the whole suite excluding goldens (none exist yet; see phase 3a's own note). 22 build-video frames captured against real renders as each component landed, in `docs/build-video/`, per commit in `FRAMES.md`.
 
+## Phase 3b: the first real screen
+
+The Apex cluster (DESIGN.md 7.3.1, Drive's default) now exists and renders against a **real `DemoDrive`** -- the actual OBD stack (`Elm327Simulator`, `ObdSession`, `VehicleState`) from phases 1-2, not synthetic capture-only signals. This is the first place any of phase 3b's components have been driven by real (simulated) vehicle data rather than a hand-fed `SmoothedSignal` in a test.
+
+| Piece | Where | Tests |
+|---|---|---|
+| `DriveSignals`: `SmoothedSignal`s bound once to a `VehicleState` (`SmoothedSignal.bind`, already built in phase 2/3a) and shared across whatever cluster is on screen | `lib/ui/pages/drive/drive_signals.dart` | 10 |
+| `ApexCluster`: hero speed + tach arc, the coolant gauge, the shift horizon and status strip | `lib/ui/pages/drive/apex_cluster.dart` | 3, plus a capture test against a real `DemoDrive` |
+| `WallClockTicker`: the status strip's clock, ticking on the injected `Clock`/`Scheduler`, not `DateTime.now()`/`Timer` | `lib/ui/design/motion/wall_clock.dart` | covered via `DriveSignals`' and `ApexCluster`'s own tests |
+| `CenteredNumeral`: centres `RollingNumerals`' typically-lit digits, not its full (jitter-free, right-anchored) digit reservation -- DESIGN.md 9.3's reservation is correct for a corner tile and wrong for a hero readout | `lib/ui/design/components/centered_numeral.dart` | 4 |
+
+**What `ApexCluster` honestly omits:** the driver-side flank's ₹ THIS TRIP and ₹/KM, the coolant flank's instant km/L, and the floor's eco bar and trip distance/time (DESIGN.md 7.3.1). All need `fuel/`, `money/` or `trips/`, none of which exist before phase 4; CLAUDE.md 1's honest numbers means these slots are simply absent, not faked. `DriveSignals` also exposes `gpsHasFix` and `phoneHot` as permanent, documented `false` (no native GPS or phone-temperature pipeline yet), and `lateralAcceleration` as a `SmoothedSignal` that is never ingested into (no accelerometer pipeline yet; `RoadView` already renders a valueless signal as 0/no-roll, so this is a real, working degradation, not a crash risk) -- `longitudinalAcceleration` **is** wired for real, from `VehicleState.motion`.
+
+**`CenteredNumeral` is worth understanding before touching any other cluster's hero readout,** since Tape, Minimal and the Money page will all want the same treatment: it was built because the exact same off-centre bug hit twice (the road view's hero speed, then the Apex cluster's), and its own doc comment records two more real bugs found getting it right (an `OverflowBox` fed an unconstrained ambient height crashed outright; the first fix's width estimate undershot the real glyph atlas's digit advance by a full digit at size 100). Both are fixed at the source now, not worked around per call site.
+
+Numbers as of this section: **2,171 tests** (2,154 at the end of "every component" above), tree clean, `dd282e9` at HEAD, nothing pushed, no tags.
+
 ## Phase 3b, still to do
 
-The Strip navigation (horizontal swipe with parallax, vertical swipe for cluster change, the page tape, motion lock), Motion <-> Parked, the five Drive clusters (Apex, Tape, Minimal, Telemetry, Road) composed from the components above, ignition and shutdown sequences, connection states. HUD layouts, the flips, the alignment pattern. Demo Mode (wiring the already-built `DemoDrive` to a real screen), onboarding with the cold open and demo path, and the brand (icon, launch theme, wordmark) -- the launcher and splash icons are still Flutter's defaults. Layer 4 and 4b tests once real pages exist to run them against. A design review package covering real driving screens, per CLAUDE.md 13 and DESIGN.md 14.4 -- none of this phase's work has been reviewed as screens yet, only as components in the Lab.
+**Immediate next step:** a `RoadCluster` wrapper (composing the already-complete `RoadView` with `DriveSignals`, the way `ApexCluster` composes the tach arc) is the cheapest remaining cluster -- `longitudinalAcceleration` is already wired, and `RoadView` already degrades gracefully with no lateral signal. See `handoff.md` at the repo root for exact next steps and session context.
+
+Then: the other three Drive clusters (Tape, Minimal, Telemetry) composed from the components above, each using `CenteredNumeral` for its own hero-style readout. The Strip navigation (horizontal swipe with parallax, vertical swipe for cluster change, the page tape, motion lock), Motion <-> Parked, ignition and shutdown sequences, connection states. HUD layouts, the flips, the alignment pattern. Demo Mode (wiring the already-built `DemoDrive` to a real screen -- `ApexCluster`'s own capture test is a proof of concept for this, not the real wiring, which belongs in `lib/app/`), onboarding with the cold open and demo path, and the brand (icon, launch theme, wordmark) -- the launcher and splash icons are still Flutter's defaults. Layer 4 and 4b tests once real pages exist to run them against. A design review package covering real driving screens, per CLAUDE.md 13 and DESIGN.md 14.4 -- none of this phase's work has been reviewed as screens yet, only as components in the Lab.
 
 ## Phase 2: what exists
 
