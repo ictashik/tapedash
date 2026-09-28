@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. All five Drive clusters (Apex, Road, Tape, Minimal, Telemetry) render against a real `DemoDrive`; the Strip (DESIGN.md 7.1) carries them as one panel -- a swipe with parallax, the page tape, the motion lock, and the parked dock. What remains of the phase: Motion <-> Parked's choreography, ignition and shutdown, connection states, the HUD, Demo Mode, onboarding, the brand, and the phase's review package. Phases are in CLAUDE.md 13.
+Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. All five Drive clusters (Apex, Road, Tape, Minimal, Telemetry) render against a real `DemoDrive`; the Strip (DESIGN.md 7.1) carries them as one panel -- a swipe with parallax, the page tape, the motion lock, and the parked dock -- and the Motion <-> Parked choreography (DESIGN.md 7.2) runs the whole screen's parked treatment on one shared spring. What remains of the phase: the shared-element transition, ignition and shutdown, connection states, the HUD, Demo Mode, onboarding, the brand, and the phase's review package. Phases are in CLAUDE.md 13.
 
 ## Where we are
 
@@ -10,7 +10,7 @@ Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 n
 | 1. Simulator | **Done** |
 | 2. OBD stack on the simulator (tag `v0.1.0-sim`) | **Done** |
 | 3a. Design system (tag `v0.2.0-design`) | **Done** |
-| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | **In progress: all components, all 5 clusters, the Strip and the dock** |
+| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | **In progress: all components, all 5 clusters, the Strip, the dock and the Motion <-> Parked choreography** |
 | 4 to 7 | Not started |
 
 **Suggested tags, neither created:** `v0.1.0-sim` on `d5016d6` (end of phase 2) and `v0.2.0-design` on `62fb1bb` (end of phase 3a). Placing them is your call. Nothing has been pushed, and there is no remote.
@@ -126,9 +126,25 @@ Numbers as of this section: **2,188 tests** (2,179 before), `49915fa` at HEAD fo
 
 ## Phase 3b, still to do
 
-**Immediate next step:** Motion <-> Parked's choreography (DESIGN.md 7.2 -- the state exists and is wired; the UI reacting to it is what's missing: the tach arc thinning and dimming, the flanks unfolding, the dock rising), then the shared-element transition from Drive to Money. See `handoff.md` at the repo root for exact next steps and session context.
+**Immediate next step:** the shared-element transition from Drive to Money (DESIGN.md 7.1), then ignition and shutdown sequences (DESIGN.md 7.13) and connection states (DESIGN.md 7.12). See `handoff.md` at the repo root for exact next steps and session context.
 
-Then: Motion <-> Parked (DESIGN.md 7.2 -- the state exists and is wired; the UI reacting to it is what's missing), ignition and shutdown sequences, connection states. HUD layouts, the flips, the alignment pattern. Demo Mode (wiring the already-built `DemoDrive` to a real screen -- the clusters' capture tests are proofs of concept for this, not the real wiring, which belongs in `lib/app/`), onboarding with the cold open and demo path, and the brand (icon, launch theme, wordmark) -- the launcher and splash icons are still Flutter's defaults. Layer 4 and 4b tests once real pages exist to run them against. A design review package covering real driving screens, per CLAUDE.md 13 and DESIGN.md 14.4 -- none of this phase's work has been reviewed as screens yet, only as components in the Lab.
+## Phase 3b: the Motion <-> Parked choreography
+
+DESIGN.md 7.2's choreography is in. The mode state had been wired since phase 2 (`VehicleState.mode` -> `DriveSignals.mode`) and the dock already reacted; the rest of the screen now reacts on one shared value:
+
+| Piece | Where | Tests |
+|---|---|---|
+| `ParkedShare`: the parked share (DESIGN.md 7.2), 0 in Motion and 1 parked, rising on `spring.reveal`, falling on `spring.snap` inside the 300 ms the motion return allows, cancelling whatever is in flight; hosts the choreography's one stagger formula | `lib/ui/design/motion/parked_share.dart` | 9 |
+| `DriveSignals.parkedShare`: the whole screen's choreography reads this one spring | `lib/ui/pages/drive/drive_signals.dart` | 3, in the suite's own `parkedShare` group |
+| The tach arc thins and dims to 60% (stagger 0): segments thinned to 60% of their radial depth, everything luminous dimmed to 60%; the etched scale is the static ground and stays put | `tach_arc.dart` + `tokens/tach.dart` | 1 pixel test (same readings at motion vs parked: full-brightness ink gone, strictly less tinted ink) |
+| `ParkedScale`: the hero's transition transform, deliberately not a re-layout (the glyph atlas is per font size) | `lib/ui/design/components/parked_scale.dart` | direct `scaleFor` tests via the share's own suite; Apex and Minimal each pin the rendered shrink |
+| The status strip's captions fade in on the share, the glyph columns widening with them, instead of the hard bool switch | `status_strip.dart` | the suite's own caption and width tests, re-pointed at the share |
+
+**The reading of "thins and dims to 60%" is recorded in `tokens/tach.dart`:** both effects to the same 60% -- the segments' radial depth and the whole arc's luminous layers' brightness. The etched scale does not dim with them. **What is honestly absent (phase 4):** the flanks' unfolded detail panels (trip stats, fuel, calibration) the spec also asks for -- they need `fuel/`, `money/` or `trips/`, none of which exist yet; absent, not faked (CLAUDE.md 1). The parked dock keeps its own spring (the strip is a different subtree from the Drive page); its fall is the same `spring.snap` inside the same budget.
+
+**Real bugs the tests or captures found:** the tach arc's first parked pixel test read the *needle's* white core as the "hero ink" (the numeral's ink sits lower than an eyeball guesses, and the needle's own white blade sits inside any wide centre-zone band) -- a probe of the actual frame settled which side was wrong; the test now counts any ink brighter than the void in a band the arc's own parts sit outside of. The parked capture (a real `DemoDrive`, stopped) first captured an arc with no values at all -- a stopped drive never polls -- so it now feeds idle readings at the fast tier's own pace.
+
+Numbers as of this section: **2,218 tests** (2,203 before), `d177350` at HEAD for the feature, nothing pushed, no tags.
 
 ## Phase 2: what exists
 
