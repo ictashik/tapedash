@@ -119,6 +119,11 @@ class TapePalette {
   /// The rupee sign: `money.deep`, and `money.core` in Daylight.
   Color get rupee => isDaylight ? TapeColors.moneyCore : TapeColors.moneyDeep;
 
+  /// A normal Money Tape block (DESIGN.md 6.8), and anywhere else that
+  /// wants the deeper of the two money tones on its own, not the rupee
+  /// sign's Daylight-lifted version.
+  Color get moneyDeep => TapeColors.moneyDeep;
+
   Color get moneyGlow => TapeColors.moneyGlow;
 
   // State
