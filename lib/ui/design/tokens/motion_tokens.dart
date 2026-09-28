@@ -161,4 +161,9 @@ abstract final class TapeMotion {
   static const double bloomScaleFrom = 0.6;
   static const double bloomScaleTo = 1.4;
   static const double bloomAlphaFrom = 0.35;
+
+  /// How often the status strip's clock re-reads the wall clock (DESIGN.md
+  /// 6.9): finer than a minute, since nothing reading it shows seconds, so
+  /// an idle clock costs almost nothing.
+  static const Duration wallClockTick = Duration(seconds: 20);
 }

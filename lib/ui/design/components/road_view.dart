@@ -10,6 +10,7 @@ import '../theme/palette.dart';
 import '../theme/tape_theme.dart';
 import '../tokens/road_view.dart';
 import '../tokens/typography.dart';
+import 'centered_numeral.dart';
 import 'rolling_numerals.dart';
 
 /// The road view (DESIGN.md 6.11): the "car moving" cluster. A stylised,
@@ -168,24 +169,11 @@ class RoadViewState extends State<RoadView> implements MotionDriven {
             top: 8,
             left: 0,
             right: 0,
-            // RollingNumerals reserves a fixed width for all 3 digits and
-            // right-anchors within it (deliberately -- so the value never
-            // jitters sideways as its digit count changes), with unused
-            // leading digits faded rather than absent. Plain Center
-            // therefore centres that reservation, which is exactly right
-            // when a 3-digit value fills it, but visibly right-of-centre
-            // for the commonly-2-digit content most cars show, sitting only
-            // in the box's right two thirds. No single fixed offset centres
-            // both cases (nudging enough to fix 2 digits crowds 3 digits
-            // against the edge instead, and 100+ km/h is routine on an
-            // Indian highway); this splits the difference rather than
-            // fully solving either, since a few percent off-centre reads
-            // far better than either case looking badly off.
-            child: Align(
-              alignment: const Alignment(-0.11, 0),
-              child: RollingNumerals(
+            child: Center(
+              child: CenteredNumeral(
                 source: widget.speed,
                 format: const NumeralFormat(integerDigits: 3),
+                typicalIntegerDigits: 2,
                 size: TypeScale.forHeight(widget.height).hero,
                 role: NumeralRole.bright,
               ),
