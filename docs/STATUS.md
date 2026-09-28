@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. All five Drive clusters (Apex, Road, Tape, Minimal, Telemetry) render against a real `DemoDrive`, and the Strip (DESIGN.md 7.1) carries them as one panel: a swipe with parallax, the page tape, and the motion lock. What remains of the phase: Motion <-> Parked's choreography, the parked dock, ignition and shutdown, connection states, the HUD, Demo Mode, onboarding, the brand, and the phase's review package. Phases are in CLAUDE.md 13.
+Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. All five Drive clusters (Apex, Road, Tape, Minimal, Telemetry) render against a real `DemoDrive`; the Strip (DESIGN.md 7.1) carries them as one panel -- a swipe with parallax, the page tape, the motion lock, and the parked dock. What remains of the phase: Motion <-> Parked's choreography, ignition and shutdown, connection states, the HUD, Demo Mode, onboarding, the brand, and the phase's review package. Phases are in CLAUDE.md 13.
 
 ## Where we are
 
@@ -10,7 +10,7 @@ Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 n
 | 1. Simulator | **Done** |
 | 2. OBD stack on the simulator (tag `v0.1.0-sim`) | **Done** |
 | 3a. Design system (tag `v0.2.0-design`) | **Done** |
-| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | **In progress: all components, all 5 clusters, the Strip** |
+| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | **In progress: all components, all 5 clusters, the Strip and the dock** |
 | 4 to 7 | Not started |
 
 **Suggested tags, neither created:** `v0.1.0-sim` on `d5016d6` (end of phase 2) and `v0.2.0-design` on `62fb1bb` (end of phase 3a). Placing them is your call. Nothing has been pushed, and there is no remote.
@@ -126,7 +126,7 @@ Numbers as of this section: **2,188 tests** (2,179 before), `49915fa` at HEAD fo
 
 ## Phase 3b, still to do
 
-**Immediate next step:** the parked dock (DESIGN.md 7.1), then the shared-element transition from Drive to Money. The reel is done. See `handoff.md` at the repo root for exact next steps and session context.
+**Immediate next step:** Motion <-> Parked's choreography (DESIGN.md 7.2 -- the state exists and is wired; the UI reacting to it is what's missing: the tach arc thinning and dimming, the flanks unfolding, the dock rising), then the shared-element transition from Drive to Money. See `handoff.md` at the repo root for exact next steps and session context.
 
 Then: Motion <-> Parked (DESIGN.md 7.2 -- the state exists and is wired; the UI reacting to it is what's missing), ignition and shutdown sequences, connection states. HUD layouts, the flips, the alignment pattern. Demo Mode (wiring the already-built `DemoDrive` to a real screen -- the clusters' capture tests are proofs of concept for this, not the real wiring, which belongs in `lib/app/`), onboarding with the cold open and demo path, and the brand (icon, launch theme, wordmark) -- the launcher and splash icons are still Flutter's defaults. Layer 4 and 4b tests once real pages exist to run them against. A design review package covering real driving screens, per CLAUDE.md 13 and DESIGN.md 14.4 -- none of this phase's work has been reviewed as screens yet, only as components in the Lab.
 
