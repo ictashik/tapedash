@@ -25,3 +25,4 @@ screen at 2x) unless it says otherwise. `tool/build_frame.sh` adds one.
 | 18 | [018-status-strip.jpg](frames/018-status-strip.jpg) | `04a9cb7` | The status strip: the adapter glyph turns caution and gains a caption once parked -- SEARCHING pulses at 0.5 Hz while connecting. |
 | 19 | [019-alerts.jpg](frames/019-alerts.jpg) | `944ff41` | A critical alert: the coolant gauge itself turns critical, and a chamfered bracket pulses at 1 Hz around it. |
 | 20 | [020-road-view.jpg](frames/020-road-view.jpg) | `89dd1da` | The road view at 120 km/h: converging lane lines, truthful-motion dashes, speed streaks and the hero speed readout. |
+| 21 | [021-vertical-tape.jpg](frames/021-vertical-tape.jpg) | `390010f` | The vertical tape: the aircraft-style RPM instrument, scrolling past a fixed readout, with a redline band and a trend vector -- the instrument TapeDash is named for. |
