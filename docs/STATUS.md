@@ -126,7 +126,7 @@ Numbers as of this section: **2,188 tests** (2,179 before), `49915fa` at HEAD fo
 
 ## Phase 3b, still to do
 
-**Immediate next step:** the vertical cluster reel inside the Drive page (DESIGN.md 7.3's "vertical swipe cycles through them and the choice persists"), then the parked dock, then the shared-element transition from Drive to Money. See `handoff.md` at the repo root for exact next steps and session context.
+**Immediate next step:** the parked dock (DESIGN.md 7.1), then the shared-element transition from Drive to Money. The reel is done. See `handoff.md` at the repo root for exact next steps and session context.
 
 Then: Motion <-> Parked (DESIGN.md 7.2 -- the state exists and is wired; the UI reacting to it is what's missing), ignition and shutdown sequences, connection states. HUD layouts, the flips, the alignment pattern. Demo Mode (wiring the already-built `DemoDrive` to a real screen -- the clusters' capture tests are proofs of concept for this, not the real wiring, which belongs in `lib/app/`), onboarding with the cold open and demo path, and the brand (icon, launch theme, wordmark) -- the launcher and splash icons are still Flutter's defaults. Layer 4 and 4b tests once real pages exist to run them against. A design review package covering real driving screens, per CLAUDE.md 13 and DESIGN.md 14.4 -- none of this phase's work has been reviewed as screens yet, only as components in the Lab.
 
