@@ -1,27 +1,31 @@
 # Handoff
 
-Written 2026-09-28, at the end of a session that built the Strip's navigation (the swipe with parallax, the page tape, the motion lock), the Drive page's reel, and the parked dock. Read this first, then `CLAUDE.md` and `DESIGN.md` in full (both are binding and are re-injected as system context every session, but re-reading them yourself, not trusting a summary of them, is the whole lesson this file exists to pass on -- see "The one lesson worth repeating" below).
+Written 2026-09-28, at the end of a session that built the Strip's navigation (the swipe with parallax, the page tape, the motion lock), the Drive page's reel, and the parked dock. Updated the same day, in a short follow-up: the user asked to check the last commits because "there was a problem with strip," which turned out to be real -- see "A bug found after the session ended" below. Read this first, then `CLAUDE.md` and `DESIGN.md` in full (both are binding and are re-injected as system context every session, but re-reading them yourself, not trusting a summary of them, is the whole lesson this file exists to pass on -- see "The one lesson worth repeating" below).
+
+## A bug found after the session ended
+
+`the_strip.dart`'s `_settle()` had a leftover debug `print('settle: at $at, velocity $velocity')` behind `// ignore: avoid_print`, printing on every swipe release. It was introduced while developing the release/settle logic in the Strip's first commit (`99dbc81`) and never pulled out before commit -- the `ignore` comment let it slide past the analyzer instead of getting caught. Found by re-reading the strip's source end to end (not by a test; nothing exercised stdout), removed, `./tool/verify.sh` re-run green, committed separately as `7f04d1b` (`fix(strip): remove a leftover debug print from the settle path`). No other file in `lib/ui/pages/` had one -- checked with `grep -rn "print(\|debugPrint"`. **Grep for stray `print(`/`// ignore:` pairs before calling a phase's work done**; the design lint checks colour/text-style/duration/spring literals but not this, so it is on the workflow's own read-back, not a test, to catch it.
 
 ## Where things stand right now
 
-- HEAD is `0328b10` on `main`. Tree is clean. Nothing has been pushed; there is no remote. No tags exist (`v0.1.0-sim` and `v0.2.0-design` are suggested but not placed -- see `docs/STATUS.md`).
-- `./tool/verify.sh` is green: 2,203 tests, offline check clean.
+- HEAD is `7f04d1b` on `main`. Tree is clean. Nothing has been pushed; there is no remote. No tags exist (`v0.1.0-sim` and `v0.2.0-design` are suggested but not placed -- see `docs/STATUS.md`).
+- `./tool/verify.sh` is green: 2,203 tests, offline check clean (re-verified after the debug-print fix above).
 - **All five Drive clusters exist** (`lib/ui/pages/drive/`: `apex_cluster.dart`, `road_cluster.dart`, `tape_cluster.dart`, `minimal_cluster.dart`, `telemetry_cluster.dart`), each rendering against a real `DemoDrive`, each with a capture test and a pixel-level widget test suite. Per-cluster details and the design decisions they recorded: `docs/STATUS.md`'s "Phase 3b: the ..." cluster sections.
 - **The Strip exists** (`lib/ui/pages/strip/`): five pages, Drive at home in the centre, a horizontal swipe on spring.page with the spring chasing the finger and the hand's own velocity carrying into the settle, parallax in the tiers that allow it (the canvas drifts at 0.1x, wide enough to cover the whole drift range; the flow delegate loosens the canvas child's own constraints, which the viewport's tight ones would otherwise clamp back to one page wide), the page tape (the current page's tick lit, the rest etched, the locked pages carrying the lock in place of their dash), the motion lock (a swipe toward a locked page rubber-bands against the reachable edge and shows the lock glyph for 800 ms; a page left on when the car starts moving returns to the nearest reachable page on spring.snap inside the 300 ms), and honest placeholders for the four non-Drive pages. The strip does not rebuild for its own motion (one Flow, its delegate reading the spring fresh per frame, painting only the children whose own span meets the viewport), and a page inside the window builds once and never again while the strip moves within it.
 - 28 build-video frames registered, one per piece of work, `docs/build-video/FRAMES.md`.
 - The user has been getting periodic progress reports and wants build-video material as work lands. Keep registering frames with `tool/build_frame.sh` as each piece lands, the same as every commit so far.
 
-## Immediate next step: the vertical cluster reel, then the parked dock
+## Immediate next step: Motion <-> Parked's choreography
 
-The Strip's pages move; what is left of 7.1's own bullet list is the vertical reel inside Drive and the parked dock:
+The vertical reel and the parked dock (what the previous version of this section called "next") are both done -- see `git log` (`addce3b`, `a505ef4`) and `docs/STATUS.md`. What is actually next, per CLAUDE.md 13's phase 3b bullet and DESIGN.md 7.2:
 
-- **The vertical reel (DESIGN.md 7.3):** a vertical swipe on Drive cycles the five cluster layouts with a reel-like transition, and the choice persists. The clusters are already built; a `DrivePage` becomes the strip's Drive slot and wraps them in a vertical Flow, the same chase-and-settle pattern the strip uses, with the chosen index held in the page's own state so a horizontal page move does not tear it down. A reel has no lock of its own: a cluster switch is safe anywhere.
-- **The parked dock (DESIGN.md 7.1):** rises into the floor zone when parked, with Garage, Pit Stop, Diagnostics and HUD -- chamfer buttons, glyph plus label. The destinations do not exist yet (their real screens are phase 4/5), so the buttons arrive disabled and documented rather than dead-tap placeholders. The dock rises on spring.reveal staggered and falls on spring.snap inside the 300 ms the motion return allows (DESIGN.md 7.2's "motion mode always wins").
+- **Motion <-> Parked's choreography (DESIGN.md 7.2):** the state already exists and is wired (`VehicleState.mode` -> `DriveSignals.mode`, built in phase 2), and the dock already reacts to it (rises/falls on spring.reveal/spring.snap). What's still missing is the rest of the UI reacting: the tach arc thinning and dimming, detail panels/flanks unfolding when parked and folding back within the 300 ms motion always wins. Re-read DESIGN.md 7.2 in full before starting -- it's short but exact about which layout owns which transition and the 300 ms budget.
 - **The shared-element transition (DESIGN.md 7.1):** from Drive to Money, the hero speed shrinks and flies to Money's status corner while the floor's value grows to Money's centre. Money's own centre value is phase 4, so the Money-side landing is the placeholder's slot for now, documented. The double-tap that toggles the HUD belongs with the HUD's own piece, not this.
+- After those: ignition and shutdown sequences (DESIGN.md 7.13), then connection states (DESIGN.md 7.12) -- see the "Full remaining phase 3b scope" list below for the rest, in the order CLAUDE.md 13 names them.
 
-The drags in the strip's own widget tests pace the hand's own moves in steps (`moveBy` in a few events with frames advanced between them), so the gesture's own velocity at the release is real -- a drag's single `moveBy` in one event leaves no velocity for the release to carry, and the settle then reads a hand that was still moving as one that had stopped.
+The drags in the strip's own widget tests pace the hand's own moves in steps (`moveBy` in a few events with frames advanced between them), so the gesture's own velocity at the release is real -- a drag's single `moveBy` in one event leaves no velocity for the release to carry, and the settle then reads a hand that was still moving as one that had stopped. The same pacing pattern applies to any new gesture-driven test.
 
-Re-read DESIGN.md 7.1 and 7.3 again before either piece, plus §5.7 (choreography) and §7.2 (the motion rule the dock rises and falls on). The chase-and-settle pattern and the open window the strip already uses are the model for both.
+Re-read DESIGN.md 7.1, 7.2 and 7.3 again before starting, plus §5.7 (choreography). The chase-and-settle pattern and the open window the strip already uses are the model for anything else that animates on mode change.
 
 ## The workflow every component, cluster and screen has followed
 
@@ -71,8 +75,10 @@ Partway through an earlier session, a context-window summarisation happened, and
 
 - ~~Components~~ -- **done**, see `docs/STATUS.md`.
 - ~~The five Drive clusters~~ -- **all done** (`lib/ui/pages/drive/`), each on a real `DemoDrive`.
-- The Strip navigation (DESIGN.md 7.1): **next** (see above). Needs honest placeholder pages for the four non-Drive pages.
-- Motion <-> Parked (DESIGN.md 7.2): the transition choreography. The underlying state already exists and is wired (`VehicleState.mode` -> `DriveSignals.mode`, DESIGN.md 7.2's exact rule was built in phase 2) -- what's missing is the UI reacting to it (thinning/dimming the tach arc, unfolding detail panels, the dock rising), not the state itself.
+- ~~The Strip navigation (DESIGN.md 7.1)~~ -- **done** (`99dbc81`): five pages, swipe, parallax, motion lock, page tape, honest placeholders for the four non-Drive pages.
+- ~~The vertical cluster reel (DESIGN.md 7.3)~~ -- **done** (`addce3b`): a vertical swipe on Drive cycles the five clusters, the choice persists in the page's own state.
+- ~~The parked dock (DESIGN.md 7.1)~~ -- **done** (`a505ef4`): rises into the floor zone when parked, Garage/Pit Stop/Diagnostics/HUD as disabled documented buttons, reacts to mode.
+- Motion <-> Parked (DESIGN.md 7.2): the transition choreography. **Next.** The underlying state already exists and is wired (`VehicleState.mode` -> `DriveSignals.mode`, DESIGN.md 7.2's exact rule was built in phase 2), and the dock already reacts to it -- what's missing is the rest of the UI reacting (thinning/dimming the tach arc, unfolding detail panels), not the state itself.
 - Ignition and shutdown sequences (DESIGN.md 7.13).
 - Connection states (DESIGN.md 7.12): the full per-state cluster treatment (searching sweep beam, waiting-for-ignition dim breathing dot, lost freeze-and-fade). `DriveSignals.adapter`/`.connection` already expose the raw state; only the status strip's own small 3-state glyph currently reacts to it (see `_adapterStateFor` in `drive_signals.dart`) -- the fuller treatment is this bullet's job.
 - HUD (DESIGN.md 8): layouts, the flips, the alignment pattern. Not started.
