@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. Three of the five Drive clusters (Apex, Road, Tape) render against a real `DemoDrive`; the other two, and everything that makes them one page, do not yet. Phases are in CLAUDE.md 13.
+Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. All five Drive clusters (Apex, Road, Tape, Minimal, Telemetry) render against a real `DemoDrive`. What remains of the phase is everything that makes them one page: the Strip navigation, Motion <-> Parked, ignition and shutdown, connection states, the HUD, Demo Mode, onboarding, the brand, and the phase's review package. Phases are in CLAUDE.md 13.
 
 ## Where we are
 
@@ -10,7 +10,7 @@ Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 n
 | 1. Simulator | **Done** |
 | 2. OBD stack on the simulator (tag `v0.1.0-sim`) | **Done** |
 | 3a. Design system (tag `v0.2.0-design`) | **Done** |
-| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | **In progress: all components done, 3 of 5 Drive clusters done** |
+| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | **In progress: all components and all 5 Drive clusters done** |
 | 4 to 7 | Not started |
 
 **Suggested tags, neither created:** `v0.1.0-sim` on `d5016d6` (end of phase 2) and `v0.2.0-design` on `62fb1bb` (end of phase 3a). Placing them is your call. Nothing has been pushed, and there is no remote.
@@ -103,11 +103,32 @@ The capture pass (highway, city, aggressive_city) found no component bug this ti
 
 Numbers as of this section: **2,179 tests** (2,175 before), `6af6856` at HEAD for the feature, nothing pushed, no tags.
 
+## Phase 3b: the Minimal and Telemetry clusters
+
+The last two Drive clusters, on the same real `DemoDrive` + `DriveSignals` wiring as the first three.
+
+| Piece | Where | Tests |
+|---|---|---|
+| `MinimalCluster` (DESIGN.md 7.3.3): the hero speed through `CenteredNumeral` and a thin RPM line under its digits | `lib/ui/pages/drive/minimal_cluster.dart` | 5, plus a capture test against real drives |
+| `RpmLinePainter`: the line, centred and symmetric, length clamped at the tach default max; `shareFor` exposed for a direct test | same file | covered by the cluster's suite |
+| `TelemetryCluster` (DESIGN.md 7.3.4): a 2x3 grid of tiles, the shift horizon and status strip on top | `lib/ui/pages/drive/telemetry_cluster.dart` | 4, plus a capture test against real drives |
+| `DriveSignals.load` and `.voltage`: real sensors (`VehicleState.load`/`.voltage`, the poller's tiers since phase 2), bound like the signals before them | `lib/ui/pages/drive/drive_signals.dart` | covered by the Telemetry cluster's binding test |
+
+**What they honestly omit:** Minimal's driver-side corner money readout (phase 4). The Telemetry grid chooses the six candidates with a real source; MAP or MAF, intake air and instant km/L stay out (km/L needs `fuel/`, phase 4), and no tile thresholds are passed (the tinted brackets would need per-vehicle limits with no real source yet).
+
+**Design decisions these two record** (DESIGN.md silent): the RPM line is centred and symmetric under the digits, its full extent 0.25W; no unit label under Minimal's hero ("hero speed only", read literally). The Telemetry grid's cell size is the frame's geometry divided out, so it fills the centre zone at all three design aspect ratios.
+
+The measured pixel tests earned their cost twice in the Minimal cluster: an eyeball of its capture read the hero as ~33 lp right of centre -- a false alarm a measurement probe settled (ink centred within a device pixel for 81, 88, 11 and 100 alike; a narrow digit's side bearing is what reads as offset) -- and the same probe found where the RPM line actually lands (the hero numeral's own box is much taller than its ink, the property the Apex label placement already rides on, so the line sits below where the ink suggests). The lesson: **measure, then believe; never fix from an eyeball.** The pixel-packing convention the Road cluster's test writes down (`toByteData` reads back `0xRRGGBBAA` on this platform) is now used by both new suites.
+
+The Telemetry capture shows numerals caught mid-roll (the odometer detent transition) and the coolant numeral in its phosphor brightening phase after a 1 Hz slow-tier update -- both the numerals' own designed behaviour, covered by their component tests, not layout bugs.
+
+Numbers as of this section: **2,188 tests** (2,179 before), `49915fa` at HEAD for the feature, nothing pushed, no tags.
+
 ## Phase 3b, still to do
 
-**Immediate next step:** the last two Drive clusters -- Minimal and Telemetry (DESIGN.md 7.3.3-7.3.4). Minimal is a hero speed with `CenteredNumeral` plus a thin RPM line under the digits and a small money readout in the driver-side corner (money absent before phase 4, like every cluster); Telemetry is a 2x3 grid of `telemetry_tile`s with the shift horizon on top, and several of its candidate tiles (load, MAP/MAF, voltage, intake air, km/L) have no real source before phase 4 -- compose from what is real, omit the rest, the way every cluster so far has. See `handoff.md` at the repo root for exact next steps and session context.
+**Immediate next step:** the Strip navigation (DESIGN.md 7.1) -- the piece that makes the five clusters one page: horizontal swipe between `REVIEW · MONEY · [DRIVE] · COACH · HISTORY` with parallax, vertical swipe within Drive for the cluster choice, the page tape, motion lock, the parked dock, and the Drive-to-Money shared-element transition. It needs placeholder Money/Review/Coach/History pages to swipe to -- honest placeholders (an empty parked panel with the page's name, not a fake data screen), since their real content is phase 4/5. See `handoff.md` at the repo root for exact next steps and session context.
 
-Then: the Strip navigation (horizontal swipe with parallax, vertical swipe for cluster change, the page tape, motion lock), Motion <-> Parked, ignition and shutdown sequences, connection states. HUD layouts, the flips, the alignment pattern. Demo Mode (wiring the already-built `DemoDrive` to a real screen -- the clusters' capture tests are proofs of concept for this, not the real wiring, which belongs in `lib/app/`), onboarding with the cold open and demo path, and the brand (icon, launch theme, wordmark) -- the launcher and splash icons are still Flutter's defaults. Layer 4 and 4b tests once real pages exist to run them against. A design review package covering real driving screens, per CLAUDE.md 13 and DESIGN.md 14.4 -- none of this phase's work has been reviewed as screens yet, only as components in the Lab.
+Then: Motion <-> Parked (DESIGN.md 7.2 -- the state exists and is wired; the UI reacting to it is what's missing), ignition and shutdown sequences, connection states. HUD layouts, the flips, the alignment pattern. Demo Mode (wiring the already-built `DemoDrive` to a real screen -- the clusters' capture tests are proofs of concept for this, not the real wiring, which belongs in `lib/app/`), onboarding with the cold open and demo path, and the brand (icon, launch theme, wordmark) -- the launcher and splash icons are still Flutter's defaults. Layer 4 and 4b tests once real pages exist to run them against. A design review package covering real driving screens, per CLAUDE.md 13 and DESIGN.md 14.4 -- none of this phase's work has been reviewed as screens yet, only as components in the Lab.
 
 ## Phase 2: what exists
 
