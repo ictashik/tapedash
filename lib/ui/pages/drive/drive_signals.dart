@@ -4,6 +4,7 @@ import '../../../core/clock.dart';
 import '../../../core/observable.dart';
 import '../../../core/scheduler.dart';
 import '../../../obd/obd_session.dart' show ConnectionStatus;
+import '../../../vehicle/reading.dart';
 import '../../../vehicle/vehicle_state.dart';
 import '../../design/components/status_strip.dart' show AdapterLinkState;
 import '../../design/motion/motion_clock.dart';
@@ -55,12 +56,23 @@ class DriveSignals {
          clock: clock,
          spring: TapeSprings.needle,
        ),
+       longitudinalAcceleration = SmoothedSignal(
+         motion: motion,
+         clock: clock,
+         spring: TapeSprings.needle,
+       ),
+       lateralAcceleration = SmoothedSignal(
+         motion: motion,
+         clock: clock,
+         spring: TapeSprings.needle,
+       ),
        _mode = ObservableListenable(vehicle.mode),
        _connection = ObservableListenable(connection) {
     rpm.bind(vehicle.rpm);
     speed.bind(vehicle.speed);
     coolant.bind(vehicle.coolant);
     throttle.bind(vehicle.throttle);
+    vehicle.motion.addListener(_onMotion);
     _adapter = _MappedListenable(_connection, _adapterStateFor);
   }
 
@@ -75,6 +87,21 @@ class DriveSignals {
   final SmoothedSignal speed;
   final SmoothedSignal coolant;
   final SmoothedSignal throttle;
+
+  /// m/s^2, from `VehicleState.motion` (itself from the change in smoothed
+  /// OBD speed, CLAUDE.md 8.8) -- the road view's body pitch (DESIGN.md
+  /// 6.11). Not a plain `.bind()`: `MotionSample` is not a `Reading`, so
+  /// each sample is converted and ingested by hand.
+  final SmoothedSignal longitudinalAcceleration;
+
+  /// m/s^2, positive to the right -- the road view's body roll (DESIGN.md
+  /// 6.11). DESIGN.md asks for the accelerometer, low-pass filtered; that
+  /// pipeline (a `DeviceFeatures.acceleration` stream, filtered) does not
+  /// exist yet, so this is never ingested into. `RoadView` already reads a
+  /// valueless signal as 0 (flat, no roll) rather than needing a real
+  /// source to render at all, so the car simply does not roll yet, an
+  /// honest gap rather than an invented reading.
+  final SmoothedSignal lateralAcceleration;
 
   final ObservableListenable<DrivingMode> _mode;
   final ObservableListenable<ConnectionStatus> _connection;
@@ -101,6 +128,18 @@ class DriveSignals {
   /// inventing one.
   final ValueListenable<bool> phoneHot = ValueNotifier(false);
 
+  void _onMotion() {
+    final sample = vehicle.motion.value;
+    if (sample == null) return;
+    longitudinalAcceleration.ingest(
+      Reading(
+        value: sample.accelerationMs2,
+        at: sample.at,
+        receivedAt: sample.receivedAt,
+      ),
+    );
+  }
+
   static AdapterLinkState _adapterStateFor(ConnectionStatus status) =>
       switch (status) {
         ConnectionStatus.connected ||
@@ -111,11 +150,14 @@ class DriveSignals {
       };
 
   void dispose() {
+    vehicle.motion.removeListener(_onMotion);
     wallClock.dispose();
     rpm.dispose();
     speed.dispose();
     coolant.dispose();
     throttle.dispose();
+    longitudinalAcceleration.dispose();
+    lateralAcceleration.dispose();
     _mode.dispose();
     _adapter.dispose();
     _connection.dispose();

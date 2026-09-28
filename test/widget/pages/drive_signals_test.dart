@@ -126,4 +126,27 @@ void main() {
       expect(signals.phoneHot.value, isFalse);
     });
   });
+
+  group('acceleration (DESIGN.md 6.11)', () {
+    test('longitudinal follows VehicleState.motion as the car speeds up', () {
+      expect(signals.longitudinalAcceleration.hasValue, isFalse);
+      // A rising speed over real time gives VehicleState.motion a positive
+      // acceleration sample (CLAUDE.md 8.8's smoothed-speed delta).
+      ingest(Sensor.speed, 0);
+      run(const Duration(milliseconds: 500));
+      ingest(Sensor.speed, 20);
+      run(const Duration(milliseconds: 500));
+      ingest(Sensor.speed, 40);
+      run(const Duration(seconds: 1));
+
+      expect(signals.longitudinalAcceleration.hasValue, isTrue);
+      expect(signals.longitudinalAcceleration.value, greaterThan(0));
+    });
+
+    test('lateral has no source yet: never ingested into, honestly', () {
+      ingest(Sensor.speed, 40);
+      run(const Duration(seconds: 2));
+      expect(signals.lateralAcceleration.hasValue, isFalse);
+    });
+  });
 }
