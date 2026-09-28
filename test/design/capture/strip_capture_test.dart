@@ -12,6 +12,7 @@ import 'package:tapedash/ui/design/theme/tape_theme.dart';
 import 'package:tapedash/ui/design/tokens/livery.dart';
 import 'package:tapedash/ui/pages/drive/drive_page.dart';
 import 'package:tapedash/ui/pages/drive/drive_signals.dart';
+import 'package:tapedash/ui/pages/strip/parked_dock.dart';
 import 'package:tapedash/ui/pages/strip/placeholder_page.dart';
 import 'package:tapedash/ui/pages/strip/the_strip.dart';
 
@@ -49,21 +50,28 @@ void main() {
     ),
   ];
 
-  Widget strip(DriveSignals signals, ManualMotionClock motion) => TheStrip(
-    pages: pages(signals, motion),
-    mode: signals.mode,
-    motion: motion,
-    width: 800,
-    height: 400,
+  Widget strip(DriveSignals signals, ManualMotionClock motion) => Stack(
+    children: [
+      TheStrip(
+        pages: pages(signals, motion),
+        mode: signals.mode,
+        motion: motion,
+        width: 800,
+        height: 400,
+      ),
+      ParkedDock(mode: signals.mode, motion: motion, width: 800, height: 400),
+    ],
   );
 
-  Future<(DriveSignals, DemoDrive, ManualMotionClock, FakeClock)> rig() async {
+  Future<(DriveSignals, DemoDrive, ManualMotionClock, FakeClock)> rig([
+    String scenario = 'highway_cruise',
+  ]) async {
     final motion = ManualMotionClock();
     final clock = FakeClock();
     final demo = DemoDrive(
       clock: clock,
       scheduler: clock,
-      scenario: 'highway_cruise',
+      scenario: scenario,
       profile: 'petrol_cvt_maf',
     );
     demo.start();
@@ -107,11 +115,11 @@ void main() {
   testWidgets('the strip on Drive, parked, at the page tape', (tester) async {
     setWindow(tester, const Size(800, 400));
     final kit = TapeRenderKit();
-    final (signals, demo, motion, clock) = await rig();
+    final (signals, demo, motion, clock) = await rig('cold_start_idle');
     await pumpStrip(tester, kit: kit, motion: motion, signals: signals);
 
-    // A cold-start drive sits parked with the engine running, so the tape
-    // is unlocked and Drive's own tick is lit.
+    // A cold-start drive sits parked with the engine running, so the dock
+    // is risen and the tape is unlocked with Drive's own tick lit.
     run(clock, motion, const Duration(seconds: 20));
     await tester.pump();
     await capturePng(tester, 'strip-parked');
@@ -136,8 +144,7 @@ void main() {
     await tester.pump();
     await capturePng(tester, 'strip-motion-drive');
 
-    // A drag halfway to Money, held: the spring chases the finger and the
-    // Money page is half in from its own edge.
+    // A drag halfway to Money, held: both pages on screen at once.
     final drag = await tester.startGesture(const Offset(400, 200));
     await drag.moveBy(const Offset(400, 0));
     run(clock, motion, const Duration(milliseconds: 250));
