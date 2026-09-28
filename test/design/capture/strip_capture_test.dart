@@ -10,7 +10,7 @@ import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
 import 'package:tapedash/ui/design/theme/tape_theme.dart';
 import 'package:tapedash/ui/design/tokens/livery.dart';
-import 'package:tapedash/ui/pages/drive/apex_cluster.dart';
+import 'package:tapedash/ui/pages/drive/drive_page.dart';
 import 'package:tapedash/ui/pages/drive/drive_signals.dart';
 import 'package:tapedash/ui/pages/strip/placeholder_page.dart';
 import 'package:tapedash/ui/pages/strip/the_strip.dart';
@@ -21,7 +21,7 @@ void main() {
   final enabled = Platform.environment['TAPEDASH_CAPTURE_DIR'] != null;
   setUpAll(loadTapeFonts);
 
-  List<Widget> pages(DriveSignals signals) => [
+  List<Widget> pages(DriveSignals signals, ManualMotionClock motion) => [
     StripPlaceholder(
       name: 'REVIEW',
       note: 'Arrives with the trip log.',
@@ -34,7 +34,7 @@ void main() {
       width: 800,
       height: 400,
     ),
-    ApexCluster(signals: signals, width: 800, height: 400),
+    DrivePage(signals: signals, motion: motion, width: 800, height: 400),
     StripPlaceholder(
       name: 'COACH',
       note: 'Arrives with the coach.',
@@ -50,7 +50,7 @@ void main() {
   ];
 
   Widget strip(DriveSignals signals, ManualMotionClock motion) => TheStrip(
-    pages: pages(signals),
+    pages: pages(signals, motion),
     mode: signals.mode,
     motion: motion,
     width: 800,
