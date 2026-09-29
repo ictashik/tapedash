@@ -1,11 +1,13 @@
 import 'package:tapedash/coach/hard_event_detector.dart';
 import 'package:tapedash/core/key_value_store.dart';
+import 'package:tapedash/core/observable.dart';
 import 'package:tapedash/fuel/fuel_constants.dart';
 import 'package:tapedash/fuel/fuel_estimator.dart';
 import 'package:tapedash/money/fill_up.dart';
 import 'package:tapedash/money/fuel_ledger.dart';
 import 'package:tapedash/money/money_settings.dart';
 import 'package:tapedash/money/trip_computer.dart';
+import 'package:tapedash/obd/obd_session.dart';
 import 'package:tapedash/sim/adapter_quirks.dart';
 import 'package:tapedash/sim/drive_scenario.dart';
 import 'package:tapedash/sim/drive_style.dart';
@@ -70,7 +72,7 @@ class TripRig {
       isDemo: isDemo,
     );
     demand = RecordingDemand(
-      session: rig.session,
+      sessions: ObservableValue<ObdSession?>(rig.session),
       recorder: recorder,
       estimator: estimator,
     );

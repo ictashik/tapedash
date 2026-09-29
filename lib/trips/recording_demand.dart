@@ -1,3 +1,4 @@
+import '../core/observable.dart';
 import '../fuel/fuel_estimator.dart';
 import '../obd/obd_session.dart';
 import '../obd/poller.dart';
@@ -11,16 +12,19 @@ import 'trip_recorder.dart';
 /// chosen it asks for that one only.
 class RecordingDemand {
   RecordingDemand({
-    required this.session,
+    required this.sessions,
     required this.recorder,
     required this.estimator,
   }) {
     recorder.phase.addListener(_update);
     estimator.source.addListener(_update);
+    sessions.addListener(_onSession);
     _update();
   }
 
-  final ObdSession session;
+  /// The session in use, which changes when a demo drive starts over (or an
+  /// adapter is replaced): the claim is made again on the new one.
+  final Observable<ObdSession?> sessions;
   final TripRecorder recorder;
   final FuelEstimator estimator;
 
@@ -38,20 +42,35 @@ class RecordingDemand {
   /// The PIDs held at the fast tier now.
   Set<int> get held => Set.unmodifiable(_held);
 
+  ObdSession? _session;
+
+  void _onSession() {
+    if (identical(_session, sessions.value)) return;
+    _demand?.release();
+    _demand = null;
+    _held = {};
+    _update();
+  }
+
   void _update() {
-    final want = recorder.recording ? pidsFor(estimator.source.value) : <int>{};
+    final session = sessions.value;
+    _session = session;
+    final want = session != null && recorder.recording
+        ? pidsFor(estimator.source.value)
+        : <int>{};
     if (want.length == _held.length && want.containsAll(_held)) return;
     _demand?.release();
     _demand = null;
     _held = want;
     if (want.isNotEmpty) {
-      _demand = session.demand({for (final p in want) p: PollTier.fast});
+      _demand = session!.demand({for (final p in want) p: PollTier.fast});
     }
   }
 
   void dispose() {
     recorder.phase.removeListener(_update);
     estimator.source.removeListener(_update);
+    sessions.removeListener(_onSession);
     _demand?.release();
     _demand = null;
   }

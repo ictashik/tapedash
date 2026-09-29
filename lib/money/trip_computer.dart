@@ -95,7 +95,7 @@ class TripComputer {
   /// The price of a litre, or null while none is set.
   final Observable<double?> price;
 
-  final VehicleSetup setup;
+  VehicleSetup setup;
   final CoachThresholds thresholds;
   final LocationSource? location;
 

@@ -1,4 +1,5 @@
 import '../core/key_value_store.dart';
+import '../core/observable.dart';
 import 'calibration.dart';
 import 'fill_up.dart';
 
@@ -31,6 +32,11 @@ class FuelLedger {
 
   double _estimatedSinceFull = 0;
   double _unsaved = 0;
+  late final ObservableValue<CalibrationConfidence> _confidence =
+      ObservableValue(calibration.confidence);
+
+  /// How far the estimate has been checked, kept current as fill-ups come in.
+  Observable<CalibrationConfidence> get confidence => _confidence;
 
   /// Litres the app has estimated, raw, since the last full-tank fill-up.
   double get estimatedSinceFull => _estimatedSinceFull;
@@ -45,6 +51,7 @@ class FuelLedger {
     for (final f in rebuilt.factors) {
       calibration.add(f);
     }
+    _confidence.value = calibration.confidence;
   }
 
   /// Counts [litres] of raw estimate.
@@ -81,6 +88,7 @@ class FuelLedger {
           if (candidate >= plausibleMin && candidate <= plausibleMax) {
             factor = candidate;
             calibration.add(candidate);
+            _confidence.value = calibration.confidence;
           }
         }
       }

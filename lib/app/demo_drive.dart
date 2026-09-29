@@ -52,6 +52,7 @@ class DemoDrive implements DemoControl {
   SimulatedCar? _car;
   SimTransport? _transport;
   ObdSession? _session;
+  final ObservableValue<ObdSession?> _sessionValue = ObservableValue(null);
   ScheduledTask? _loop;
   void Function()? _statusListener;
   void Function()? _rateListener;
@@ -82,6 +83,14 @@ class DemoDrive implements DemoControl {
 
   @override
   Observable<double> get pollRate => _pollRate;
+
+  /// The OBD session reading the simulated car: the trip recorder moves the fuel
+  /// PID to the fast tier through it. Null before [start].
+  ObdSession? get session => _session;
+
+  /// The same, as something to listen to: the session is replaced whenever the
+  /// drive starts over.
+  Observable<ObdSession?> get sessions => _sessionValue;
 
   /// The car being driven, for the simulator's own ground truth.
   SimulatedCar? get car => _car;
@@ -146,6 +155,7 @@ class DemoDrive implements DemoControl {
     _car = car;
     _transport = transport;
     _session = session;
+    _sessionValue.value = session;
 
     _statusListener = () => _connection.value = session.status.value;
     _rateListener = () => _pollRate.value = session.pollRate.value;
@@ -177,6 +187,7 @@ class DemoDrive implements DemoControl {
     final transport = _transport;
     if (transport != null) unawaited(transport.dispose());
     _session = null;
+    _sessionValue.value = null;
     _car = null;
     _transport = null;
   }
