@@ -102,51 +102,58 @@ class MinimalCluster extends StatelessWidget {
           // class's own doc comment.)
           Positioned(
             top: height * TapeSpace.horizonShare,
-            bottom: height * TapeSpace.floorShare,
+            bottom: height * TapeSpace.clearOfDockShare,
             left: 0,
             right: 0,
+            // The hero's numeral box (detent and roll room) plus the line is a
+            // little taller than the centre zone on a 16:9 screen; the ink is
+            // what matters, so the column may overflow the zone, centred.
             child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SharedElementEnd(
-                    id: SharedElementIds.speed,
-                    end: SharedElementEndKind.from,
-                    page: TheStrip.homePage,
-                    size: type.hero,
-                    source: signals.speed,
-                    format: const NumeralFormat(integerDigits: 3),
-                    typicalIntegerDigits: 2,
-                    role: NumeralRole.bright,
-                    parkedShare: signals.parkedShare,
-                    parkedScaleShare: type.primary / type.hero,
-                    active: heroSlotActive,
-                    child: ParkedScale(
-                      share: signals.parkedShare,
+              child: OverflowBox(
+                minHeight: 0,
+                maxHeight: double.infinity,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SharedElementEnd(
+                      id: SharedElementIds.speed,
+                      end: SharedElementEndKind.from,
+                      page: TheStrip.homePage,
+                      size: type.hero,
+                      source: signals.speed,
+                      format: const NumeralFormat(integerDigits: 3),
+                      typicalIntegerDigits: 2,
+                      role: NumeralRole.bright,
+                      parkedShare: signals.parkedShare,
                       parkedScaleShare: type.primary / type.hero,
-                      child: CenteredNumeral(
-                        source: signals.speed,
-                        format: const NumeralFormat(integerDigits: 3),
-                        typicalIntegerDigits: 2,
-                        size: type.hero,
-                        role: NumeralRole.bright,
-                        presence: heroFade,
+                      active: heroSlotActive,
+                      child: ParkedScale(
+                        share: signals.parkedShare,
+                        parkedScaleShare: type.primary / type.hero,
+                        child: CenteredNumeral(
+                          source: signals.speed,
+                          format: const NumeralFormat(integerDigits: 3),
+                          typicalIntegerDigits: 2,
+                          size: type.hero,
+                          role: NumeralRole.bright,
+                          presence: heroFade,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: TapeSpace.s2),
-                  SizedBox(
-                    width: extentShare * width,
-                    height: RpmLinePainter.thickness,
-                    child: CustomPaint(
-                      painter: RpmLinePainter(
-                        rpm: signals.rpm,
-                        palette: TapeTheme.of(context).palette,
-                        maxRpm: TapeTach.defaultMaxRpm,
+                    const SizedBox(height: TapeSpace.s2),
+                    SizedBox(
+                      width: extentShare * width,
+                      height: RpmLinePainter.thickness,
+                      child: CustomPaint(
+                        painter: RpmLinePainter(
+                          rpm: signals.rpm,
+                          palette: TapeTheme.of(context).palette,
+                          maxRpm: TapeTach.defaultMaxRpm,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

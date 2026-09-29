@@ -42,6 +42,15 @@ abstract final class TapeTach {
   /// simulator default): 0 to 7,000, shift/redline at 6,500.
   static const double defaultMaxRpm = 7000;
   static const double defaultRedlineRpm = 6500;
+
+  /// How far the arc's centre sits below the screen's centre, as a share of the
+  /// height, so the top labels clear the screen edge and the arc's lowest
+  /// segments stay above the parked dock.
+  static const double centreDropShare = 0.03;
+
+  /// The gap between the hero digits' ink and the unit label under them, as a
+  /// share of the height.
+  static const double unitGapShare = 0.02;
 }
 
 /// The shift horizon's geometry (DESIGN.md 6.4): a thin band across the top

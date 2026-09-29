@@ -164,6 +164,35 @@ void main() {
       ]);
     }
 
+    testWidgets('the readout digits sit in the middle of the readout box', (
+      tester,
+    ) async {
+      ingest(2111);
+      await show(tester);
+      run(const Duration(seconds: 1));
+      await tester.pump();
+      final px = await pixels(tester);
+      const w = 440; // 220 lp at 2x
+      // The digits are ink.bright (near white); the box outline is accent and
+      // the ticks are etch, so near-white pixels in the rows of the box are
+      // the numerals.
+      var top = 1 << 30, bottom = -1;
+      for (var y = 0; y < 720; y++) {
+        for (var x = 0; x < w; x++) {
+          final p = px[y * w + x];
+          if (((p >> 24) & 0xFF) > 200 &&
+              ((p >> 16) & 0xFF) > 200 &&
+              ((p >> 8) & 0xFF) > 200) {
+            if (y < top) top = y;
+            if (y > bottom) bottom = y;
+          }
+        }
+      }
+      expect(bottom, greaterThan(top));
+      // Centred on the tape's own centre line (360 px), to within 6 px.
+      expect((top + bottom) / 2, closeTo(360, 6));
+    });
+
     testWidgets('draws nothing before a reading arrives (no crash)', (
       tester,
     ) async {

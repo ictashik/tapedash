@@ -15,6 +15,7 @@ import '../../design/motion/shared_elements.dart';
 import '../../design/theme/palette.dart';
 import '../../design/theme/tape_theme.dart';
 import '../../design/tokens/spacing.dart';
+import '../../design/tokens/tach.dart';
 import '../../design/tokens/typography.dart';
 import '../strip/the_strip.dart';
 import 'drive_signals.dart';
@@ -110,54 +111,76 @@ class ApexCluster extends StatelessWidget {
           // Centre: the tach arc ringing the hero speed and its label. The
           // arc thins and dims first (stagger 0), the hero follows (stagger
           // 1), the order DESIGN.md 7.2 itself lists them in.
-          Center(
-            child: SizedBox(
-              width: tachBox,
-              height: tachBox,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  TachArc(
-                    rpm: signals.rpm,
-                    heightReference: height,
-                    parkedShare: signals.parkedShare,
-                    litShare: signals.arcWave,
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SharedElementEnd(
-                        id: SharedElementIds.speed,
-                        end: SharedElementEndKind.from,
-                        page: TheStrip.homePage,
-                        size: type.hero,
-                        source: signals.speed,
-                        format: const NumeralFormat(integerDigits: 3),
-                        typicalIntegerDigits: 2,
-                        role: NumeralRole.bright,
-                        parkedShare: signals.parkedShare,
-                        parkedScaleShare: type.primary / type.hero,
-                        staggerIndex: 1,
-                        active: heroSlotActive,
-                        child: ParkedScale(
-                          share: signals.parkedShare,
+          // The arc's box is taller than the screen (radius 0.44H, then the
+          // ticks and labels round it), so centred it clips its own top
+          // labels; the opening at the bottom leaves room to sit it lower.
+          Positioned(
+            left: 0,
+            right: 0,
+            top: height * (0.5 + TapeTach.centreDropShare) - tachBox / 2,
+            height: tachBox,
+            child: Center(
+              child: SizedBox(
+                width: tachBox,
+                height: tachBox,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    TachArc(
+                      rpm: signals.rpm,
+                      heightReference: height,
+                      parkedShare: signals.parkedShare,
+                      litShare: signals.arcWave,
+                    ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SharedElementEnd(
+                          id: SharedElementIds.speed,
+                          end: SharedElementEndKind.from,
+                          page: TheStrip.homePage,
+                          size: type.hero,
+                          source: signals.speed,
+                          format: const NumeralFormat(integerDigits: 3),
+                          typicalIntegerDigits: 2,
+                          role: NumeralRole.bright,
+                          parkedShare: signals.parkedShare,
                           parkedScaleShare: type.primary / type.hero,
                           staggerIndex: 1,
-                          child: CenteredNumeral(
-                            source: signals.speed,
-                            format: const NumeralFormat(integerDigits: 3),
-                            typicalIntegerDigits: 2,
-                            size: type.hero,
-                            role: NumeralRole.bright,
-                            presence: heroFade,
+                          active: heroSlotActive,
+                          child: ParkedScale(
+                            share: signals.parkedShare,
+                            parkedScaleShare: type.primary / type.hero,
+                            staggerIndex: 1,
+                            child: CenteredNumeral(
+                              source: signals.speed,
+                              format: const NumeralFormat(integerDigits: 3),
+                              typicalIntegerDigits: 2,
+                              size: type.hero,
+                              role: NumeralRole.bright,
+                              presence: heroFade,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      const TapeLabel('KM/H'),
-                    ],
-                  ),
-                ],
+                        const SizedBox(height: 2),
+                        // The numeral's own box is far taller than its ink (the
+                        // detent and roll room), which left the unit near the
+                        // floor, under the parked dock: it is drawn up to sit
+                        // just under the digits, with no change to the layout.
+                        Transform.translate(
+                          offset: Offset(
+                            0,
+                            -(NumeralMetrics(type.hero).boxHeight -
+                                        NumeralMetrics(type.hero).inkHeight) /
+                                    2 +
+                                height * TapeTach.unitGapShare,
+                          ),
+                          child: const TapeLabel('KM/H'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

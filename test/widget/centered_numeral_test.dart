@@ -14,6 +14,7 @@ import 'package:tapedash/ui/design/components/centered_numeral.dart';
 import 'package:tapedash/ui/design/components/rolling_numerals.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/motion/smoothing_pipeline.dart';
+import 'package:tapedash/ui/design/render/glyph_atlas.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
 import 'package:tapedash/ui/design/theme/tape_theme.dart';
 import 'package:tapedash/ui/design/tokens/livery.dart';
@@ -85,9 +86,19 @@ void main() {
         );
 
         final reported = tester.getSize(find.byType(CenteredNumeral));
-        // typicalIntegerDigits (2) worth of width, not integerDigits' (3):
-        // 2 x one digit's pitch, not 3 x.
-        expect(reported.width, closeTo(2 * NumeralMetrics(100).pitch, 1));
+        // typicalIntegerDigits (2) worth of width, not integerDigits' (3): 2 x
+        // one digit's real advance in the atlas (not the pitch estimate, which
+        // is a whole digit-width wide of it at this size), not 3 x.
+        final advance = kit.atlases
+            .get(
+              GlyphAtlasSpec(
+                sizeLp: 100,
+                devicePixelRatio: 2,
+                weight: Liveries.ion.numeralWeight,
+              ),
+            )
+            .digitAdvance;
+        expect(reported.width, closeTo(2 * advance, 1));
       },
     );
 
@@ -219,4 +230,44 @@ void main() {
       expect((maxX - minX).toDouble(), greaterThan(reportedPx));
     });
   });
+
+  testWidgets(
+    'the ink of two digits is centred on the box, whatever they are',
+    (tester) async {
+      for (final v in [64, 88, 11, 20]) {
+        ingest(v.toDouble());
+        await show(
+          tester,
+          CenteredNumeral(
+            source: value,
+            format: const NumeralFormat(integerDigits: 3),
+            typicalIntegerDigits: 2,
+            size: 198,
+          ),
+          window: const Size(720, 360),
+        );
+        for (var i = 0; i < 90; i++) {
+          motion.tick(1 / 60);
+        }
+        await tester.pump();
+        final image = await renderImage(tester);
+        late ByteData data;
+        await tester.runAsync(() async => data = (await image.toByteData())!);
+        var lo = 1 << 30, hi = -1;
+        for (var y = 0; y < image.height; y++) {
+          for (var x = 0; x < image.width; x++) {
+            final p = data.getUint32((y * image.width + x) * 4);
+            if (((p >> 24) & 0xFF) + ((p >> 16) & 0xFF) + ((p >> 8) & 0xFF) >
+                150) {
+              if (x < lo) lo = x;
+              if (x > hi) hi = x;
+            }
+          }
+        }
+        // Centred on the window's middle to within 8 lp (a narrow digit's own
+        // side bearing is what it can differ by).
+        expect((lo + hi) / 2 / 2, closeTo(360, 8), reason: '$v');
+      }
+    },
+  );
 }

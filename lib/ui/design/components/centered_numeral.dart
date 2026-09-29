@@ -2,6 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../motion/numeral_source.dart';
+import '../render/glyph_atlas.dart';
+import '../render/render_kit.dart';
+import '../theme/tape_theme.dart';
 import 'rolling_numerals.dart';
 
 /// Centres a [RollingNumerals] value the way its typically-lit digits
@@ -89,20 +92,28 @@ class CenteredNumeral extends StatelessWidget {
     final spareDigits = format.integerDigits - typicalIntegerDigits;
     if (spareDigits <= 0) return numeral;
 
+    // The digit advance is read from the same atlas the numerals draw from
+    // (the seven-segment livery has its own digit width, so it is taken from
+    // the estimate, which is close enough for a face with no atlas). Centring on
+    // NumeralMetrics.pitch, an estimate, put a 198 lp "64" 54 lp off centre.
+    final theme = TapeTheme.of(context);
     final metrics = NumeralMetrics(size);
-    final estimatedFullWidth = format.integerDigits * metrics.pitch;
-    final typicalWidth = estimatedFullWidth - spareDigits * metrics.pitch;
-    // The outer box's height is pinned explicitly, not left to pass
-    // through unconstrained: an ambient unbounded height (Positioned(top,
-    // left, right) with no bottom, as the road view's and the Apex
-    // cluster's hero readout both sit in) is ordinarily harmless -- Center
-    // reports an infinite size upward, but still gives a plain
-    // RollingNumerals loose, not infinite, constraints, since it sizes off
-    // its own content regardless of what it is offered. OverflowBox does
-    // not: its internal offset math multiplies straight through an
-    // infinite parent height, producing a transform with an infinite
-    // entry (a real crash here, not a hypothetical) if height is left
-    // unconstrained the way SizedBox(width:) alone would leave it.
+    double advance = metrics.pitch;
+    if (!theme.livery.isSevenSegment) {
+      advance = TapeRenderScope.of(context).atlases
+          .get(
+            GlyphAtlasSpec(
+              sizeLp: size,
+              devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+              weight: theme.livery.numeralWeight,
+            ),
+          )
+          .digitAdvance;
+    }
+    final estimatedFullWidth = format.integerDigits * advance;
+    final typicalWidth = typicalIntegerDigits * advance;
+    // The outer box's height is pinned explicitly (see the note in git history:
+    // an OverflowBox multiplies straight through an infinite parent height).
     return SizedBox(
       width: typicalWidth,
       height: metrics.boxHeight,

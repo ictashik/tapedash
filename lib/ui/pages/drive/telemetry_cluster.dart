@@ -41,8 +41,8 @@ class TelemetryCluster extends StatelessWidget {
   Widget build(BuildContext context) {
     final margin = TapeSpace.margin(height);
     final tileWidth = (width - 2 * margin - 2 * TapeSpace.s3) / 3;
-    final top = height * TapeSpace.horizonShare;
-    final bottom = height * TapeSpace.floorShare;
+    final top = height * TapeSpace.clearOfCaptionsShare;
+    final bottom = height * TapeSpace.clearOfDockShare;
     final tileHeight = (height - top - bottom - TapeSpace.s3) / 2;
 
     Widget tile(String label, SmoothedSignal signal, NumeralFormat format) =>

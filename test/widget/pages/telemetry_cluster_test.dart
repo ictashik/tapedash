@@ -142,43 +142,46 @@ void main() {
     }
   });
 
-  testWidgets('the grid fills the centre zone between horizon and floor', (
-    tester,
-  ) async {
-    await show(tester);
-    run(const Duration(seconds: 1));
-    await tester.pump();
+  testWidgets(
+    'the grid fills the centre zone, clear of the captions and the dock',
+    (tester) async {
+      await show(tester);
+      run(const Duration(seconds: 1));
+      await tester.pump();
 
-    final tiles = tester
-        .widgetList<TelemetryTile>(find.byType(TelemetryTile))
-        .toList();
-    expect(tiles.length, 6);
+      final tiles = tester
+          .widgetList<TelemetryTile>(find.byType(TelemetryTile))
+          .toList();
+      expect(tiles.length, 6);
 
-    final margin = TapeSpace.margin(400);
-    final top = 400 * TapeSpace.horizonShare;
-    final tileWidth = (800 - 2 * margin - 2 * TapeSpace.s3) / 3;
-    final tileHeight =
-        (400 - top - 400 * TapeSpace.floorShare - TapeSpace.s3) / 2;
+      final margin = TapeSpace.margin(400);
+      final top = 400 * TapeSpace.clearOfCaptionsShare;
+      final tileWidth = (800 - 2 * margin - 2 * TapeSpace.s3) / 3;
+      final tileHeight =
+          (400 - top - 400 * TapeSpace.clearOfDockShare - TapeSpace.s3) / 2;
 
-    for (final tile in tiles) {
-      final rect = tester.getRect(find.byWidget(tile));
-      // The tile's own size is the cell's.
-      expect(rect.width, closeTo(tileWidth, 0.01), reason: tile.label);
-      expect(rect.height, closeTo(tileHeight, 0.01), reason: tile.label);
-      // Inside the centre zone.
-      expect(rect.top, greaterThanOrEqualTo(top - 0.01));
-      expect(
-        rect.bottom,
-        lessThanOrEqualTo(400 - 400 * TapeSpace.floorShare + 0.01),
-      );
-    }
+      for (final tile in tiles) {
+        final rect = tester.getRect(find.byWidget(tile));
+        // The tile's own size is the cell's.
+        expect(rect.width, closeTo(tileWidth, 0.01), reason: tile.label);
+        expect(rect.height, closeTo(tileHeight, 0.01), reason: tile.label);
+        // Inside the centre zone.
+        expect(rect.top, greaterThanOrEqualTo(top - 0.01));
+        expect(
+          rect.bottom,
+          lessThanOrEqualTo(400 - 400 * TapeSpace.clearOfDockShare + 0.01),
+        );
+      }
 
-    // Three distinct columns and two distinct rows.
-    final lefts = tiles
-        .map((t) => tester.getRect(find.byWidget(t)).left)
-        .toSet();
-    final tops = tiles.map((t) => tester.getRect(find.byWidget(t)).top).toSet();
-    expect(lefts.length, 3);
-    expect(tops.length, 2);
-  });
+      // Three distinct columns and two distinct rows.
+      final lefts = tiles
+          .map((t) => tester.getRect(find.byWidget(t)).left)
+          .toSet();
+      final tops = tiles
+          .map((t) => tester.getRect(find.byWidget(t)).top)
+          .toSet();
+      expect(lefts.length, 3);
+      expect(tops.length, 2);
+    },
+  );
 }

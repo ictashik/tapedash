@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
@@ -119,12 +120,22 @@ class VerticalTape extends StatelessWidget {
                     painter: _ReadoutBoxPainter(palette: palette),
                   ),
                 ),
+                // A numeral's own box (the detent and roll room) is taller than
+                // this readout, and a tight parent would clamp it, moving the
+                // digits down by half the difference: the box is let overflow,
+                // centred, so the ink sits in the middle of the readout.
                 Center(
-                  child: RollingNumerals(
-                    source: value,
-                    format: format,
-                    size: TypeScale.forHeight(height).secondary,
-                    role: NumeralRole.bright,
+                  child: OverflowBox(
+                    minHeight: 0,
+                    maxHeight: NumeralMetrics(
+                      TypeScale.forHeight(height).secondary,
+                    ).boxHeight,
+                    child: RollingNumerals(
+                      source: value,
+                      format: format,
+                      size: TypeScale.forHeight(height).secondary,
+                      role: NumeralRole.bright,
+                    ),
                   ),
                 ),
               ],
@@ -215,9 +226,14 @@ class VerticalTapePainter extends CustomPainter {
           ),
           textDirection: TextDirection.ltr,
         )..layout();
-        final labelX = tape.readoutSide == TapeReadoutSide.right
-            ? size.width - tickLength - label.width - 3
-            : tickLength + 3;
+        // Kept inside the strip: a four-digit label ("2000") is wider than
+        // the room a tick leaves it on a 640 lp screen, and ran off the edge.
+        final labelX =
+            (tape.readoutSide == TapeReadoutSide.right
+                    ? size.width - tickLength - label.width - 3
+                    : tickLength + 3)
+                .clamp(0.0, math.max(0.0, size.width - label.width))
+                .toDouble();
         label.paint(canvas, Offset(labelX, y - label.height / 2));
       }
     }

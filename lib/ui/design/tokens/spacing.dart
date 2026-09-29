@@ -33,6 +33,16 @@ abstract final class TapeSpace {
   /// bottom 8 lp.
   static const double floorShare = 0.16;
 
+  /// Where a cluster that fills its centre zone (Telemetry's grid, Minimal's hero
+  /// column) stops at the bottom, so that the parked dock (56 lp of button, 12 lp
+  /// above the edge: 0.19H on a 360 lp screen) never sits on its content. A little
+  /// more than [floorShare], and the same in Motion, so nothing moves with the mode.
+  static const double clearOfDockShare = 0.20;
+
+  /// Where such a cluster starts at the top, so that the status strip's Parked
+  /// captions (they add a line under each glyph) never sit on its content.
+  static const double clearOfCaptionsShare = 0.15;
+
   /// The page tape's height, inside the floor.
   static const double pageTapeHeight = 8;
 
