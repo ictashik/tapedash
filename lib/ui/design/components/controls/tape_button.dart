@@ -44,7 +44,13 @@ class TapeButton extends StatelessWidget {
     this.icon,
     this.primary = false,
     this.tone = ButtonTone.accent,
+    this.compact = false,
   });
+
+  /// A tighter button for a row of several that must fit a narrow screen (the
+  /// parked dock): less padding, a smaller label and glyph. It keeps the 56 lp
+  /// height, so the touch target does not shrink.
+  final bool compact;
 
   final String label;
 
@@ -88,18 +94,27 @@ class TapeButton extends StatelessWidget {
             minWidth: TapeSpace.touchTarget,
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: TapeSpace.s6),
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? TapeSpace.s2 : TapeSpace.s6,
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (icon != null) ...[
-                  TapeIconView(icon!, size: 20, color: labelColor),
-                  const SizedBox(width: TapeSpace.s2),
+                  TapeIconView(
+                    icon!,
+                    size: compact ? 18 : 20,
+                    color: labelColor,
+                  ),
+                  SizedBox(width: compact ? TapeSpace.s1 : TapeSpace.s2),
                 ],
                 Text(
                   label.toUpperCase(),
-                  style: TapeType.button(color: labelColor),
+                  style: TapeType.button(
+                    size: compact ? 14 : 16,
+                    color: labelColor,
+                  ),
                   maxLines: 1,
                   softWrap: false,
                 ),

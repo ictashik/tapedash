@@ -92,4 +92,35 @@ void main() {
     final state = tester.state<ParkedDockState>(find.byType(ParkedDock));
     expect(state.rise, closeTo(0, 0.05));
   });
+
+  for (final width in [640.0, 720.0, 800.0]) {
+    testWidgets(
+      'the four buttons fit ${width.toInt()} lp, no overflow, 48 lp+',
+      (tester) async {
+        setWindow(tester, Size(width, 360));
+        await tester.pumpWidget(
+          tapeHarness(
+            kit: kit,
+            motion: motion,
+            child: ParkedDock(
+              mode: mode,
+              motion: motion,
+              width: width,
+              height: 360,
+            ),
+          ),
+        );
+        run(const Duration(milliseconds: 900));
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+        for (final b in find.byType(TapeButton).evaluate()) {
+          final r = tester.getRect(find.byWidget(b.widget));
+          expect(r.left, greaterThanOrEqualTo(0));
+          expect(r.right, lessThanOrEqualTo(width));
+          expect(r.width, greaterThanOrEqualTo(48));
+          expect(r.height, greaterThanOrEqualTo(48));
+        }
+      },
+    );
+  }
 }

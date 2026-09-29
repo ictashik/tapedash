@@ -193,7 +193,12 @@ class _StaggeredDockButton extends StatelessWidget {
         final own = _ownRise(index, rise.value);
         return Opacity(
           opacity: own.clamp(0.0, 1.0),
-          child: TapeButton(label: label, icon: icon, onPressed: onPressed),
+          child: TapeButton(
+            label: label,
+            icon: icon,
+            onPressed: onPressed,
+            compact: true,
+          ),
         );
       },
     );
