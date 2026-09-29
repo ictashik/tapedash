@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import '../ui/design/components/backdrop.dart';
+import '../core/clock.dart';
+import '../core/scheduler.dart';
 import '../ui/design/components/controls/tape_button.dart';
 import '../ui/design/icons/icons.dart';
 import '../ui/design/motion/motion_scope.dart';
@@ -11,30 +12,42 @@ import '../ui/design/tokens/livery.dart';
 import '../ui/design/tokens/spacing.dart';
 import '../ui/dev/dev_settings.dart';
 import '../ui/lab/design_lab.dart';
+import 'drive_shell.dart';
 
 /// Root widget.
 ///
-/// The Strip and its pages arrive in phase 3b (CLAUDE.md 13); until then this is
-/// the `void` canvas the launch theme matches, with one way into the design
-/// system: a small dev button that opens the Design Lab (DESIGN.md 13.2), shown
+/// The app opens straight onto the Strip, driven by Demo Mode (onboarding, which
+/// chooses between the demo and a real car, is a later piece of phase 3b), with
+/// one way into the design system: a small dev button that opens the Design Lab (DESIGN.md 13.2), shown
 /// in debug and profile builds, and in a release build made with
 /// `--dart-define=TAPEDASH_DEV=true`. It uses [WidgetsApp] rather than
 /// `MaterialApp`, since Material widgets are banned (DESIGN.md 13.1).
 class TapeDashApp extends StatelessWidget {
-  const TapeDashApp({super.key});
+  const TapeDashApp({
+    super.key,
+    this.clock = const SystemClock(),
+    this.scheduler = const SystemScheduler(),
+  });
+
+  /// Time, injected (CLAUDE.md 5): a test gives a `FakeClock` for both.
+  final Clock clock;
+  final Scheduler scheduler;
 
   @override
   Widget build(BuildContext context) {
     return WidgetsApp(
       color: TapeColors.voidColor,
       debugShowCheckedModeBanner: false,
-      builder: (context, child) => const _Shell(),
+      builder: (context, child) => _Shell(clock: clock, scheduler: scheduler),
     );
   }
 }
 
 class _Shell extends StatefulWidget {
-  const _Shell();
+  const _Shell({required this.clock, required this.scheduler});
+
+  final Clock clock;
+  final Scheduler scheduler;
 
   @override
   State<_Shell> createState() => _ShellState();
@@ -65,9 +78,16 @@ class _ShellState extends State<_Shell> {
           data: TapeThemeData(livery: Liveries.ion),
           child: _labOpen
               ? DesignLab(onClose: () => setState(() => _labOpen = false))
-              : TapeBackdrop(
+              : ColoredBox(
+                  color: TapeColors.voidColor,
                   child: Stack(
                     children: [
+                      Positioned.fill(
+                        child: DriveShell(
+                          clock: widget.clock,
+                          scheduler: widget.scheduler,
+                        ),
+                      ),
                       if (DevMode.buttonVisible)
                         Positioned(
                           right: TapeSpace.s4,

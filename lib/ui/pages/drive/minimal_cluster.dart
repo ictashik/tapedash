@@ -87,6 +87,7 @@ class MinimalCluster extends StatelessWidget {
             top: TapeSpace.s2,
             right: TapeSpace.s4,
             child: StatusStripRight(
+              demoMode: signals.demoMode,
               time: signals.wallClock,
               use24Hour: MediaQuery.alwaysUse24HourFormatOf(context),
               phoneHot: signals.phoneHot,
