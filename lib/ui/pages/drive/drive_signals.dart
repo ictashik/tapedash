@@ -7,6 +7,7 @@ import '../../../obd/obd_session.dart' show ConnectionStatus;
 import '../../../vehicle/reading.dart';
 import '../../../vehicle/vehicle_state.dart';
 import '../../design/components/status_strip.dart' show AdapterLinkState;
+import '../../design/motion/ignition_sequence.dart';
 import '../../design/motion/motion_clock.dart';
 import '../../design/motion/observable_listenable.dart';
 import '../../design/motion/parked_share.dart';
@@ -36,6 +37,8 @@ class DriveSignals {
     required this.clock,
     required Scheduler scheduler,
     required Observable<ConnectionStatus> connection,
+    IgnitionMode ignitionMode = IgnitionMode.full,
+    bool reduceMotion = false,
   }) : wallClock = WallClockTicker(clock: clock, scheduler: scheduler),
        rpm = SmoothedSignal(
          motion: motion,
@@ -96,6 +99,57 @@ class DriveSignals {
       initiallyParked: _mode.value == DrivingMode.parked,
     );
     _adapter = _MappedListenable(_connection, _adapterStateFor);
+    ignition = IgnitionSequence(
+      clock: motion,
+      rpm: rpm,
+      speed: speed,
+      mode: ignitionMode,
+      reduceMotion: reduceMotion,
+    );
+    vehicle.rpm.addListener(_maybeIgnite);
+    _connection.addListener(_maybeIgnite);
+    _maybeIgnite();
+  }
+
+  /// The ignition sequence (DESIGN.md 7.13): plays once per connection, on
+  /// the first valid rpm above 400 while connected. The clusters read its
+  /// shares (the arc's wave, the horizon's draw, the flanks' fade); the
+  /// needle and numerals it moves are this class's own signals, so every
+  /// cluster gets those without asking.
+  late final IgnitionSequence ignition;
+
+  /// The sequence's shares, as plain listenables for the components
+  /// (step 1's arc wave, step 4's horizon draw and the flank away from the driver; the driver-side flank has nothing to show until phase 4).
+  late final IgnitionShare arcWave = IgnitionShare(ignition, (i) => i.arcWave);
+  late final IgnitionShare horizonDraw = IgnitionShare(
+    ignition,
+    (i) => i.horizonDraw,
+  );
+  late final IgnitionShare flankAway = IgnitionShare(
+    ignition,
+    (i) => i.flank(0),
+  );
+
+  /// The first rpm that counts as the engine running (CLAUDE.md 8.6).
+  static const double ignitionRpm = 400;
+
+  void _maybeIgnite() {
+    switch (_connection.value) {
+      case ConnectionStatus.stopped ||
+          ConnectionStatus.searching ||
+          ConnectionStatus.waitingForIgnition:
+        ignition.reset();
+      case ConnectionStatus.lost:
+        // A reconnect is a quick re-light (DESIGN.md 7.12), not this sequence.
+        break;
+      case ConnectionStatus.connected:
+        final reading = vehicle.rpm.value;
+        if (!ignition.hasPlayed &&
+            reading != null &&
+            reading.value > ignitionRpm) {
+          ignition.play();
+        }
+    }
   }
 
   final VehicleState vehicle;
@@ -191,6 +245,12 @@ class DriveSignals {
       };
 
   void dispose() {
+    vehicle.rpm.removeListener(_maybeIgnite);
+    _connection.removeListener(_maybeIgnite);
+    arcWave.dispose();
+    horizonDraw.dispose();
+    flankAway.dispose();
+    ignition.dispose();
     vehicle.motion.removeListener(_onMotion);
     wallClock.dispose();
     rpm.dispose();

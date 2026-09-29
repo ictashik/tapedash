@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/animation.dart' show Cubic;
+import 'package:flutter/animation.dart' show Cubic, Curve, Curves;
 import 'package:flutter/physics.dart' show SpringDescription;
 
 /// A spring, by its stiffness and damping ratio (mass is 1, DESIGN.md 5.3).
@@ -170,6 +170,29 @@ abstract final class TapeMotion {
   /// How long the lock glyph shows after a swipe toward a locked page
   /// (DESIGN.md 7.1).
   static const Duration lockGlyph = Duration(milliseconds: 800);
+
+  /// The ignition sequence (DESIGN.md 7.13), Full: each step's window on the
+  /// sequence's own clock, in milliseconds. The tach segments light in a
+  /// wave, the needle sweeps to redline and back, the numerals roll up from
+  /// 0, the horizon draws out from the centre and the flanks fade in.
+  static const int ignitionWaveFromMs = 0;
+  static const int ignitionWaveToMs = 450;
+  static const int ignitionNeedleFromMs = 150;
+
+  /// Where the needle turns back from redline to the live rpm: the middle of
+  /// the 150-900 ms sweep window.
+  static const int ignitionNeedleTurnMs = 525;
+  static const int ignitionNumeralsFromMs = 300;
+  static const int ignitionHorizonFromMs = 600;
+  static const int ignitionHorizonToMs = 1200;
+  static const int ignitionLengthMs = 1200;
+
+  /// The wave is expo-out (DESIGN.md 7.13); the horizon and flanks ease out.
+  static const Curve ignitionWaveCurve = Curves.easeOutExpo;
+  static const Curve ignitionRevealCurve = Curves.easeOutCubic;
+
+  /// Reduce motion's replacement for the sweep: a plain fade (DESIGN.md 5.8).
+  static const int ignitionReducedMs = 200;
 
   /// Shared elements (DESIGN.md 7.1): the page a flying element is leaving
   /// keeps its own copy only this far into the flight, and the page it is

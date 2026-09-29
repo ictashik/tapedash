@@ -6,6 +6,7 @@ import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/core/observable.dart';
 import 'package:tapedash/obd/obd_session.dart';
 import 'package:tapedash/ui/design/components/status_strip.dart';
+import 'package:tapedash/ui/design/motion/ignition_sequence.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/tokens/motion_tokens.dart';
 import 'package:tapedash/ui/pages/drive/drive_signals.dart';
@@ -181,6 +182,86 @@ void main() {
       ingest(Sensor.speed, 40);
       run(const Duration(seconds: 2));
       expect(signals.lateralAcceleration.hasValue, isFalse);
+    });
+  });
+
+  group('the ignition sequence (DESIGN.md 7.13)', () {
+    test('plays on the first rpm above 400 once connected, and not before', () {
+      ingest(Sensor.rpm, 900);
+      expect(signals.ignition.isRunning, isFalse, reason: 'not connected yet');
+
+      connection.value = ConnectionStatus.connected;
+      expect(signals.ignition.isRunning, isTrue);
+      expect(signals.rpm.isHeld, isTrue, reason: 'the needle sweeps');
+    });
+
+    test('an engine that is not running (rpm 400 or below) does not', () {
+      connection.value = ConnectionStatus.connected;
+      ingest(Sensor.rpm, 300);
+      expect(signals.ignition.isRunning, isFalse);
+
+      ingest(Sensor.rpm, 850);
+      expect(signals.ignition.isRunning, isTrue);
+    });
+
+    test('plays once per connection: a lost link and back is not a replay', () {
+      connection.value = ConnectionStatus.connected;
+      ingest(Sensor.rpm, 900);
+      run(const Duration(seconds: 2));
+      expect(signals.ignition.isRunning, isFalse);
+
+      connection.value = ConnectionStatus.lost;
+      connection.value = ConnectionStatus.connected;
+      expect(signals.ignition.isRunning, isFalse);
+    });
+
+    test('the ignition going off and on again plays it again', () {
+      connection.value = ConnectionStatus.connected;
+      ingest(Sensor.rpm, 900);
+      run(const Duration(seconds: 2));
+
+      connection.value = ConnectionStatus.waitingForIgnition;
+      connection.value = ConnectionStatus.connected;
+      ingest(Sensor.rpm, 950);
+      expect(signals.ignition.isRunning, isTrue);
+    });
+
+    test('never delays live data: the needle lands on the live rpm', () {
+      connection.value = ConnectionStatus.connected;
+      ingest(Sensor.rpm, 900);
+      run(const Duration(milliseconds: 300));
+      ingest(Sensor.rpm, 2000);
+      run(const Duration(seconds: 2));
+
+      expect(signals.rpm.value, closeTo(2000, 30));
+    });
+
+    test('shutdown: the needle falls to 0 on its own spring', () {
+      connection.value = ConnectionStatus.connected;
+      ingest(Sensor.rpm, 900);
+      run(const Duration(seconds: 2));
+
+      ingest(Sensor.rpm, 0);
+      run(const Duration(seconds: 1));
+
+      expect(signals.rpm.value, closeTo(0, 5));
+    });
+
+    test('Off never holds anything', () {
+      signals.dispose();
+      signals = DriveSignals(
+        vehicle: vehicle,
+        motion: motion,
+        clock: clock,
+        scheduler: clock,
+        connection: connection,
+        ignitionMode: IgnitionMode.off,
+      );
+      connection.value = ConnectionStatus.connected;
+      ingest(Sensor.rpm, 900);
+
+      expect(signals.ignition.isRunning, isFalse);
+      expect(signals.rpm.isHeld, isFalse);
     });
   });
 }

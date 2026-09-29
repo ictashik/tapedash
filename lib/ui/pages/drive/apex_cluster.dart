@@ -5,6 +5,7 @@ import '../../design/components/bar_gauge.dart';
 import '../../design/components/centered_numeral.dart';
 import '../../design/components/numeral_format.dart';
 import '../../design/components/parked_scale.dart';
+import '../../design/components/presence.dart';
 import '../../design/components/shared_element_end.dart';
 import '../../design/components/shift_horizon.dart';
 import '../../design/components/status_strip.dart';
@@ -81,6 +82,7 @@ class ApexCluster extends StatelessWidget {
                 rpm: signals.rpm,
                 width: width * 0.5,
                 heightReference: height,
+                drawShare: signals.horizonDraw,
               ),
             ),
           ),
@@ -118,6 +120,7 @@ class ApexCluster extends StatelessWidget {
                     rpm: signals.rpm,
                     heightReference: height,
                     parkedShare: signals.parkedShare,
+                    litShare: signals.arcWave,
                   ),
                   Column(
                     mainAxisSize: MainAxisSize.min,
@@ -166,16 +169,19 @@ class ApexCluster extends StatelessWidget {
             bottom: 0,
             left: onDriverSideRight ? TapeSpace.s6 : null,
             right: onDriverSideRight ? null : TapeSpace.s6,
-            child: Center(
-              child: BarGauge(
-                value: signals.coolant,
-                min: 0,
-                max: 130,
-                length: height * 0.4,
-                label: 'COOLANT',
-                vertical: true,
-                normalBandMin: 80,
-                normalBandMax: 100,
+            child: Presence(
+              share: signals.flankAway,
+              child: Center(
+                child: BarGauge(
+                  value: signals.coolant,
+                  min: 0,
+                  max: 130,
+                  length: height * 0.4,
+                  label: 'COOLANT',
+                  vertical: true,
+                  normalBandMin: 80,
+                  normalBandMax: 100,
+                ),
               ),
             ),
           ),

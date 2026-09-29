@@ -37,6 +37,7 @@ class TachArc extends StatefulWidget {
     required this.rpm,
     required this.heightReference,
     this.parkedShare,
+    this.litShare,
     this.maxRpm = TapeTach.defaultMaxRpm,
     this.redlineRpm = TapeTach.defaultRedlineRpm,
   });
@@ -54,6 +55,11 @@ class TachArc extends StatefulWidget {
   /// 1, and repaints with it as it moves. Null (the default) leaves the arc
   /// always at full strength, the way a Lab drive of the arc alone does.
   final ValueListenable<double>? parkedShare;
+
+  /// How much of the ring the ignition wave has lit, 0 to 1 (DESIGN.md
+  /// 7.13's step 1): every segment up to that share of the sweep shows lit,
+  /// whatever the rpm is. Null, or 1, leaves the ring following the rpm alone.
+  final ValueListenable<double>? litShare;
 
   final double maxRpm;
   final double redlineRpm;
@@ -232,6 +238,7 @@ class TachArcState extends State<TachArc> implements MotionDriven {
               bank!,
               repaint,
               ?widget.parkedShare,
+              ?widget.litShare,
             ]),
             state: this,
             palette: theme.palette,
@@ -239,6 +246,7 @@ class TachArcState extends State<TachArc> implements MotionDriven {
             glow: glow,
             devicePixelRatio: dpr,
             parkedShare: widget.parkedShare,
+            litShare: widget.litShare,
           ),
         ),
       ),
@@ -263,6 +271,7 @@ class TachPainter extends CustomPainter {
     required this.glow,
     required this.devicePixelRatio,
     this.parkedShare,
+    this.litShare,
   }) : super(repaint: listenable);
 
   final TachArcState state;
@@ -274,6 +283,9 @@ class TachPainter extends CustomPainter {
   /// The parked share, when the caller composes this arc into a screen that
   /// has one (DESIGN.md 7.2): the arc thins and dims to 60% as it goes to 1.
   final ValueListenable<double>? parkedShare;
+
+  /// The ignition wave's lit share (see [TachArc.litShare]).
+  final ValueListenable<double>? litShare;
 
   final Paint _fillPaint = Paint()..style = ui.PaintingStyle.fill;
   final Paint _strokePaint = Paint()..style = ui.PaintingStyle.stroke;
@@ -308,6 +320,7 @@ class TachPainter extends CustomPainter {
     final step = state.widget.maxRpm / count;
     final redlineIndex = (state.widget.redlineRpm / step).floor();
     final slot = TapeTach.sweepDegrees / count;
+    final wave = (litShare?.value ?? 1.0).clamp(0.0, 1.0);
 
     final key = (
       palette.livery,
@@ -331,7 +344,12 @@ class TachPainter extends CustomPainter {
     final fillSpan = slot * TapeTachFill.share;
     final gap = (slot - fillSpan) / 2;
     for (var i = 0; i < count; i++) {
-      final level = bank.levels[i];
+      var level = bank.levels[i];
+      if (wave < 1) {
+        // The wave's own front, a segment wide and soft at its leading edge.
+        final front = ((wave * count - i) / 1.0).clamp(0.0, 1.0);
+        if (front > level) level = front;
+      }
       final slotStart = TapeTach.startDegrees - i * slot;
       final segStart = slotStart - gap;
       final segEnd = segStart - fillSpan;

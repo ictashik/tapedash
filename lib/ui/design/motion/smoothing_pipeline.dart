@@ -81,6 +81,7 @@ class SmoothedSignal extends ChangeNotifier
   Observable<Reading?>? _source;
 
   Reading? _last;
+  double? _held;
   double _rate = 0;
   double _lastInstantRate = 0;
   int _flips = 0;
@@ -141,12 +142,43 @@ class SmoothedSignal extends ChangeNotifier
     if (reading != null) ingest(reading);
   }
 
+  /// Whether the target is being held off the readings (see [hold]).
+  bool get isHeld => _held != null;
+
+  /// Points the spring at [value] and keeps it there, whatever the readings
+  /// say, until [release]: the ignition sequence's needle sweep and numeral
+  /// roll (DESIGN.md 7.13). Readings arriving meanwhile are still taken in,
+  /// so [release] can retarget to the newest one -- nothing is delayed or lost.
+  ///
+  /// With [jump] the displayed value goes to [value] at once, for a numeral
+  /// that starts a roll from 0 rather than easing down to it.
+  void hold(double value, {bool jump = false}) {
+    if (_disposed || !value.isFinite) return;
+    _held = value;
+    if (jump) {
+      _spring.jumpTo(value);
+    } else {
+      _spring.retarget(value);
+    }
+    motion.attach(this);
+  }
+
+  /// Lets the readings drive again, retargeting from where the spring is now,
+  /// at the speed it has, to the latest reading.
+  void release() {
+    if (_held == null) return;
+    _held = null;
+    final last = _last;
+    if (last != null) _spring.retarget(last.value);
+  }
+
   /// Takes one reading.
   void ingest(Reading reading) {
     if (_disposed || !reading.value.isFinite) return;
     final previous = _last;
     if (previous == reading) return;
     _last = reading;
+    if (_held != null) return;
 
     if (previous == null) {
       if (animateFirst) {
