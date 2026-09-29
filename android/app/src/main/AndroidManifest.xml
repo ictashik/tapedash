@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- No permissions yet. Each one is added together with the feature that
-         needs it and must be on the allowed list in CLAUDE.md 4. -->
+    <!-- Each permission is added together with the feature that needs it and
+         must be on the allowed list in CLAUDE.md 4. -->
+    <!-- The phone's own GPS, for the route and as a check on the car's speed. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- A phone without GPS can still run everything else. -->
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <!-- allowBackup is off because Android Auto Backup uploads app data to the
          user's Google account, and TapeDash is strictly offline. -->
     <application
