@@ -126,7 +126,11 @@ Numbers as of this section: **2,188 tests** (2,179 before), `49915fa` at HEAD fo
 
 ## Phase 3b, still to do
 
-**Immediate next step:** the shared-element transition from Drive to Money (DESIGN.md 7.1), then ignition and shutdown sequences (DESIGN.md 7.13) and connection states (DESIGN.md 7.12). See `handoff.md` at the repo root for exact next steps and session context.
+**Immediate next step:** the HUD (DESIGN.md 8), then Demo Mode wired into the app shell, onboarding and the brand. See `handoff.md` at the repo root for exact next steps and session context.
+
+## Phase 3b: the connection states (DESIGN.md 7.12)
+
+`ConnectionPresentation` (`ui/design/motion/`) maps the session's status to a `LinkPhase` and holds the shares; one `ConnectionLayer` sits over the Drive reel, so all five clusters get the states. Searching: standby scrim (15% etch; the status strip's corners are left alone so the adapter glyph stays readable), a sweep beam turning once per 1.6 s on the arc's ring, "Looking for your adapter". Waiting for ignition: one accent dot breathing at 0.25 Hz at the hero position, "Turn on the ignition" at full label colour. Lost: values freeze and fade to stale (already the smoothing pipeline's job), a caution line on the horizon, "Reconnecting...". Reconnection after a loss: a 300 ms accent ring re-light (my reading of the spec's "quick re-light"; the token file says so). It asks the clock for frames only while searching or waiting. Captures found and fixed: the arc's top bleeding above the scrim, and a caution line and ring both far too heavy. Gaps: the words swap at once between searching and waiting (no crossfade); the beam and dot are plain alpha shapes, not the baked glow sprite; the ring sits at the Apex arc's radius on all clusters. Not verified on a device. Frame 34.
 
 ## Phase 3b: the ignition sequence (DESIGN.md 7.13)
 

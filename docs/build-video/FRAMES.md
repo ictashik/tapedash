@@ -38,3 +38,4 @@ screen at 2x) unless it says otherwise. `tool/build_frame.sh` adds one.
 | 31 | [031-mode-parked.jpg](frames/031-mode-parked.jpg) | `d177350` | Parked: the tach arc thinned and dimmed to 60%, the hero shrunk to primary size, the status strip's captions under its glyphs -- the Motion <-> Parked choreography (DESIGN.md 7.2), all on one shared parked share |
 | 32 | [032-shared-element-flight.jpg](frames/032-shared-element-flight.jpg) | `e3f2e09` | Swipe to Money and the speed you were watching travels to the status corner instead of vanishing. |
 | 33 | [033-ignition-sequence.jpg](frames/033-ignition-sequence.jpg) | `69923ae` | The ignition: the needle swings back from redline as the numerals roll up and the horizon is about to draw. |
+| 34 | [034-connection-states.jpg](frames/034-connection-states.jpg) | `e3983c8` | Connection states: the cluster in standby, a sweep beam circling the arc while it looks for the adapter. |

@@ -22,7 +22,11 @@ The speed flight is committed; the trip-rupees flight waits on phase 4. The sect
 
 ## Done since: the ignition sequence (`DriveSignals.ignition`, Apex only; see STATUS.md)
 
-## Next step: connection states (DESIGN.md 7.12) -- searching sweep beam, waiting-for-ignition breathing dot, lost freeze-and-fade plus the 300 ms re-light. The ignition's arc wave / horizon draw / flank fade still need wiring into the other four clusters.
+## Done since: the connection states (DESIGN.md 7.12, see STATUS.md)
+
+`ConnectionPresentation` + `ConnectionLayer` over the Drive reel; frame 34. Gaps recorded in STATUS.md. Still open from the ignition: the arc wave, horizon draw and flank fade are wired into Apex only.
+
+## Next step: the HUD (DESIGN.md 8) -- layouts, the flips, the alignment pattern. Then Demo Mode in the app shell, onboarding, brand.
 
 (Original note on the shared-element transition follows.)
 
@@ -88,8 +92,8 @@ Partway through an earlier session, a context-window summarisation happened, and
 - ~~Motion <-> Parked (DESIGN.md 7.2)~~ -- **done** (`d177350`): one shared parked share; the arc thinned and dimmed to 60%, the heroes shrunken, the captions fading. The flanks' unfolded detail panels are phase 4's data and are honestly absent.
 - ~~The shared-element transition (DESIGN.md 7.1)~~ -- **speed flight done** (`e3f2e09`); the ₹ flight is phase 4's.
 - ~~Ignition and shutdown sequences (DESIGN.md 7.13)~~ -- **done in Apex** (the other four clusters lack the arc wave, horizon draw and flank fade).
-- Connection states (DESIGN.md 7.12) **Next**: the full per-state cluster treatment (searching sweep beam, waiting-for-ignition dim breathing dot, lost freeze-and-fade). `DriveSignals.adapter`/`.connection` already expose the raw state; only the status strip's own small 3-state glyph currently reacts to it (see `_adapterStateFor` in `drive_signals.dart`) -- the fuller treatment is this bullet's job.
-- HUD (DESIGN.md 8): layouts, the flips, the alignment pattern. Not started.
+- ~~Connection states (DESIGN.md 7.12)~~ -- **done** (see STATUS.md). Was: the full per-state cluster treatment (searching sweep beam, waiting-for-ignition dim breathing dot, lost freeze-and-fade). `DriveSignals.adapter`/`.connection` already expose the raw state; only the status strip's own small 3-state glyph currently reacts to it (see `_adapterStateFor` in `drive_signals.dart`) -- the fuller treatment is this bullet's job.
+- HUD (DESIGN.md 8): layouts, the flips, the alignment pattern. Not started. **Next.**
 - Demo Mode: `DemoDrive` (`lib/app/demo_drive.dart`, phase 3a) and the clusters' capture tests prove the wiring works, but nothing in `lib/app/app.dart` actually shows a real page yet -- `_Shell` in `app.dart` still only shows the void canvas and the Design Lab button. Wiring a real `DemoDrive` into the app shell, showing the DEMO badge (already built, `status_strip.dart`), belongs here.
 - Onboarding (DESIGN.md 7.11): cold open, demo/connect choice, demo path. Not started.
 - Brand: app icon, launch theme, wordmark. Not started -- launcher and splash icons are still Flutter's defaults (a known, flagged gap since phase 3a).
