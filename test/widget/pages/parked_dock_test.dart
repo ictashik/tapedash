@@ -72,7 +72,8 @@ void main() {
     for (final b in find.byType(TapeButton).evaluate()) {
       final r = tester.getRect(find.byWidget(b.widget));
       expect(r.top, greaterThanOrEqualTo(400 - 56 - 12 - 1 - 0.01));
-      expect(r.bottom, greaterThanOrEqualTo(400 - 1 - 0.01));
+      // Risen into the floor zone: above the page tape and its gap.
+      expect(r.bottom, closeTo(400 - 12, 0.5));
     }
   });
 

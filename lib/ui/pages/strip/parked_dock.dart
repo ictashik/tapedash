@@ -35,7 +35,12 @@ class ParkedDock extends StatefulWidget {
     required this.motion,
     required this.width,
     required this.height,
+    this.onHud,
   });
+
+  /// Called by the HUD button (DESIGN.md 8: the HUD is toggled by a double-tap
+  /// or the dock button). Null leaves it disabled, like the other three.
+  final VoidCallback? onHud;
 
   /// Parked or motion (DESIGN.md 7.2), from the vehicle state.
   final ValueListenable<DrivingMode> mode;
@@ -60,7 +65,7 @@ class ParkedDockState extends State<ParkedDock> {
       clock: widget.motion,
       spec: TapeSprings.snap,
       initial: 0,
-    )..addListener(_onRise);
+    );
     widget.mode.addListener(_onMode);
     _onMode();
   }
@@ -80,21 +85,18 @@ class ParkedDockState extends State<ParkedDock> {
         clock: widget.motion,
         spec: TapeSprings.snap,
         initial: at,
-      )..addListener(_onRise);
+      );
     }
   }
 
   @override
   void dispose() {
-    _rise.removeListener(_onRise);
     _rise.dispose();
     super.dispose();
   }
 
   /// How far the dock has risen, 0 to 1.
   double get rise => _rise.value;
-
-  void _onRise() {}
 
   void _onMode() {
     if (widget.mode.value == DrivingMode.parked) {
@@ -113,47 +115,51 @@ class ParkedDockState extends State<ParkedDock> {
   Widget build(BuildContext context) {
     final theme = TapeTheme.of(context);
     final palette = theme.palette;
-    final rise = _rise.value;
-
-    final buttons = <(TapeIcon, String)>[
-      (TapeIcon.garage, 'Garage'),
-      (TapeIcon.pitStop, 'Pit Stop'),
-      (TapeIcon.checkEngine, 'Diagnostics'),
-      (TapeIcon.hud, 'HUD'),
+    final buttons = <(TapeIcon, String, VoidCallback?)>[
+      (TapeIcon.garage, 'Garage', null),
+      (TapeIcon.pitStop, 'Pit Stop', null),
+      (TapeIcon.checkEngine, 'Diagnostics', null),
+      (TapeIcon.hud, 'HUD', widget.onHud),
     ];
 
     final riseHeight = TapeShape.buttonHeight + TapeSpace.s1;
     // The dock's own floor: the tape's own 8 lp plus its own gap, so the
     // dock rises INTO the floor zone rather than under its own tape.
     final floor = TapeSpace.pageTapeHeight + TapeSpace.s1;
-    final dockBottom = floor + riseHeight * (rise - 1);
 
-    return SizedBox(
-      width: widget.width,
-      height: widget.height,
-      child: Stack(
-        children: [
-          Positioned(
-            bottom: dockBottom,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (var i = 0; i < buttons.length; i++) ...[
-                  if (i > 0) const SizedBox(width: TapeSpace.s3),
-                  _StaggeredDockButton(
-                    index: i,
-                    rise: _rise,
-                    icon: buttons[i].$1,
-                    label: buttons[i].$2,
-                    palette: palette,
-                  ),
+    // The rise repaints the dock's own position: the whole stack is one
+    // builder off the spring (a Positioned cannot sit inside a builder of its
+    // own), and the buttons inside are const-cheap to rebuild.
+    return AnimatedBuilder(
+      animation: _rise,
+      builder: (context, _) => SizedBox(
+        width: widget.width,
+        height: widget.height,
+        child: Stack(
+          children: [
+            Positioned(
+              bottom: floor + riseHeight * (_rise.value - 1),
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var i = 0; i < buttons.length; i++) ...[
+                    if (i > 0) const SizedBox(width: TapeSpace.s3),
+                    _StaggeredDockButton(
+                      index: i,
+                      rise: _rise,
+                      icon: buttons[i].$1,
+                      label: buttons[i].$2,
+                      palette: palette,
+                      onPressed: buttons[i].$3,
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -169,8 +175,10 @@ class _StaggeredDockButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.palette,
+    required this.onPressed,
   });
 
+  final VoidCallback? onPressed;
   final int index;
   final ValueListenable<double> rise;
   final TapeIcon icon;
@@ -185,7 +193,7 @@ class _StaggeredDockButton extends StatelessWidget {
         final own = _ownRise(index, rise.value);
         return Opacity(
           opacity: own.clamp(0.0, 1.0),
-          child: TapeButton(label: label, icon: icon),
+          child: TapeButton(label: label, icon: icon, onPressed: onPressed),
         );
       },
     );
