@@ -83,7 +83,14 @@ class MoneyReadout extends StatelessWidget {
           role: NumeralRole.money,
         ),
         const SizedBox(width: 6),
-        _ConfidencePips(confidence: confidence, palette: palette),
+        // The pips have no text baseline of their own, so a row aligned on
+        // baselines put them at the top of the digits' tall box: this gives
+        // them one, at their bottom edge, on the digits' baseline.
+        Baseline(
+          baseline: TapeMoney.confidencePipSize,
+          baselineType: TextBaseline.alphabetic,
+          child: _ConfidencePips(confidence: confidence, palette: palette),
+        ),
       ],
     );
   }

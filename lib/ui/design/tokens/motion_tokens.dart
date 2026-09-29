@@ -60,6 +60,14 @@ abstract final class TapeDurations {
   static const Duration scene = Duration(milliseconds: 480);
   static const Duration cinematic = Duration(milliseconds: 1200);
 
+  /// Pit Stop's save animation: the fuel column fills and collapses (DESIGN.md 7.9).
+  static const Duration pitStopSave = Duration(milliseconds: 900);
+
+  /// A money figure (₹ this trip, ₹/km) is stale after this long with no new
+  /// estimate: it moves with the fuel about once a second, and a trip that has
+  /// stopped answering holds its figure rather than fading it like a needle.
+  static const Duration moneyStale = Duration(seconds: 30);
+
   /// Exits run at about 0.7 of an entrance (DESIGN.md 5.7).
   static const double exitShare = 0.7;
 }

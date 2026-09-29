@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import '../design/components/alerts.dart';
 import '../design/motion/numeral_source.dart';
 import '../pages/drive/drive_signals.dart';
+import '../pages/money/money_signals.dart';
 import 'hud_settings.dart';
 import 'hud_view.dart';
 
@@ -22,6 +23,7 @@ class HudHost extends StatelessWidget {
     required this.width,
     required this.height,
     required this.child,
+    this.money,
     this.tripCost,
     this.costPerKm,
     this.alert,
@@ -32,9 +34,25 @@ class HudHost extends StatelessWidget {
   final double width;
   final double height;
   final Widget child;
+
+  /// The trip computer's signals: the HUD's money layouts read ₹ this trip and ₹/km
+  /// from them while there is a price, and say money is unavailable otherwise.
+  final MoneySignals? money;
+
+  /// Explicit sources, for a test (overriding [money]).
   final NumeralSource? tripCost;
   final NumeralSource? costPerKm;
   final ValueListenable<AlertLevel>? alert;
+
+  Widget _hud(NumeralSource? cost, NumeralSource? perKm) => HudView(
+    signals: signals,
+    settings: settings,
+    width: width,
+    height: height,
+    tripCost: cost,
+    costPerKm: perKm,
+    alert: alert,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -48,15 +66,14 @@ class HudHost extends StatelessWidget {
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onDoubleTap: settings.toggle,
-                child: HudView(
-                  signals: signals,
-                  settings: settings,
-                  width: width,
-                  height: height,
-                  tripCost: tripCost,
-                  costPerKm: costPerKm,
-                  alert: alert,
-                ),
+                child: money == null
+                    ? _hud(tripCost, costPerKm)
+                    : ValueListenableBuilder<MoneyView>(
+                        valueListenable: money!.view,
+                        builder: (context, view, _) => view == MoneyView.rupees
+                            ? _hud(money!.cost, money!.costPerKm)
+                            : _hud(null, null),
+                      ),
               ),
             ),
         ],

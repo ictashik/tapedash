@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../design/components/centered_numeral.dart';
 import '../../design/components/parked_scale.dart';
+import '../../design/components/presence.dart';
 import '../../design/components/rolling_numerals.dart';
 import '../../design/components/shared_element_end.dart';
 import '../../design/components/shift_horizon.dart';
@@ -14,6 +15,7 @@ import '../../design/theme/tape_theme.dart';
 import '../../design/tokens/spacing.dart';
 import '../../design/tokens/tach.dart';
 import '../../design/tokens/typography.dart';
+import '../money/money_figure.dart';
 import '../strip/the_strip.dart';
 import 'drive_signals.dart';
 
@@ -53,6 +55,8 @@ class MinimalCluster extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final type = TypeScale.forHeight(height);
+    final onDriverSideRight =
+        TapeTheme.of(context).driverSide == DriverSide.right;
     final heroFade = SharedElementsScope.maybeOf(
       context,
     )?.ownShareOf(SharedElementIds.speed, SharedElementEndKind.from);
@@ -157,6 +161,22 @@ class MinimalCluster extends StatelessWidget {
               ),
             ),
           ),
+          // The driver-side corner's small money readout (DESIGN.md 7.3), under
+          // the status strip's captions. Not shown parked: the Money page has it.
+          if (signals.money != null)
+            Positioned(
+              top: height * TapeSpace.clearOfCaptionsShare,
+              left: onDriverSideRight ? null : TapeSpace.margin(height),
+              right: onDriverSideRight ? TapeSpace.margin(height) : null,
+              child: Presence(
+                share: signals.motionShare,
+                child: MoneyFigure(
+                  money: signals.money!,
+                  size: type.secondary * 0.9,
+                  integerDigits: 5,
+                ),
+              ),
+            ),
         ],
       ),
     );

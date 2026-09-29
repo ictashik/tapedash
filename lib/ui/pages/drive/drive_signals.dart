@@ -15,6 +15,8 @@ import '../../design/motion/parked_share.dart';
 import '../../design/motion/smoothing_pipeline.dart';
 import '../../design/motion/wall_clock.dart';
 import '../../design/tokens/motion_tokens.dart';
+import '../money/money_figure.dart' show MappedShare;
+import '../money/money_signals.dart';
 
 /// The live `SmoothedSignal`s a Drive cluster reads, bound once to a
 /// [VehicleState] and shared across whichever cluster layout is on screen,
@@ -41,6 +43,7 @@ class DriveSignals {
     IgnitionMode ignitionMode = IgnitionMode.full,
     bool reduceMotion = false,
     this.demoMode = false,
+    this.money,
   }) : wallClock = WallClockTicker(clock: clock, scheduler: scheduler),
        rpm = SmoothedSignal(
          motion: motion,
@@ -151,6 +154,12 @@ class DriveSignals {
     (i) => i.flank(0),
   );
 
+  /// The flank nearer the driver, which fades in second (DESIGN.md 7.13's stagger).
+  late final IgnitionShare flankDriver = IgnitionShare(
+    ignition,
+    (i) => i.flank(1),
+  );
+
   /// The first rpm that counts as the engine running (CLAUDE.md 8.6).
   static const double ignitionRpm = 400;
 
@@ -175,6 +184,12 @@ class DriveSignals {
 
   final VehicleState vehicle;
   final Clock clock;
+
+  /// The trip computer's signals (phase 4): ₹ this trip, ₹/km, km/L, the eco
+  /// bar's value and the rest. Null where there is no trip computer (a Design
+  /// Lab capture of a bare cluster); the clusters then leave those slots empty.
+  /// Owned by whoever built it, not disposed here.
+  final MoneySignals? money;
 
   /// Whether the data is Demo Mode's simulated car (CLAUDE.md 7.6): the DEMO
   /// badge is always visible while it is.
@@ -222,6 +237,11 @@ class DriveSignals {
   /// the status strip's captions -- so every piece moves on the same spring,
   /// staggered off it, and one built later never races one already on screen.
   late final ParkedShare parkedShare;
+
+  /// The other way round: 1 in Motion, falling to 0 as the car parks. What
+  /// gives way to the parked dock (the eco bar, the floor's trip readouts) fades
+  /// on this, on the same spring.
+  late final MappedShare motionShare = MappedShare(parkedShare, (p) => 1 - p);
 
   /// The parked-or-motion flag [parkedShare] follows, mapped off [_mode];
   /// not owned by the share, so [dispose] lets go of it separately.
@@ -277,6 +297,7 @@ class DriveSignals {
     arcWave.dispose();
     horizonDraw.dispose();
     flankAway.dispose();
+    flankDriver.dispose();
     ignition.dispose();
     vehicle.motion.removeListener(_onMotion);
     wallClock.dispose();
@@ -288,6 +309,7 @@ class DriveSignals {
     voltage.dispose();
     longitudinalAcceleration.dispose();
     lateralAcceleration.dispose();
+    motionShare.dispose();
     parkedShare.dispose();
     _parkedFlag.dispose();
     _mode.dispose();

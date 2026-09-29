@@ -16,6 +16,7 @@ import '../ui/design/tokens/spacing.dart';
 import '../ui/dev/dev_settings.dart';
 import '../ui/lab/design_lab.dart';
 import '../ui/onboarding/onboarding_screen.dart';
+import 'app_services.dart';
 import 'demo_drive.dart';
 import 'drive_shell.dart';
 
@@ -34,7 +35,11 @@ class TapeDashApp extends StatelessWidget {
     this.scheduler = const SystemScheduler(),
     this.onboarding = true,
     this.skipColdOpen = DevMode.skipColdOpen,
+    this.services,
   });
+
+  /// The app's settings and trip log. Null uses empty in-memory ones (tests).
+  final AppServices? services;
 
   /// Whether the app opens on the cold open and the choice (DESIGN.md 7.11), or
   /// straight on the drive (tests, and a later launch once the choice is
@@ -58,6 +63,7 @@ class TapeDashApp extends StatelessWidget {
         scheduler: scheduler,
         onboarding: onboarding,
         skipColdOpen: skipColdOpen,
+        services: services,
       ),
     );
   }
@@ -69,12 +75,14 @@ class _Shell extends StatefulWidget {
     required this.scheduler,
     required this.onboarding,
     required this.skipColdOpen,
+    required this.services,
   });
 
   final Clock clock;
   final Scheduler scheduler;
   final bool onboarding;
   final bool skipColdOpen;
+  final AppServices? services;
 
   @override
   State<_Shell> createState() => _ShellState();
@@ -134,6 +142,7 @@ class _ShellState extends State<_Shell> {
                         child: _onboarded
                             ? DriveShell(
                                 demo: _demo,
+                                app: widget.services,
                                 clock: widget.clock,
                                 scheduler: widget.scheduler,
                               )

@@ -1,13 +1,19 @@
 import 'package:flutter/widgets.dart';
 
+import '../../design/components/presence.dart';
 import '../../design/components/rolling_numerals.dart';
 import '../../design/components/shift_horizon.dart';
 import '../../design/components/status_strip.dart';
+import '../../design/components/tape_label.dart';
 import '../../design/components/vertical_tape.dart';
 import '../../design/tokens/spacing.dart';
 import '../../design/tokens/tach.dart';
+import '../../design/tokens/typography.dart';
 import '../../design/tokens/vertical_tape.dart';
+import '../money/money_figure.dart';
+import '../money/money_signals.dart';
 import 'drive_signals.dart';
+import 'money_slots.dart';
 
 /// The Tape cluster (DESIGN.md 7.3.2), the brand layout: the speed tape on
 /// the left and the RPM tape on the right, both with their trend vectors
@@ -43,6 +49,8 @@ class TapeCluster extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final money = signals.money;
+    final type = TypeScale.forHeight(height);
     final tapeWidth = width * TapeVerticalTape.widthShareOfW;
     final top = height * TapeSpace.horizonShare;
     final floor = height * TapeSpace.floorShare;
@@ -127,8 +135,60 @@ class TapeCluster extends StatelessWidget {
             ),
           ),
 
-          // The centre's instant km/L and eco bar, and the floor's ₹ THIS
-          // TRIP, are phase 4's; see this class's own doc comment.
+          // The centre: instant km/L at display size, the eco bar beneath it,
+          // and ₹ THIS TRIP in the floor (DESIGN.md 7.3). With no trip
+          // computer bound (a bare cluster in the Lab) the centre is empty.
+          if (money != null) ...[
+            Positioned(
+              top: top,
+              bottom: floor,
+              left: tapeWidth,
+              right: tapeWidth,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ValueListenableBuilder<MoneyView>(
+                      valueListenable: money.view,
+                      builder: (context, view, _) =>
+                          view == MoneyView.unavailable
+                          ? TapeLabel('No fuel data', size: type.label)
+                          : GatedNumeral(
+                              available: money.instantAvailable,
+                              source: money.instantKmPerLitre,
+                              format: rateFormat,
+                              size: type.display,
+                              unit: 'KM/L',
+                              role: NumeralRole.accent,
+                            ),
+                    ),
+                    const SizedBox(height: TapeSpace.s2),
+                    EcoBarSlot(
+                      money: money,
+                      motionShare: signals.motionShare,
+                      width: width,
+                      height: height,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: TapeSpace.pageTapeHeight + TapeSpace.s3,
+              child: Center(
+                child: Presence(
+                  share: signals.motionShare,
+                  child: MoneyFigure(
+                    money: money,
+                    size: type.secondary,
+                    integerDigits: 5,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

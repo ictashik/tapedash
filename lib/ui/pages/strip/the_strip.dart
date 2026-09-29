@@ -143,6 +143,16 @@ class TheStripState extends State<TheStrip> {
   /// Where the strip is now, in pages.
   double get offset => _offset.value;
 
+  /// Moves to [page] as a release would, within what the motion lock allows:
+  /// for tests and the screenshot scripts, which cannot drag a real hand.
+  @visibleForTesting
+  void goTo(int page) {
+    final (min, max) = reachOf(widget.mode.value);
+    _offset
+      ..setSpec(TapeSprings.page)
+      ..retarget(page.clamp(min, max).toDouble());
+  }
+
   /// The reachable page range (DESIGN.md 7.1): everything while parked;
   /// Money and Drive only while moving.
   (int, int) reachOf(DrivingMode mode) => switch (mode) {

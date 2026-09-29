@@ -36,7 +36,11 @@ class ParkedDock extends StatefulWidget {
     required this.width,
     required this.height,
     this.onHud,
+    this.onPitStop,
   });
+
+  /// Called by the Pit Stop button (DESIGN.md 7.9). Null leaves it disabled.
+  final VoidCallback? onPitStop;
 
   /// Called by the HUD button (DESIGN.md 8: the HUD is toggled by a double-tap
   /// or the dock button). Null leaves it disabled, like the other three.
@@ -117,7 +121,7 @@ class ParkedDockState extends State<ParkedDock> {
     final palette = theme.palette;
     final buttons = <(TapeIcon, String, VoidCallback?)>[
       (TapeIcon.garage, 'Garage', null),
-      (TapeIcon.pitStop, 'Pit Stop', null),
+      (TapeIcon.pitStop, 'Pit Stop', widget.onPitStop),
       (TapeIcon.checkEngine, 'Diagnostics', null),
       (TapeIcon.hud, 'HUD', widget.onHud),
     ];

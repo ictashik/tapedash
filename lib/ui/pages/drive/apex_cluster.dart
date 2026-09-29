@@ -19,6 +19,7 @@ import '../../design/tokens/tach.dart';
 import '../../design/tokens/typography.dart';
 import '../strip/the_strip.dart';
 import 'drive_signals.dart';
+import 'money_slots.dart';
 
 /// The Apex cluster (DESIGN.md 7.3.1, Drive's default layout): the hero speed
 /// inside the tach arc, the coolant gauge on the flank away from the driver,
@@ -58,6 +59,7 @@ class ApexCluster extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = TapeTheme.of(context);
+    final money = signals.money;
     final tachBox = TachArc.boxSideOf(height);
     final type = TypeScale.forHeight(height);
     final onDriverSideRight = theme.driverSide == DriverSide.right;
@@ -196,19 +198,72 @@ class ApexCluster extends StatelessWidget {
             child: Presence(
               share: signals.flankAway,
               child: Center(
-                child: BarGauge(
-                  value: signals.coolant,
-                  min: 0,
-                  max: 130,
-                  length: height * 0.4,
-                  label: 'COOLANT',
-                  vertical: true,
-                  normalBandMin: 80,
-                  normalBandMax: 100,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    BarGauge(
+                      value: signals.coolant,
+                      min: 0,
+                      max: 130,
+                      length: height * 0.4,
+                      label: 'COOLANT',
+                      vertical: true,
+                      normalBandMin: 80,
+                      normalBandMax: 100,
+                    ),
+                    if (money != null) ...[
+                      const SizedBox(height: TapeSpace.s3),
+                      InstantEconomy(money: money, height: height),
+                    ],
+                  ],
                 ),
               ),
             ),
           ),
+
+          // The driver-side flank: ₹ THIS TRIP and ₹/KM (DESIGN.md 7.3). With
+          // no trip computer bound (a bare cluster in the Lab) it is empty.
+          if (money != null)
+            Positioned(
+              top: 0,
+              bottom: 0,
+              left: onDriverSideRight ? null : TapeSpace.s4,
+              right: onDriverSideRight ? TapeSpace.s4 : null,
+              child: Presence(
+                share: signals.flankDriver,
+                child: Center(
+                  child: DriverFlankMoney(
+                    money: money,
+                    height: height,
+                    alignEnd: onDriverSideRight,
+                  ),
+                ),
+              ),
+            ),
+
+          // The floor: the eco bar, centred, with the trip's distance on the
+          // left and its time on the right. They give way to the dock.
+          if (money != null) ...[
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: TapeSpace.pageTapeHeight + TapeSpace.s3,
+              child: Center(
+                child: EcoBarSlot(
+                  money: money,
+                  motionShare: signals.motionShare,
+                  width: width,
+                  height: height,
+                ),
+              ),
+            ),
+            TripFloor(
+              money: money,
+              motionShare: signals.motionShare,
+              width: width,
+              height: height,
+            ),
+          ],
         ],
       ),
     );

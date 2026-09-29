@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'app/app.dart';
+import 'app/app_services.dart';
 import 'app/bootstrap.dart';
 import 'platform/device_channel.dart';
 import 'ui/design/render/tape_fonts.dart';
@@ -18,5 +19,14 @@ Future<void> main() async {
   } on Object catch (error) {
     debugPrint('Could not load the bundled fonts: $error');
   }
-  runApp(const TapeDashApp());
+  // The trip log and the settings, on the phone. A failure to open them is not
+  // a reason to show nothing: the app then runs with empty in-memory ones and
+  // says so in the log.
+  AppServices? services;
+  try {
+    services = await AppServices.open();
+  } on Object catch (error) {
+    debugPrint('Could not open the trip log and settings: $error');
+  }
+  runApp(TapeDashApp(services: services));
 }
