@@ -361,6 +361,7 @@ class StatusStripRight extends StatelessWidget {
       builder: (context, _) {
         final parked = parkedShare.value.clamp(0.0, 1.0);
         return SizedBox(
+          width: TapeStatusStrip.rightReserve,
           height: _glyphColumnHeight(parked),
           child: CustomPaint(
             painter: StatusStripRightPainter(
@@ -390,7 +391,6 @@ class StatusStripRightPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    var x = 0.0;
     final parked = right.parkedShare.value.clamp(0.0, 1.0);
 
     final clock = TextPainter(
@@ -404,12 +404,38 @@ class StatusStripRightPainter extends CustomPainter {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
+    final hot = right.phoneHot.value;
+    final columnWidth = glyphColumnWidth(parked);
+    final badge = right.demoMode
+        ? (TextPainter(
+            text: TextSpan(
+              text: 'DEMO',
+              style: TapeType.label(
+                size: TapeStatusStrip.captionSize,
+                color: palette.accentCore,
+              ),
+            ),
+            textDirection: TextDirection.ltr,
+          )..layout())
+        : null;
+
+    // Measured first, so the flank ends against the margin (it is laid out
+    // right-aligned in its reserve, not from the left).
+    var total = clock.width;
+    if (hot) total += TapeStatusStrip.gap * 2 + columnWidth;
+    if (badge != null) {
+      total +=
+          TapeStatusStrip.gap * 2 +
+          badge.width +
+          TapeStatusStrip.badgePaddingH * 2;
+    }
+    var x = size.width - total;
+
     clock.paint(canvas, Offset(x, 0));
     x += clock.width;
 
-    if (right.phoneHot.value) {
+    if (hot) {
       x += TapeStatusStrip.gap * 2;
-      final columnWidth = glyphColumnWidth(parked);
       canvas.save();
       canvas.translate(x, 0);
       _paintGlyphColumn(
@@ -426,26 +452,16 @@ class StatusStripRightPainter extends CustomPainter {
       x += columnWidth;
     }
 
-    if (right.demoMode) {
+    if (badge != null) {
       x += TapeStatusStrip.gap * 2;
       canvas.save();
       canvas.translate(x, 0);
-      _paintDemoBadge(canvas, palette);
+      _paintDemoBadge(canvas, badge);
       canvas.restore();
     }
   }
 
-  void _paintDemoBadge(Canvas canvas, TapePalette palette) {
-    final text = TextPainter(
-      text: TextSpan(
-        text: 'DEMO',
-        style: TapeType.label(
-          size: TapeStatusStrip.captionSize,
-          color: palette.accentCore,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+  void _paintDemoBadge(Canvas canvas, TextPainter text) {
     final rect = Rect.fromLTWH(
       0,
       0,

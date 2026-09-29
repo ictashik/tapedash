@@ -6,6 +6,11 @@ abstract final class TapeStatusStrip {
   /// The clock's digit size (secondary, not a hero numeral).
   static const double clockSize = 22;
 
+  /// The width the right flank reserves: the clock, the phone-hot column and the
+  /// DEMO badge (at their widest) right-aligned inside it, so the flank sits
+  /// against the margin whatever it holds.
+  static const double rightReserve = 240;
+
   /// The Parked-only caption under a glyph.
   static const double captionSize = 10;
 

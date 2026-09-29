@@ -364,5 +364,46 @@ void main() {
 
       expect(before, isNot(equals(after)));
     });
+
+    testWidgets('the flank sits against its right edge, whatever it holds', (
+      tester,
+    ) async {
+      setWindow(tester, const Size(320, 60));
+      final time = ValueNotifier(DateTime(2026, 1, 1, 10, 0));
+      addTearDown(time.dispose);
+      final phoneHot = ValueNotifier(false);
+      addTearDown(phoneHot.dispose);
+      for (final demo in [false, true]) {
+        await tester.pumpWidget(
+          tapeHarness(
+            kit: kit,
+            motion: motion,
+            theme: TapeThemeData(livery: Liveries.ion),
+            child: Align(
+              alignment: Alignment.topRight,
+              child: StatusStripRight(
+                time: time,
+                use24Hour: true,
+                phoneHot: phoneHot,
+                parkedShare: ValueNotifier(0),
+                demoMode: demo,
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        final px = await pixels(tester);
+        var maxX = -1;
+        for (var i = 0; i < px.length; i++) {
+          if (px[i] != 0 && (px[i] & 0xFF) != 0 && (px[i] >> 24) > 24) {
+            final x = i % 640;
+            if (x > maxX) maxX = x;
+          }
+        }
+        // Drawn, and inside the frame, against the right edge (640 px).
+        expect(maxX, greaterThan(640 - 16), reason: 'demo=$demo');
+        expect(maxX, lessThan(640), reason: 'demo=$demo');
+      }
+    });
   });
 }
