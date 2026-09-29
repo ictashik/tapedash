@@ -23,6 +23,10 @@ class Trip {
     this.calibrationFactor = 1,
     this.hardAccelerations = 0,
     this.hardBrakings = 0,
+    this.longIdles = 0,
+    this.longestIdleSeconds = 0,
+    this.highRpmSeconds = 0,
+    this.speedingSeconds = 0,
   });
 
   final int? id;
@@ -62,6 +66,14 @@ class Trip {
   final int hardAccelerations;
   final int hardBrakings;
 
+  /// The coach's duration rules (CLAUDE.md 8.8): stops of more than a minute with
+  /// the engine on, the longest of them, seconds above the high-rpm threshold, and
+  /// seconds above the speed threshold.
+  final int longIdles;
+  final double longestIdleSeconds;
+  final double highRpmSeconds;
+  final double speedingSeconds;
+
   bool get isOpen => endedAt == null;
 
   double? get kmPerLitre =>
@@ -87,6 +99,10 @@ class Trip {
     double? calibrationFactor,
     int? hardAccelerations,
     int? hardBrakings,
+    int? longIdles,
+    double? longestIdleSeconds,
+    double? highRpmSeconds,
+    double? speedingSeconds,
   }) => Trip(
     id: id ?? this.id,
     startedAt: startedAt,
@@ -108,6 +124,10 @@ class Trip {
     calibrationFactor: calibrationFactor ?? this.calibrationFactor,
     hardAccelerations: hardAccelerations ?? this.hardAccelerations,
     hardBrakings: hardBrakings ?? this.hardBrakings,
+    longIdles: longIdles ?? this.longIdles,
+    longestIdleSeconds: longestIdleSeconds ?? this.longestIdleSeconds,
+    highRpmSeconds: highRpmSeconds ?? this.highRpmSeconds,
+    speedingSeconds: speedingSeconds ?? this.speedingSeconds,
   );
 
   static const Object _keep = Object();

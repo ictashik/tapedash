@@ -1,3 +1,4 @@
+import '../coach/coach_monitor.dart';
 import '../coach/coach_thresholds.dart';
 import '../coach/hard_event_detector.dart';
 import '../core/clock.dart';
@@ -34,6 +35,7 @@ class DriveServices {
   }) {
     estimator = FuelEstimator(vehicle: vehicle, setup: app.setup.value);
     hardEvents = HardEventDetector(vehicle: vehicle, thresholds: thresholds);
+    coach = CoachMonitor(vehicle: vehicle, thresholds: thresholds);
     computer = TripComputer(
       vehicle: vehicle,
       estimator: estimator,
@@ -57,6 +59,7 @@ class DriveServices {
       calibrationFactor: () => app.ledger.calibration.factor,
       price: app.money.price,
       ledger: app.ledger,
+      coach: coach,
       location: location,
       isDemo: isDemo,
     );
@@ -83,6 +86,7 @@ class DriveServices {
 
   late final FuelEstimator estimator;
   late final HardEventDetector hardEvents;
+  late final CoachMonitor coach;
   late final TripComputer computer;
   late final TripRecorder recorder;
   RecordingDemand? demand;
@@ -98,6 +102,7 @@ class DriveServices {
     demand?.dispose();
     await recorder.close();
     computer.dispose();
+    coach.dispose();
     hardEvents.dispose();
     estimator.dispose();
   }

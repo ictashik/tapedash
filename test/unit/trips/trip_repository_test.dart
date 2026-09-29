@@ -38,6 +38,10 @@ Trip sample({DateTime? at, bool demo = false}) => Trip(
   calibrationFactor: 1.07,
   hardAccelerations: 2,
   hardBrakings: 1,
+  longIdles: 2,
+  longestIdleSeconds: 140,
+  highRpmSeconds: 33.5,
+  speedingSeconds: 21,
 );
 
 void tripContract(String name, Future<TripRepository> Function() make) {
@@ -67,6 +71,10 @@ void tripContract(String name, Future<TripRepository> Function() make) {
       expect(read.calibrationFactor, 1.07);
       expect(read.hardAccelerations, 2);
       expect(read.hardBrakings, 1);
+      expect(read.longIdles, 2);
+      expect(read.longestIdleSeconds, 140);
+      expect(read.highRpmSeconds, 33.5);
+      expect(read.speedingSeconds, 21);
       expect(read.isOpen, isTrue);
       expect(read.startedAt, DateTime(2026, 3, 1, 8));
     });
@@ -256,5 +264,65 @@ void main() {
     db = await TapeDatabase.open(path, factory: databaseFactoryFfi);
     addTearDown(db.close);
     expect((await SqfliteTripRepository(db).get(saved.id!))!.distanceKm, 12.5);
+  });
+
+  test('a version 1 database is upgraded, keeping its trips', () async {
+    final dir = Directory.systemTemp.createTempSync('tapedash_db_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final path = '${dir.path}/old.db';
+    // The schema as it was in version 1 (before the coach's counts).
+    final old = await databaseFactoryFfi.openDatabase(
+      path,
+      options: OpenDatabaseOptions(
+        version: 1,
+        onCreate: (db, v) async {
+          await db.execute('''
+            CREATE TABLE trips (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              started_at INTEGER NOT NULL,
+              ended_at INTEGER,
+              is_demo INTEGER NOT NULL DEFAULT 0,
+              distance_km REAL NOT NULL DEFAULT 0,
+              litres REAL NOT NULL DEFAULT 0,
+              uncalibrated_litres REAL NOT NULL DEFAULT 0,
+              cost REAL,
+              price_per_litre REAL,
+              idle_seconds REAL NOT NULL DEFAULT 0,
+              engine_seconds REAL NOT NULL DEFAULT 0,
+              bucket_litres TEXT NOT NULL DEFAULT '',
+              block_buckets TEXT NOT NULL DEFAULT '',
+              fuel_source INTEGER NOT NULL DEFAULT 3,
+              low_confidence INTEGER NOT NULL DEFAULT 0,
+              calibration_factor REAL NOT NULL DEFAULT 1,
+              hard_accelerations INTEGER NOT NULL DEFAULT 0,
+              hard_brakings INTEGER NOT NULL DEFAULT 0
+            )
+          ''');
+          await db.execute(
+            'CREATE TABLE trip_samples (trip_id INTEGER NOT NULL, seconds REAL NOT NULL, speed_kmh REAL NOT NULL, rpm REAL NOT NULL, throttle REAL NOT NULL, litres_per_hour REAL NOT NULL, latitude REAL, longitude REAL)',
+          );
+          await db.execute(
+            'CREATE TABLE fill_ups (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, litres REAL NOT NULL, amount REAL NOT NULL, full_tank INTEGER NOT NULL, factor REAL)',
+          );
+        },
+      ),
+    );
+    await old.insert('trips', {
+      'started_at': DateTime(2026, 3, 1).millisecondsSinceEpoch,
+      'distance_km': 42.0,
+      'hard_accelerations': 3,
+    });
+    await old.close();
+
+    final db = await TapeDatabase.open(path, factory: databaseFactoryFfi);
+    addTearDown(db.close);
+    final trips = await SqfliteTripRepository(db).all();
+    expect(trips.single.distanceKm, 42);
+    expect(trips.single.hardAccelerations, 3);
+    expect(trips.single.longIdles, 0);
+    expect(trips.single.highRpmSeconds, 0);
+    // And it takes the new columns.
+    await SqfliteTripRepository(db).update(trips.single.copyWith(longIdles: 4));
+    expect((await SqfliteTripRepository(db).all()).single.longIdles, 4);
   });
 }

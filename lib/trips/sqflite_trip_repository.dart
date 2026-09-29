@@ -109,6 +109,10 @@ class SqfliteTripRepository implements TripRepository {
     'calibration_factor': t.calibrationFactor,
     'hard_accelerations': t.hardAccelerations,
     'hard_brakings': t.hardBrakings,
+    'long_idles': t.longIdles,
+    'longest_idle_seconds': t.longestIdleSeconds,
+    'high_rpm_seconds': t.highRpmSeconds,
+    'speeding_seconds': t.speedingSeconds,
   };
 
   static Trip _fromRow(Map<String, Object?> r) {
@@ -145,6 +149,10 @@ class SqfliteTripRepository implements TripRepository {
       calibrationFactor: (r['calibration_factor']! as num).toDouble(),
       hardAccelerations: r['hard_accelerations']! as int,
       hardBrakings: r['hard_brakings']! as int,
+      longIdles: r['long_idles']! as int,
+      longestIdleSeconds: (r['longest_idle_seconds']! as num).toDouble(),
+      highRpmSeconds: (r['high_rpm_seconds']! as num).toDouble(),
+      speedingSeconds: (r['speeding_seconds']! as num).toDouble(),
     );
   }
 }

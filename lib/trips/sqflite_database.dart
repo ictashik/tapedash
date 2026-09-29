@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 /// The app's database (CLAUDE.md 5): trips, their samples and the fill-up log,
 /// in one SQLite file on the phone. It is never synced or uploaded.
 abstract final class TapeDatabase {
-  static const int version = 1;
+  static const int version = 2;
 
   /// The file name in the app's databases directory.
   static const String fileName = 'tapedash.db';
@@ -13,9 +13,28 @@ abstract final class TapeDatabase {
     final options = OpenDatabaseOptions(
       version: version,
       onCreate: (db, v) => _create(db),
+      onUpgrade: _upgrade,
       onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
     );
     return (factory ?? databaseFactory).openDatabase(path, options: options);
+  }
+
+  /// Version 2 added the coach's duration counts to a trip.
+  static Future<void> _upgrade(Database db, int from, int to) async {
+    if (from < 2) {
+      await db.execute(
+        'ALTER TABLE trips ADD COLUMN long_idles INTEGER NOT NULL DEFAULT 0',
+      );
+      await db.execute(
+        'ALTER TABLE trips ADD COLUMN longest_idle_seconds REAL NOT NULL DEFAULT 0',
+      );
+      await db.execute(
+        'ALTER TABLE trips ADD COLUMN high_rpm_seconds REAL NOT NULL DEFAULT 0',
+      );
+      await db.execute(
+        'ALTER TABLE trips ADD COLUMN speeding_seconds REAL NOT NULL DEFAULT 0',
+      );
+    }
   }
 
   static Future<void> _create(Database db) async {
@@ -38,7 +57,11 @@ abstract final class TapeDatabase {
         low_confidence INTEGER NOT NULL DEFAULT 0,
         calibration_factor REAL NOT NULL DEFAULT 1,
         hard_accelerations INTEGER NOT NULL DEFAULT 0,
-        hard_brakings INTEGER NOT NULL DEFAULT 0
+        hard_brakings INTEGER NOT NULL DEFAULT 0,
+        long_idles INTEGER NOT NULL DEFAULT 0,
+        longest_idle_seconds REAL NOT NULL DEFAULT 0,
+        high_rpm_seconds REAL NOT NULL DEFAULT 0,
+        speeding_seconds REAL NOT NULL DEFAULT 0
       )
     ''');
     await db.execute('''

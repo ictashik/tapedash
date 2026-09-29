@@ -1,3 +1,4 @@
+import 'package:tapedash/coach/coach_monitor.dart';
 import 'package:tapedash/coach/hard_event_detector.dart';
 import 'package:tapedash/core/key_value_store.dart';
 import 'package:tapedash/core/observable.dart';
@@ -48,6 +49,7 @@ class TripRig {
     if (price != null) money.setPrice(price);
     estimator = FuelEstimator(vehicle: rig.vehicle, setup: setup);
     hard = HardEventDetector(vehicle: rig.vehicle);
+    coach = CoachMonitor(vehicle: rig.vehicle);
     computer = TripComputer(
       vehicle: rig.vehicle,
       estimator: estimator,
@@ -69,6 +71,7 @@ class TripRig {
       calibrationFactor: () => ledger.calibration.factor,
       price: money.price,
       ledger: ledger,
+      coach: coach,
       isDemo: isDemo,
     );
     demand = RecordingDemand(
@@ -87,6 +90,7 @@ class TripRig {
   late final MoneySettings money;
   late final FuelEstimator estimator;
   late final HardEventDetector hard;
+  late final CoachMonitor coach;
   late final TripComputer computer;
   late final TripRecorder recorder;
   late final RecordingDemand demand;
@@ -97,6 +101,7 @@ class TripRig {
     demand.dispose();
     await recorder.close();
     computer.dispose();
+    coach.dispose();
     hard.dispose();
     estimator.dispose();
     rig.close();

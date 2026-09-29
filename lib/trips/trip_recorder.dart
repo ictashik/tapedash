@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../coach/coach_monitor.dart';
 import '../coach/hard_event_detector.dart';
 import '../core/clock.dart';
 import '../core/observable.dart';
@@ -82,6 +83,7 @@ class TripRecorder {
     required this.calibrationFactor,
     required this.price,
     this.ledger,
+    this.coach,
     this.location,
     this.isDemo = false,
     this.rules = const TripRules(),
@@ -105,6 +107,9 @@ class TripRecorder {
   final double Function() calibrationFactor;
   final Observable<double?> price;
   final FuelLedger? ledger;
+
+  /// Counts the long idles, high revs and speeding of the trip, if given.
+  final CoachMonitor? coach;
   final LocationSource? location;
   final bool isDemo;
   final TripRules rules;
@@ -207,6 +212,7 @@ class TripRecorder {
 
   void _startNew() {
     computer.reset();
+    coach?.reset();
     _engineSeconds = 0;
     _hardAccelerations = 0;
     _hardBrakings = 0;
@@ -357,6 +363,10 @@ class TripRecorder {
       calibrationFactor: calibrationFactor(),
       hardAccelerations: _hardAccelerations,
       hardBrakings: _hardBrakings,
+      longIdles: coach?.stats.value.longIdles ?? 0,
+      longestIdleSeconds: coach?.stats.value.longestIdleSeconds ?? 0,
+      highRpmSeconds: coach?.stats.value.highRpmSeconds ?? 0,
+      speedingSeconds: coach?.stats.value.speedingSeconds ?? 0,
     );
   }
 
