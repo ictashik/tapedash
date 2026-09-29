@@ -38,8 +38,10 @@ import 'shared_elements_layer.dart';
 /// page, and whatever the Drive page keeps for itself lives there), the
 /// others while they or a neighbour could be on screen.
 ///
-/// **What is not here yet, on purpose:** the HUD double-tap (DESIGN.md 8,
-/// its own piece of this phase), the pages' real contents (Money, Review,
+/// A double-tap on Drive or Money calls [TheStrip.onToggleHud] (DESIGN.md 7.1);
+/// what the HUD is, is `lib/ui/hud/`'s.
+///
+/// **What is not here yet, on purpose:** the pages' real contents (Money, Review,
 /// Coach and History are phases 4 and 5 -- the placeholders say so), the
 /// eco bar that hides while parked (phase 4), and the parallax of the L1
 /// and L3 layers, which arrives when the pages themselves are built as
@@ -53,6 +55,7 @@ class TheStrip extends StatefulWidget {
     required this.motion,
     required this.width,
     required this.height,
+    this.onToggleHud,
   });
 
   /// The page the strip opens on, Drive's place in the five.
@@ -72,6 +75,10 @@ class TheStrip extends StatefulWidget {
 
   final double width;
   final double height;
+
+  /// Called by a double-tap on Drive or Money (DESIGN.md 7.1 and 8). Null
+  /// leaves the double-tap unclaimed.
+  final VoidCallback? onToggleHud;
 
   @override
   State<TheStrip> createState() => TheStripState();
@@ -229,6 +236,15 @@ class TheStripState extends State<TheStrip> {
     _settle(_raw, -details.velocity.pixelsPerSecond.dx / widget.width);
   }
 
+  void _onDoubleTap() {
+    // Only on Drive or Money (DESIGN.md 7.1), the pages the motion lock keeps
+    // reachable: the page the strip is nearest to.
+    final page = _offset.value.round();
+    if (page == TheStrip.homePage || page == TheStrip.moneyPage) {
+      widget.onToggleHud?.call();
+    }
+  }
+
   void _onHorizontalDragCancel() {
     // A cancelled drag settles to the nearest reachable page, with no hand
     // velocity to carry.
@@ -291,6 +307,7 @@ class TheStripState extends State<TheStrip> {
         onHorizontalDragUpdate: _onHorizontalDragUpdate,
         onHorizontalDragEnd: _onHorizontalDragEnd,
         onHorizontalDragCancel: _onHorizontalDragCancel,
+        onDoubleTap: widget.onToggleHud == null ? null : _onDoubleTap,
         child: Stack(
           children: [
             Positioned.fill(

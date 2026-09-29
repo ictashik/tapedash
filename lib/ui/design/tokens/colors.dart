@@ -51,6 +51,10 @@ abstract final class TapeColors {
   /// them. It is not a colour anything is shown in.
   static const Color spriteWhite = Color(0xFFFFFFFF);
 
+  /// The HUD's canvas (DESIGN.md 8): pure black, so that nothing of the phone's
+  /// own glass is lit. The one place `void` is not the ground.
+  static const Color hudBlack = Color(0xFF000000);
+
   // Money. Champagne is the colour of money and is used for nothing else.
 
   static const Color moneyCore = Color(0xFFF3CF86);

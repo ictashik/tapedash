@@ -80,7 +80,15 @@ class TapePalette {
   Color get label => isDaylight ? TapeColors.inkBright : TapeColors.inkDim;
 
   /// Stale values: the dim ink, so that Daylight keeps them legible.
-  Color get stale => inkDim;
+  ///
+  /// The HUD is one colour on black (DESIGN.md 8), so its stale values are that
+  /// colour, dimmed towards black, and never a grey.
+  Color get stale => livery.id == LiveryId.hud
+      ? Color.lerp(TapeColors.hudBlack, livery.accentCore, hudStaleShare)!
+      : inkDim;
+
+  /// How much of the HUD colour a stale HUD value keeps.
+  static const double hudStaleShare = 0.45;
 
   /// The white of needle cores and peak highlights. Used for nothing else at
   /// night, and that is the caller's to keep (DESIGN.md 4.4).
@@ -151,8 +159,9 @@ class TapePalette {
   bool operator ==(Object other) =>
       other is TapePalette &&
       other.livery.id == livery.id &&
+      other.livery.accentCore == livery.accentCore &&
       other.mode == mode;
 
   @override
-  int get hashCode => Object.hash(livery.id, mode);
+  int get hashCode => Object.hash(livery.id, livery.accentCore, mode);
 }

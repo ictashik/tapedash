@@ -1,7 +1,9 @@
 import 'dart:ui' show Color;
 
+import 'colors.dart' show HudColor;
+
 /// The four liveries (DESIGN.md 4.4).
-enum LiveryId { ion, ember, vfd, mono }
+enum LiveryId { ion, ember, vfd, mono, hud }
 
 /// How a livery draws its numerals.
 enum NumeralFace {
@@ -115,6 +117,22 @@ abstract final class Liveries {
     numerals: NumeralFace.saira,
     numeralWeight: 300,
     haloScale: 0.4,
+  );
+
+  /// The windshield HUD's livery (DESIGN.md 8): one colour, chosen by the
+  /// user, SemiBold-or-heavier numerals, and no halos (they smear on
+  /// laminated glass). Not one of the four the Garage offers, so it is not in
+  /// [all].
+  static Livery hud(HudColor color) => Livery(
+    id: LiveryId.hud,
+    name: 'HUD ${color.label}',
+    character: 'One bold colour on black',
+    accentCore: color.color,
+    accentDeep: color.color,
+    accentGlow: color.color,
+    numerals: NumeralFace.saira,
+    numeralWeight: 700,
+    haloScale: 0,
   );
 
   static const List<Livery> all = [ion, ember, vfd, mono];

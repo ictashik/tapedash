@@ -53,14 +53,21 @@ class TapeThemeData {
   bool operator ==(Object other) =>
       other is TapeThemeData &&
       other.livery.id == livery.id &&
+      other.livery.accentCore == livery.accentCore &&
       other.mode == mode &&
       other.tier == tier &&
       other.driverSide == driverSide &&
       other.reduceMotion == reduceMotion;
 
   @override
-  int get hashCode =>
-      Object.hash(livery.id, mode, tier, driverSide, reduceMotion);
+  int get hashCode => Object.hash(
+    livery.id,
+    livery.accentCore,
+    mode,
+    tier,
+    driverSide,
+    reduceMotion,
+  );
 }
 
 /// Gives the widgets below it a [TapeThemeData].
