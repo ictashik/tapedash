@@ -403,6 +403,45 @@ void main() {
     });
 
     test(
+      'endNow ends the trip for good: the engine coming back starts a new one',
+      () async {
+        final rig = TripRig(DriveScenarios.cityStopGo)..rig.run(120);
+        addTearDown(rig.close);
+        var ended = 0;
+        var resumed = 0;
+        rig.recorder.onTripEnded((_) => ended++);
+        rig.recorder.onTripResumed((_) => resumed++);
+        expect(rig.recorder.phase.value, TripPhase.running);
+
+        rig.recorder.endNow();
+        await rig.recorder.idle;
+        expect(ended, 1);
+        expect(rig.recorder.phase.value, TripPhase.none);
+        final first = await rig.trips.all();
+        expect(first.length, 1);
+        expect(first.single.isOpen, isFalse);
+        expect(first.single.distanceKm, greaterThan(0.2));
+
+        // The car is still running: that is a new trip, never the same one resumed.
+        rig.rig.run(60);
+        await rig.recorder.idle;
+        expect(resumed, 0);
+        expect((await rig.trips.all()).length, 2);
+      },
+    );
+
+    test('endNow with no trip going does nothing', () async {
+      final rig = TripRig(DriveScenarios.cityStopGo);
+      addTearDown(rig.close);
+      var ended = 0;
+      rig.recorder.onTripEnded((_) => ended++);
+      rig.recorder.endNow();
+      await rig.recorder.idle;
+      expect(ended, 0);
+      expect(rig.recorder.phase.value, TripPhase.none);
+    });
+
+    test(
       'a trip started in demo is stored, flagged, and left out of statistics',
       () async {
         final rig = TripRig(DriveScenarios.cityStopGo, isDemo: true)

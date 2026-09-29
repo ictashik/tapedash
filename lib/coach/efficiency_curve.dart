@@ -59,6 +59,39 @@ class SweetSpot {
     return best;
   }
 
+  /// The sweet spot's range: the best band and the bands beside it that are within
+  /// 3% of it (DESIGN.md 6.13), as (from, to) km/h, or null with no best.
+  ({int from, int to})? get range {
+    final b = best;
+    if (b == null) return null;
+    final floor = b.kmPerLitre! * 0.97;
+    var from = b.fromKmh;
+    var to = b.toKmh;
+    final byFrom = {for (final x in reported) x.fromKmh: x};
+    bool within(int fromKmh) {
+      final n = byFrom[fromKmh];
+      return n != null && n.kmPerLitre! >= floor;
+    }
+
+    while (within(from - bandWidthKmh)) {
+      from -= bandWidthKmh;
+    }
+    while (within(to)) {
+      to += bandWidthKmh;
+    }
+    return (from: from, to: to);
+  }
+
+  /// The car's overall average over the steady samples, km/L, or null with no data.
+  double? get average {
+    var km = 0.0, litres = 0.0;
+    for (final b in bands) {
+      km += b.km;
+      litres += b.litres;
+    }
+    return litres > 0 && km >= minKmPerBand ? km / litres : null;
+  }
+
   /// The curve from the samples of any number of trips (each in order, one a
   /// second, as the recorder takes them).
   static SweetSpot fromTrips(Iterable<List<TripSample>> trips) {

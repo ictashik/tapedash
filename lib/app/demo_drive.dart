@@ -53,6 +53,8 @@ class DemoDrive implements DemoControl {
   SimTransport? _transport;
   ObdSession? _session;
   final ObservableValue<ObdSession?> _sessionValue = ObservableValue(null);
+  final ObservableValue<SimulatedCar?> _carValue = ObservableValue(null);
+  final ObservableValue<int> _loopValue = ObservableValue(0);
   ScheduledTask? _loop;
   void Function()? _statusListener;
   void Function()? _rateListener;
@@ -91,6 +93,19 @@ class DemoDrive implements DemoControl {
   /// The same, as something to listen to: the session is replaced whenever the
   /// drive starts over.
   Observable<ObdSession?> get sessions => _sessionValue;
+
+  /// How long the finished car stands before the trip is ended, and before the
+  /// drive starts over.
+  static const Duration endTripAfter = Duration(seconds: 8);
+  static const Duration restartAfter = Duration(seconds: 40);
+
+  /// How many times the drive has come to its end and started over. Listeners run
+  /// before it restarts, so a trip can be ended first.
+  Observable<int> get loops => _loopValue;
+
+  /// The simulated car, as something to listen to: it is replaced whenever the
+  /// drive starts over, and the demo's GPS follows the new one.
+  Observable<SimulatedCar?> get cars => _carValue;
 
   /// The car being driven, for the simulator's own ground truth.
   SimulatedCar? get car => _car;
@@ -139,6 +154,7 @@ class DemoDrive implements DemoControl {
       profile: profile,
       seed: seed,
       scheduler: scheduler,
+      stopWhenFinished: true,
     )..start();
     final transport = SimTransport(
       car: car,
@@ -153,6 +169,7 @@ class DemoDrive implements DemoControl {
       vehicle: vehicle,
     );
     _car = car;
+    _carValue.value = car;
     _transport = transport;
     _session = session;
     _sessionValue.value = session;
@@ -163,9 +180,22 @@ class DemoDrive implements DemoControl {
     session.pollRate.addListener(_rateListener!);
     session.start();
 
-    // The drive loops: when it ends, it starts again.
+    // The drive loops: when it ends, it starts again. The car stands a while
+    // first, so it is parked, the trip ends and its Debrief can be seen
+    // (DESIGN.md 7.5) before the next drive locks the parked pages away.
+    Duration? finishedAt;
+    var announced = false;
     _loop = scheduler.runEvery(const Duration(seconds: 2), () {
-      if (car.isFinished) restart();
+      // Finished and standing: a scenario cut off mid-drive brakes to a stop first.
+      if (!car.isFinished || car.state.speedMs > 0.05) return;
+      final now = clock.monotonic();
+      finishedAt ??= now;
+      final standing = now - finishedAt!;
+      if (!announced && standing >= endTripAfter) {
+        announced = true;
+        _loopValue.value++;
+      }
+      if (standing >= restartAfter) restart();
     });
   }
 
@@ -189,6 +219,7 @@ class DemoDrive implements DemoControl {
     _session = null;
     _sessionValue.value = null;
     _car = null;
+    _carValue.value = null;
     _transport = null;
   }
 

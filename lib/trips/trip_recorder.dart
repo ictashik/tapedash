@@ -208,6 +208,23 @@ class TripRecorder {
     }
   }
 
+  /// Ends the trip now, for good: the next engine start is a new trip, not a
+  /// resumed one. The demo drive starting over is one such moment, and Garage's
+  /// END TRIP another. Nothing if no trip is going.
+  void endNow() {
+    if (_phase.value != TripPhase.running && _phase.value != TripPhase.ending) {
+      return;
+    }
+    _offTask?.cancel();
+    _offTask = null;
+    computer.engineOff();
+    _finalize(clock.monotonic());
+    // The resume window is for an engine that was switched off; this was ended.
+    _resumeTask?.cancel();
+    _resumeTask = null;
+    _phase.value = TripPhase.none;
+  }
+
   // ------------------------------------------------------------ lifecycle
 
   void _startNew() {

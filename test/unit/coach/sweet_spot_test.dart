@@ -107,4 +107,45 @@ void main() {
     final curve = await sweetSpotFrom(repo);
     expect(curve.bands.map((b) => b.fromKmh), [60]);
   });
+
+  group('the sweet spot range', () {
+    test('is the best band and its neighbours within 3%', () {
+      final curve = SweetSpot.fromTrips([
+        steady(40, 3.6, 300), // 11.1 km/L
+        steady(55, 3.6, 300), // 15.3
+        steady(65, 3.6, 300), // 18.1 at 65 km/h
+        steady(75, 3.7, 300), //
+        steady(95, 6.5, 300),
+      ]);
+      final r = curve.range!;
+      expect(r.from, lessThanOrEqualTo(curve.best!.fromKmh));
+      expect(r.to, greaterThanOrEqualTo(curve.best!.toKmh));
+      // 40 km/h is far below the best and is not in it.
+      expect(r.from, greaterThan(40));
+      expect(r.to, lessThan(100));
+    });
+
+    test('is just the best band when the neighbours are worse', () {
+      final curve = SweetSpot.fromTrips([
+        steady(40, 5, 300),
+        steady(65, 3, 300),
+        steady(95, 6, 300),
+      ]);
+      expect(curve.range, (from: 60, to: 70));
+    });
+
+    test('is null with nothing to report', () {
+      expect(SweetSpot.fromTrips([steady(60, 4, 60)]).range, isNull);
+    });
+
+    test('the average is over all the steady samples', () {
+      final curve = SweetSpot.fromTrips([
+        steady(60, 4, 300),
+        steady(90, 6, 300),
+      ]);
+      // Both are 15 km/L.
+      expect(curve.average, closeTo(15, 0.2));
+      expect(SweetSpot.fromTrips([steady(60, 4, 30)]).average, isNull);
+    });
+  });
 }
