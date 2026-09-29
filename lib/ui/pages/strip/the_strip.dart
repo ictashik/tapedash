@@ -89,8 +89,8 @@ class TheStripState extends State<TheStrip> {
   late SharedElementsController _shared;
   Timeline? _lockGlyph;
 
-  /// The page index the mounted window was last built around.
-  int _windowAt = TheStrip.homePage;
+  /// The window key the mounted pages were last built for.
+  int _windowAt = _windowKey(TheStrip.homePage.toDouble());
 
   /// The raw drag position the spring chases, in pages.
   double _raw = TheStrip.homePage.toDouble();
@@ -143,15 +143,20 @@ class TheStripState extends State<TheStrip> {
   /// Where the strip is now, in pages.
   double get offset => _offset.value;
 
-  /// Moves to [page] as a release would, within what the motion lock allows:
-  /// for tests and the screenshot scripts, which cannot drag a real hand.
-  @visibleForTesting
+  /// Moves to [page] as a release would, within what the motion lock allows: the
+  /// Debrief takes the strip to Review when a trip ends, and History to Review
+  /// when a row is tapped. (Tests and the screenshot scripts use it too, since
+  /// they cannot drag a real hand.)
   void goTo(int page) {
     final (min, max) = reachOf(widget.mode.value);
     _offset
       ..setSpec(TapeSprings.page)
       ..retarget(page.clamp(min, max).toDouble());
   }
+
+  /// Where the strip is, in pages, for a test.
+  @visibleForTesting
+  double get debugOffset => _offset.value;
 
   /// The reachable page range (DESIGN.md 7.1): everything while parked;
   /// Money and Drive only while moving.
@@ -160,12 +165,22 @@ class TheStripState extends State<TheStrip> {
     DrivingMode.motion => (1, 2),
   };
 
-  /// A page's slot is mounted while the strip could be showing it or a
-  /// neighbour: within a page of the position (the same open window the
-  /// flow paints on), or home (the Drive page's own state lives there and
-  /// is never torn down for a swipe).
+  /// A page's slot is mounted while the strip is showing it, or is between it and
+  /// the next page: the page below the position and the one above it (both, when
+  /// it lies between two), and the home page always (its own state lives there and
+  /// is never torn down for a swipe). At rest on a page that is that page alone.
+  ///
+  /// Both sides count: a page swiped towards is mounted from the first pixel of
+  /// the swipe, and a page the spring overshoots (past Review's end, say) stays
+  /// mounted through the overshoot, so its state -- the Debrief playing on it --
+  /// is not thrown away and rebuilt.
   static bool _mounted(int i, double offset) =>
-      i == TheStrip.homePage || (i - 1 < offset && offset < i + 1);
+      i == TheStrip.homePage || i == offset.floor() || i == offset.ceil();
+
+  /// What the mounted window is built for: it changes when the position leaves or
+  /// reaches a page, and when it crosses one.
+  static int _windowKey(double offset) =>
+      offset.floor() * 2 + (offset == offset.floorToDouble() ? 0 : 1);
 
   /// The canvas's own span: the viewport plus the whole drift range, as a
   /// share of the page width.
@@ -204,13 +219,12 @@ class TheStripState extends State<TheStrip> {
   }
 
   void _onOffset() {
-    // The mounted window changes exactly when the offset crosses an integer
-    // (a page's neighbour window is open while it is within a page of the
-    // position), so the floor is the signal to rebuild on -- and nothing
+    // The mounted window changes exactly when the offset leaves, reaches or
+    // crosses an integer, so that is the signal to rebuild on -- and nothing
     // else: a mid-flight repaint is the Flow's, never the strip's own.
-    final floor = _offset.value.floor();
-    if (floor != _windowAt) {
-      setState(() => _windowAt = floor);
+    final key = _windowKey(_offset.value);
+    if (key != _windowAt) {
+      setState(() => _windowAt = key);
     }
   }
 
@@ -302,7 +316,7 @@ class TheStripState extends State<TheStrip> {
         SizedBox(
           width: widget.width,
           height: widget.height,
-          child: _mounted(i, _offset.value.floorToDouble())
+          child: _mounted(i, _offset.value)
               ? widget.pages[i]
               : const SizedBox.shrink(),
         ),

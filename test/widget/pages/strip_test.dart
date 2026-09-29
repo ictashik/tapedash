@@ -151,6 +151,79 @@ void main() {
     });
   });
 
+  group('the mounted window holds a page through a spring overshoot', () {
+    testWidgets('a page swiped towards is mounted from the first pixels', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        tapeHarness(kit: kit, motion: motion, child: strip()),
+      );
+      expect(find.text('COACH'), findsNothing);
+
+      // A finger dragged left pulls Coach in from the right.
+      final drag = await tester.startGesture(const Offset(400, 200));
+      await drag.moveBy(const Offset(-60, 0));
+      run(const Duration(milliseconds: 60));
+      await tester.pump();
+      expect(find.text('COACH'), findsOneWidget);
+      expect(find.text('DRIVE'), findsOneWidget);
+      await drag.up();
+      run(const Duration(seconds: 1));
+      await tester.pump();
+    });
+
+    testWidgets(
+      'Review is not torn down and rebuilt as the strip settles on it',
+      (tester) async {
+        final log = <String>[];
+        final key = GlobalKey<TheStripState>();
+        await tester.pumpWidget(
+          tapeHarness(
+            kit: kit,
+            motion: motion,
+            child: TheStrip(
+              key: key,
+              pages: [
+                _Probe(log),
+                for (var i = 1; i < 5; i++)
+                  StripPlaceholder(
+                    name: names[i],
+                    note: 'Arrives later.',
+                    width: 800,
+                    height: 400,
+                  ),
+              ],
+              mode: mode,
+              motion: motion,
+              width: 800,
+              height: 400,
+            ),
+          ),
+        );
+        expect(log, isEmpty);
+
+        // The page spring overshoots the end it lands on, which puts the offset a
+        // hair below 0 for a moment: the page must stay mounted through that.
+        key.currentState!.goTo(0);
+        var lowest = 0.0;
+        for (var i = 0; i < 180; i++) {
+          run(const Duration(milliseconds: 16));
+          await tester.pump();
+          lowest = [
+            lowest,
+            key.currentState!.debugOffset,
+          ].reduce((a, b) => a < b ? a : b);
+        }
+        expect(
+          lowest,
+          lessThan(0),
+          reason: 'the test only means something if the spring overshoots',
+        );
+        expect(log, ['init']);
+      },
+    );
+  });
+
   group('the strip does not rebuild for its own motion', () {
     testWidgets('a page inside the window does not rebuild while the strip '
         'moves within it', (tester) async {
@@ -390,4 +463,31 @@ void main() {
       expect(state.offset, closeTo(2, 0.05));
     });
   });
+}
+
+/// A page that says when its state is made and let go.
+class _Probe extends StatefulWidget {
+  const _Probe(this.log);
+
+  final List<String> log;
+
+  @override
+  State<_Probe> createState() => _ProbeState();
+}
+
+class _ProbeState extends State<_Probe> {
+  @override
+  void initState() {
+    super.initState();
+    widget.log.add('init');
+  }
+
+  @override
+  void dispose() {
+    widget.log.add('dispose');
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.expand();
 }
