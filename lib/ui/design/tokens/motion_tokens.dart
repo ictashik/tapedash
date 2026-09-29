@@ -171,6 +171,16 @@ abstract final class TapeMotion {
   /// (DESIGN.md 7.1).
   static const Duration lockGlyph = Duration(milliseconds: 800);
 
+  /// Shared elements (DESIGN.md 7.1): the page a flying element is leaving
+  /// keeps its own copy only this far into the flight, and the page it is
+  /// arriving on shows its own copy only from this far in. Between them the
+  /// one travelling copy is the only one on screen -- "the number you were
+  /// watching never disappears; it travels." Both are shares of the flight's
+  /// own progress, which itself moves on `spring.page`, so the fades inherit
+  /// the spring's ease.
+  static const double sharedElementDepart = 0.2;
+  static const double sharedElementArrive = 0.9;
+
   /// Touch bloom (DESIGN.md 6.16): scale and alpha at the start and end.
   static const double bloomScaleFrom = 0.6;
   static const double bloomScaleTo = 1.4;

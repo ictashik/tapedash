@@ -12,6 +12,7 @@ import 'package:tapedash/ui/design/theme/tape_theme.dart';
 import 'package:tapedash/ui/design/tokens/livery.dart';
 import 'package:tapedash/ui/pages/drive/drive_page.dart';
 import 'package:tapedash/ui/pages/drive/drive_signals.dart';
+import 'package:tapedash/ui/pages/money/money_page.dart';
 import 'package:tapedash/ui/pages/strip/parked_dock.dart';
 import 'package:tapedash/ui/pages/strip/placeholder_page.dart';
 import 'package:tapedash/ui/pages/strip/the_strip.dart';
@@ -29,12 +30,7 @@ void main() {
       width: 800,
       height: 400,
     ),
-    StripPlaceholder(
-      name: 'MONEY',
-      note: 'Arrives with the money engine.',
-      width: 800,
-      height: 400,
-    ),
+    MoneyPage(signals: signals, width: 800, height: 400),
     DrivePage(signals: signals, motion: motion, width: 800, height: 400),
     StripPlaceholder(
       name: 'COACH',

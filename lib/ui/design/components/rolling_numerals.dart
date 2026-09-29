@@ -36,6 +36,7 @@ class RollingNumerals extends StatelessWidget {
     required this.size,
     this.role = NumeralRole.accent,
     this.halo = 0,
+    this.presence,
   });
 
   final NumeralSource source;
@@ -51,6 +52,11 @@ class RollingNumerals extends StatelessWidget {
   /// (DESIGN.md 4.4).
   final double halo;
 
+  /// 1 is fully present and 0 is fully gone -- the numeral's per-glyph
+  /// alpha is multiplied by [presence]. For shared-element flights
+  /// (DESIGN.md 7.1).
+  final ValueListenable<double>? presence;
+
   @override
   Widget build(BuildContext context) {
     if (TapeTheme.of(context).livery.isSevenSegment) {
@@ -60,6 +66,7 @@ class RollingNumerals extends StatelessWidget {
         size: size,
         role: role,
         halo: halo,
+        presence: presence,
       );
     }
     return SairaNumerals(
@@ -68,6 +75,7 @@ class RollingNumerals extends StatelessWidget {
       size: size,
       role: role,
       halo: halo,
+      presence: presence,
     );
   }
 }
@@ -81,6 +89,7 @@ class SairaNumerals extends LeafRenderObjectWidget {
     required this.size,
     this.role = NumeralRole.accent,
     this.halo = 0,
+    this.presence,
   });
 
   final NumeralSource source;
@@ -95,6 +104,9 @@ class SairaNumerals extends LeafRenderObjectWidget {
   /// readout. Daylight turns it off and Night halves it, whatever is asked
   /// (DESIGN.md 4.4).
   final double halo;
+
+  /// 1 is fully present and 0 is fully gone.
+  final ValueListenable<double>? presence;
 
   @override
   RenderObject createRenderObject(BuildContext context) {
@@ -148,7 +160,8 @@ class SairaNumerals extends LeafRenderObjectWidget {
       ..color = role.colorIn(palette)
       ..staleColor = palette.stale
       ..glowColor = role.glowIn(palette)
-      ..devicePixelRatio = dpr;
+      ..devicePixelRatio = dpr
+      ..presence = presence;
   }
 }
 
@@ -165,6 +178,8 @@ class RenderRollingNumerals extends RenderBox {
   int _staleColor = 0xFF7A838F;
   int _glowColor = 0xFFFFFFFF;
   double _devicePixelRatio = 1;
+  ValueListenable<double>? _presence;
+  double _alphaMul = 1;
 
   OdometerLayout? _layout;
   SpriteBatch? _core;
@@ -254,6 +269,18 @@ class RenderRollingNumerals extends RenderBox {
     markNeedsPaint();
   }
 
+  set presence(ValueListenable<double>? value) {
+    if (identical(_presence, value)) return;
+    if (attached) _presence?.removeListener(markNeedsPaint);
+    _presence = value;
+    if (attached) value?.addListener(markNeedsPaint);
+    markNeedsPaint();
+  }
+
+  /// The current presence multiplier, for tests.
+  @visibleForTesting
+  double get presenceMul => (_presence?.value ?? 1).clamp(0.0, 1.0);
+
   @override
   bool get isRepaintBoundary => true;
 
@@ -261,11 +288,13 @@ class RenderRollingNumerals extends RenderBox {
   void attach(PipelineOwner owner) {
     super.attach(owner);
     _source?.addListener(markNeedsPaint);
+    _presence?.addListener(markNeedsPaint);
   }
 
   @override
   void detach() {
     _source?.removeListener(markNeedsPaint);
+    _presence?.removeListener(markNeedsPaint);
     super.detach();
   }
 
@@ -394,6 +423,8 @@ class RenderRollingNumerals extends RenderBox {
 
     final value = source.value;
     layout.layout(value);
+    _alphaMul = (_presence?.value ?? 1).clamp(0.0, 1.0);
+    if (_alphaMul <= 0.001) return;
     final negative = _format.signed && value < 0;
     final pitch = _metrics.pitch;
     final dpr = _devicePixelRatio;
@@ -552,7 +583,7 @@ class RenderRollingNumerals extends RenderBox {
       x: x,
       y: y - atlas.baseline,
       scale: atlas.scale,
-      color: SpriteBatch.tint(rgb, alpha),
+      color: SpriteBatch.tint(rgb, alpha * _alphaMul),
     );
   }
 

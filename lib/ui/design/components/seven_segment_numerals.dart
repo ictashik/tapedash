@@ -35,6 +35,7 @@ class SevenSegmentNumerals extends LeafRenderObjectWidget {
     required this.size,
     this.role = NumeralRole.accent,
     this.halo = 0,
+    this.presence,
   });
 
   final NumeralSource source;
@@ -46,6 +47,9 @@ class SevenSegmentNumerals extends LeafRenderObjectWidget {
 
   final NumeralRole role;
   final double halo;
+
+  /// 1 is fully present and 0 is fully gone.
+  final ValueListenable<double>? presence;
 
   @override
   RenderObject createRenderObject(BuildContext context) {
@@ -92,7 +96,8 @@ class SevenSegmentNumerals extends LeafRenderObjectWidget {
       ..staleColor = palette.stale
       ..glowColor = role.glowIn(palette)
       ..ghostAlpha = theme.livery.ghostAlpha
-      ..devicePixelRatio = dpr;
+      ..devicePixelRatio = dpr
+      ..presence = presence;
   }
 }
 
@@ -113,6 +118,8 @@ class RenderSevenSegmentNumerals extends RenderBox {
   int _glowColor = 0xFFFFFFFF;
   double _ghostAlpha = 0.07;
   double _devicePixelRatio = 1;
+  ValueListenable<double>? _presence;
+  double _alphaMul = 1;
 
   PhosphorBank? _bank;
   SpriteBatch? _core;
@@ -209,6 +216,18 @@ class RenderSevenSegmentNumerals extends RenderBox {
     markNeedsPaint();
   }
 
+  set presence(ValueListenable<double>? value) {
+    if (identical(_presence, value)) return;
+    if (attached) _presence?.removeListener(markNeedsPaint);
+    _presence = value;
+    if (attached) value?.addListener(markNeedsPaint);
+    markNeedsPaint();
+  }
+
+  /// The current presence multiplier, for tests.
+  @visibleForTesting
+  double get presenceMul => (_presence?.value ?? 1).clamp(0.0, 1.0);
+
   @override
   bool get isRepaintBoundary => true;
 
@@ -232,6 +251,7 @@ class RenderSevenSegmentNumerals extends RenderBox {
     super.attach(owner);
     _source?.addListener(_onSource);
     _bank?.addListener(markNeedsPaint);
+    _presence?.addListener(markNeedsPaint);
     _onSource();
   }
 
@@ -239,6 +259,7 @@ class RenderSevenSegmentNumerals extends RenderBox {
   void detach() {
     _source?.removeListener(_onSource);
     _bank?.removeListener(markNeedsPaint);
+    _presence?.removeListener(markNeedsPaint);
     super.detach();
   }
 
@@ -380,6 +401,8 @@ class RenderSevenSegmentNumerals extends RenderBox {
         !source.hasValue) {
       return;
     }
+    _alphaMul = (_presence?.value ?? 1).clamp(0.0, 1.0);
+    if (_alphaMul <= 0.001) return;
     final format = _format;
     final columns = format.integerDigits + format.decimals;
     final glow = _glowAtlas;
@@ -395,7 +418,7 @@ class RenderSevenSegmentNumerals extends RenderBox {
       final x = Pixel.snap(offset.dx + _digitX[k], dpr);
       for (final segment in Segment.values) {
         final level = bank.levels[k * 7 + segment.index];
-        final alpha = _ghostAlpha + (1 - _ghostAlpha) * level;
+        final alpha = (_ghostAlpha + (1 - _ghostAlpha) * level) * _alphaMul;
         final rect = atlas.sprites[segment.index];
         core.add(
           left: rect.left,
@@ -417,7 +440,7 @@ class RenderSevenSegmentNumerals extends RenderBox {
             x: x - glow.padding,
             y: top - glow.padding,
             scale: glow.scale,
-            color: SpriteBatch.tint(glowRgb, level * _haloStrength),
+            color: SpriteBatch.tint(glowRgb, level * _haloStrength * _alphaMul),
           );
         }
       }
@@ -435,7 +458,7 @@ class RenderSevenSegmentNumerals extends RenderBox {
         top,
         dpr,
         color,
-        1,
+        _alphaMul,
       );
       if (halo != null) {
         _mark(
@@ -447,7 +470,7 @@ class RenderSevenSegmentNumerals extends RenderBox {
           top,
           dpr,
           glowRgb,
-          _haloStrength,
+          _haloStrength * _alphaMul,
         );
       }
     }
@@ -466,7 +489,7 @@ class RenderSevenSegmentNumerals extends RenderBox {
         top,
         dpr,
         color,
-        math.max(_ghostAlpha, lit),
+        math.max(_ghostAlpha, lit) * _alphaMul,
       );
       if (halo != null && lit > 0.01) {
         _mark(
@@ -478,7 +501,7 @@ class RenderSevenSegmentNumerals extends RenderBox {
           top,
           dpr,
           glowRgb,
-          lit * _haloStrength,
+          lit * _haloStrength * _alphaMul,
         );
       }
     }

@@ -5,6 +5,7 @@ import '../../../vehicle/vehicle_state.dart' show DrivingMode;
 import '../../design/components/backdrop.dart';
 import '../../design/icons/icons.dart';
 import '../../design/motion/motion_clock.dart';
+import '../../design/motion/shared_elements.dart';
 import '../../design/motion/spring_value.dart';
 import '../../design/motion/timeline.dart';
 import '../../design/theme/palette.dart';
@@ -12,6 +13,7 @@ import '../../design/theme/tape_theme.dart';
 import '../../design/tokens/motion_tokens.dart';
 import '../../design/tokens/spacing.dart';
 import 'page_tape.dart';
+import 'shared_elements_layer.dart';
 
 /// The Strip (DESIGN.md 7.1): the app is one continuous horizontal panel of
 /// five pages, Drive at home in the centre:
@@ -56,6 +58,9 @@ class TheStrip extends StatefulWidget {
   /// The page the strip opens on, Drive's place in the five.
   static const int homePage = 2;
 
+  /// The Money page's own index in the five (DESIGN.md 7.1).
+  static const int moneyPage = 1;
+
   /// The five pages, in `REVIEW · MONEY · DRIVE · COACH · HISTORY` order.
   final List<Widget> pages;
 
@@ -74,6 +79,7 @@ class TheStrip extends StatefulWidget {
 
 class TheStripState extends State<TheStrip> {
   late SpringValue _offset;
+  late SharedElementsController _shared;
   Timeline? _lockGlyph;
 
   /// The page index the mounted window was last built around.
@@ -90,6 +96,7 @@ class TheStripState extends State<TheStrip> {
       spec: TapeSprings.page,
       initial: TheStrip.homePage.toDouble(),
     )..addListener(_onOffset);
+    _shared = SharedElementsController(offset: _offset);
     widget.mode.addListener(_onMode);
   }
 
@@ -111,6 +118,8 @@ class TheStripState extends State<TheStrip> {
         spec: TapeSprings.page,
         initial: at,
       )..addListener(_onOffset);
+      _shared.dispose();
+      _shared = SharedElementsController(offset: _offset);
     }
   }
 
@@ -118,6 +127,7 @@ class TheStripState extends State<TheStrip> {
   void dispose() {
     _offset.removeListener(_onOffset);
     _offset.dispose();
+    _shared.dispose();
     _lockGlyph?.dispose();
     widget.mode.removeListener(_onMode);
     super.dispose();
@@ -284,14 +294,20 @@ class TheStripState extends State<TheStrip> {
         child: Stack(
           children: [
             Positioned.fill(
-              child: Flow(
-                delegate: _StripFlowDelegate(
-                  offset: _offset,
-                  parallax: parallax,
-                  width: widget.width,
+              child: SharedElementsScope(
+                controller: _shared,
+                child: Flow(
+                  delegate: _StripFlowDelegate(
+                    offset: _offset,
+                    parallax: parallax,
+                    width: widget.width,
+                  ),
+                  children: children,
                 ),
-                children: children,
               ),
+            ),
+            Positioned.fill(
+              child: SharedElementsLayer(controller: _shared, offset: _offset),
             ),
             Positioned(
               bottom: 0,

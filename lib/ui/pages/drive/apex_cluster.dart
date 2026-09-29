@@ -1,17 +1,21 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../design/components/bar_gauge.dart';
 import '../../design/components/centered_numeral.dart';
+import '../../design/components/numeral_format.dart';
 import '../../design/components/parked_scale.dart';
-import '../../design/components/rolling_numerals.dart';
+import '../../design/components/shared_element_end.dart';
 import '../../design/components/shift_horizon.dart';
 import '../../design/components/status_strip.dart';
 import '../../design/components/tach_arc.dart';
 import '../../design/components/tape_label.dart';
+import '../../design/motion/shared_elements.dart';
 import '../../design/theme/palette.dart';
 import '../../design/theme/tape_theme.dart';
 import '../../design/tokens/spacing.dart';
 import '../../design/tokens/typography.dart';
+import '../strip/the_strip.dart';
 import 'drive_signals.dart';
 
 /// The Apex cluster (DESIGN.md 7.3.1, Drive's default layout): the hero speed
@@ -38,11 +42,16 @@ class ApexCluster extends StatelessWidget {
     required this.signals,
     required this.width,
     required this.height,
+    this.heroSlotActive,
   });
 
   final DriveSignals signals;
   final double width;
   final double height;
+
+  /// While not null, the shared-element registration only exists while this
+  /// cluster is the nearest in the reel. Provided by [DrivePage].
+  final ValueListenable<bool>? heroSlotActive;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +59,9 @@ class ApexCluster extends StatelessWidget {
     final tachBox = TachArc.boxSideOf(height);
     final type = TypeScale.forHeight(height);
     final onDriverSideRight = theme.driverSide == DriverSide.right;
+    final heroFade = SharedElementsScope.maybeOf(
+      context,
+    )?.ownShareOf(SharedElementIds.speed, SharedElementEndKind.from);
 
     return SizedBox(
       width: width,
@@ -110,16 +122,31 @@ class ApexCluster extends StatelessWidget {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      ParkedScale(
-                        share: signals.parkedShare,
+                      SharedElementEnd(
+                        id: SharedElementIds.speed,
+                        end: SharedElementEndKind.from,
+                        page: TheStrip.homePage,
+                        size: type.hero,
+                        source: signals.speed,
+                        format: const NumeralFormat(integerDigits: 3),
+                        typicalIntegerDigits: 2,
+                        role: NumeralRole.bright,
+                        parkedShare: signals.parkedShare,
                         parkedScaleShare: type.primary / type.hero,
                         staggerIndex: 1,
-                        child: CenteredNumeral(
-                          source: signals.speed,
-                          format: const NumeralFormat(integerDigits: 3),
-                          typicalIntegerDigits: 2,
-                          size: type.hero,
-                          role: NumeralRole.bright,
+                        active: heroSlotActive,
+                        child: ParkedScale(
+                          share: signals.parkedShare,
+                          parkedScaleShare: type.primary / type.hero,
+                          staggerIndex: 1,
+                          child: CenteredNumeral(
+                            source: signals.speed,
+                            format: const NumeralFormat(integerDigits: 3),
+                            typicalIntegerDigits: 2,
+                            size: type.hero,
+                            role: NumeralRole.bright,
+                            presence: heroFade,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 2),

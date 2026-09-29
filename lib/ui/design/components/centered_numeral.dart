@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../motion/numeral_source.dart';
@@ -55,6 +56,7 @@ class CenteredNumeral extends StatelessWidget {
     required this.typicalIntegerDigits,
     this.role = NumeralRole.accent,
     this.halo = 0,
+    this.presence,
   });
 
   final NumeralSource source;
@@ -68,6 +70,12 @@ class CenteredNumeral extends StatelessWidget {
   final NumeralRole role;
   final double halo;
 
+  /// 1 is fully present and 0 is fully gone -- the numeral's per-glyph
+  /// alpha is multiplied by [presence]. For shared-element flights
+  /// (DESIGN.md 7.1), where a page's own copy must dim while the travelling
+  /// copy flies.
+  final ValueListenable<double>? presence;
+
   @override
   Widget build(BuildContext context) {
     final numeral = RollingNumerals(
@@ -76,6 +84,7 @@ class CenteredNumeral extends StatelessWidget {
       size: size,
       role: role,
       halo: halo,
+      presence: presence,
     );
     final spareDigits = format.integerDigits - typicalIntegerDigits;
     if (spareDigits <= 0) return numeral;

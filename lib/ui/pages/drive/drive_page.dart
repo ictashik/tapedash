@@ -46,6 +46,7 @@ class DrivePage extends StatefulWidget {
 
 class DrivePageState extends State<DrivePage> {
   late SpringValue _reel;
+  late final List<_NearestFlag> _nearestFlags;
   late final List<Widget> _clusters;
 
   /// The cluster index the mounted slots were last built around.
@@ -62,6 +63,7 @@ class DrivePageState extends State<DrivePage> {
       spec: TapeSprings.page,
       initial: 0,
     )..addListener(_onReel);
+    _nearestFlags = List.generate(5, (i) => _NearestFlag(this, i));
     _clusters = _buildClusters();
   }
 
@@ -81,6 +83,9 @@ class DrivePageState extends State<DrivePage> {
 
   @override
   void dispose() {
+    for (final f in _nearestFlags) {
+      f.dispose();
+    }
     _reel.removeListener(_onReel);
     _reel.dispose();
     super.dispose();
@@ -95,6 +100,7 @@ class DrivePageState extends State<DrivePage> {
       signals: widget.signals,
       width: widget.width,
       height: widget.height,
+      heroSlotActive: _nearestFlags[0],
     ),
     TapeCluster(
       signals: widget.signals,
@@ -105,6 +111,7 @@ class DrivePageState extends State<DrivePage> {
       signals: widget.signals,
       width: widget.width,
       height: widget.height,
+      heroSlotActive: _nearestFlags[2],
     ),
     TelemetryCluster(
       signals: widget.signals,
@@ -123,6 +130,9 @@ class DrivePageState extends State<DrivePage> {
   static bool _mounted(int i, double at) => i - 1 < at && at < i + 1;
 
   void _onReel() {
+    for (final f in _nearestFlags) {
+      f.ping();
+    }
     final floor = _reel.value.floor();
     if (floor != _windowAt) {
       setState(() => _windowAt = floor);
@@ -222,4 +232,27 @@ class _ReelFlowDelegate extends FlowDelegate {
   @override
   bool shouldRepaint(_ReelFlowDelegate oldDelegate) =>
       oldDelegate.height != height;
+}
+
+/// A [ValueListenable<bool>] that is true when the nearest cluster (the one
+/// the reel is settled on or nearest to) is [index]. The [DrivePageState]
+/// pings all flags each frame the reel moves; the flag reads the state's
+/// current [reel] value and notifies only when the nearest cluster changes.
+class _NearestFlag extends ChangeNotifier implements ValueListenable<bool> {
+  _NearestFlag(this._state, this._index);
+
+  final DrivePageState _state;
+  final int _index;
+  int _last = -1;
+
+  @override
+  bool get value => _index == _state.reel.round();
+
+  void ping() {
+    final v = _state.reel.round();
+    if (v != _last) {
+      _last = v;
+      notifyListeners();
+    }
+  }
 }
