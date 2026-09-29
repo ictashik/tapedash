@@ -36,7 +36,11 @@ Also found: `CenteredNumeral` centres on an estimated digit width (54 lp off at 
 
 ## Done since: the brand (icon, splash icon; frame 38).
 
-## Next step: the phase's design review package (docs/design-review/, template: phase-3a). Capture at 640/720/800 wide, in Motion and Parked, in the clusters not yet looked at inside the shell (Tape, Minimal, Telemetry, Road) -- two layout bugs hid until the shell existed.
+## Done since: the phase 3b review package (`d1d0202`; `docs/design-review/phase-3b/`), plus the layout fixes its captures forced (`8d12e2e`) and the first emulator run of the whole app.
+
+## Next step: wait for the human's review of the package (five open questions in its README), and act on the answers. If told to go on regardless: phase 4 (trips, fuel, money: CLAUDE.md 13), whose money data fills the slots every cluster leaves empty. Before that, worth doing whenever convenient: the Layer 4/4b page-level tests (goldens matrix, contrast, motion-lock, flash-rate: DESIGN.md 14.1-14.2), which the composed pages now make possible, and a release-build run on a real phone.
+
+Useful now: `test/design/capture/review_matrix_capture_test.dart` renders every cluster in both modes at three widths inside the real shell (contact-sheet script was ad hoc: PIL); `integration_test/demo_drive_perf_test.dart` runs the demo drive on a device and prints frame costs (`flutter test integration_test/demo_drive_perf_test.dart -d emulator-5554`; the emulator was already running, see docs/DEV_SETUP.md). Don't trust a clean per-component test to mean a clean screen: five layout bugs hid until the shell existed.
 
 (Original note on the shared-element transition follows.)
 
