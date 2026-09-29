@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../motion/motion_clock.dart';
@@ -33,6 +34,7 @@ class ShiftHorizon extends StatefulWidget {
     this.shiftRpm = TapeTach.defaultRedlineRpm,
     this.maxRpm = TapeTach.defaultMaxRpm,
     this.shiftLightEnabled = true,
+    this.drawShare,
   });
 
   /// The rpm signal, smoothed with `spring.needle` (DESIGN.md 5.3), the same
@@ -51,6 +53,11 @@ class ShiftHorizon extends StatefulWidget {
   /// False for a CVT or automatic profile (DESIGN.md 6.4): the segments never
   /// light, and the horizon breathes instead.
   final bool shiftLightEnabled;
+
+  /// How far the horizon has drawn outwards from its centre, 0 to 1 (DESIGN.md
+  /// 7.13's step 4). Until 1 the band shows only inside that span, and a thin
+  /// accent line marks the drawing front. Null, or 1, draws it whole.
+  final ValueListenable<double>? drawShare;
 
   double get height => TapeShiftHorizon.heightShareOfHeight * heightReference;
 
@@ -123,8 +130,14 @@ class ShiftHorizonState extends State<ShiftHorizon> implements MotionDriven {
     if (_lastLitCount != litCount) {
       final last = _lastLitCount ?? 0;
       final lo = math.min(last, litCount);
-      final hi = math.max(last, litCount);
-      for (var i = lo; i < hi; i++) {
+      // Inclusive of [last]: it was the partly lit edge segment, which a fast
+      // fall (the ignition sweep coming back from redline) would otherwise
+      // leave at whatever fraction it last had.
+      final hi = math.min(
+        math.max(last, litCount),
+        TapeShiftHorizon.segmentsPerSide - 1,
+      );
+      for (var i = lo; i <= hi; i++) {
         final target = i < litCount ? 1.0 : 0.0;
         bank.setTarget(TapeShiftHorizon.segmentsPerSide - 1 - i, target);
         bank.setTarget(TapeShiftHorizon.segmentsPerSide + i, target);
@@ -176,9 +189,11 @@ class ShiftHorizonState extends State<ShiftHorizon> implements MotionDriven {
         height: widget.height,
         child: CustomPaint(
           painter: ShiftHorizonPainter(
-            listenable: widget.shiftLightEnabled
-                ? Listenable.merge([bank!, repaint])
-                : widget.rpm,
+            listenable: Listenable.merge([
+              widget.shiftLightEnabled ? bank! : widget.rpm,
+              if (widget.shiftLightEnabled) repaint,
+              ?widget.drawShare,
+            ]),
             state: this,
             palette: theme.palette,
             motion: _motion,
@@ -215,6 +230,35 @@ class ShiftHorizonPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final draw = (state.widget.drawShare?.value ?? 1.0).clamp(0.0, 1.0);
+    if (draw >= 1) {
+      _paintBand(canvas, size);
+      return;
+    }
+    // Drawing out from the centre: the band shows inside the span drawn so
+    // far, and a thin accent line rides its edges.
+    final half = size.width / 2 * draw;
+    final centerX = size.width / 2;
+    canvas.save();
+    canvas.clipRect(
+      Rect.fromLTRB(centerX - half, 0, centerX + half, size.height),
+    );
+    _paintBand(canvas, size);
+    canvas.restore();
+    final line = size.height * 0.25;
+    _fillPaint.color = palette.accentCore.withValues(alpha: 1 - draw);
+    canvas.drawRect(
+      Rect.fromLTRB(
+        centerX - half,
+        (size.height - line) / 2,
+        centerX + half,
+        (size.height + line) / 2,
+      ),
+      _fillPaint,
+    );
+  }
+
+  void _paintBand(Canvas canvas, Size size) {
     if (!state.widget.shiftLightEnabled) {
       _paintBreathing(canvas, size);
       return;
