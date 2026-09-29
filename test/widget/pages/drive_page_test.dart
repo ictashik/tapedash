@@ -12,8 +12,10 @@ import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
 import 'package:tapedash/ui/design/theme/tape_theme.dart';
 import 'package:tapedash/ui/design/tokens/livery.dart';
+import 'package:tapedash/ui/pages/drive/apex_cluster.dart';
 import 'package:tapedash/ui/pages/drive/drive_page.dart';
 import 'package:tapedash/ui/pages/drive/drive_signals.dart';
+import 'package:tapedash/ui/pages/drive/tape_cluster.dart';
 import 'package:tapedash/vehicle/vehicle_state.dart';
 
 import '../../design/support/harness.dart';
@@ -93,6 +95,27 @@ void main() {
 
     final state = tester.state<DrivePageState>(find.byType(DrivePage));
     expect(state.reel, closeTo(1, 0.05));
+  });
+
+  testWidgets('the cluster swiped towards is mounted from the first pixels', (
+    tester,
+  ) async {
+    await show(tester);
+    await tester.pump();
+    expect(find.byType(TapeCluster), findsNothing);
+
+    // A finger held part-way up: Apex leaving, Tape arriving.
+    final drag = await tester.startGesture(const Offset(400, 300));
+    await drag.moveBy(const Offset(0, -80));
+    run(const Duration(milliseconds: 100));
+    await tester.pump();
+    final state = tester.state<DrivePageState>(find.byType(DrivePage));
+    expect(state.reel, inExclusiveRange(0, 1));
+    expect(find.byType(ApexCluster), findsOneWidget);
+    expect(find.byType(TapeCluster), findsOneWidget);
+    await drag.up();
+    run(const Duration(seconds: 1));
+    await tester.pump();
   });
 
   testWidgets("the reel's own ends hold: no cluster beyond the last", (

@@ -50,7 +50,7 @@ class DrivePageState extends State<DrivePage> {
   late final List<_NearestFlag> _nearestFlags;
   late final List<Widget> _clusters;
 
-  /// The cluster index the mounted slots were last built around.
+  /// The window key the mounted slots were last built for.
   int _windowAt = 0;
 
   /// The raw drag position the spring chases, in clusters.
@@ -126,17 +126,24 @@ class DrivePageState extends State<DrivePage> {
     ),
   ];
 
-  /// A cluster's slot is mounted while the reel could be showing it or a
-  /// neighbour: within a cluster of the position.
-  static bool _mounted(int i, double at) => i - 1 < at && at < i + 1;
+  /// A cluster's slot is mounted while the reel is showing it or is between it and
+  /// the next: the cluster below the position and the one above it (both, when it
+  /// lies between two), and at rest that one alone. So a cluster swiped towards is
+  /// there from the first pixel, and one the spring overshoots is not torn down.
+  static bool _mounted(int i, double at) => i == at.floor() || i == at.ceil();
+
+  /// What the mounted slots are built for: it changes when the reel leaves,
+  /// reaches or crosses a cluster.
+  static int _windowKey(double at) =>
+      at.floor() * 2 + (at == at.floorToDouble() ? 0 : 1);
 
   void _onReel() {
     for (final f in _nearestFlags) {
       f.ping();
     }
-    final floor = _reel.value.floor();
-    if (floor != _windowAt) {
-      setState(() => _windowAt = floor);
+    final key = _windowKey(_reel.value);
+    if (key != _windowAt) {
+      setState(() => _windowAt = key);
     }
   }
 
@@ -180,7 +187,7 @@ class DrivePageState extends State<DrivePage> {
         SizedBox(
           width: widget.width,
           height: widget.height,
-          child: _mounted(i, _reel.value.floorToDouble())
+          child: _mounted(i, _reel.value)
               ? _clusters[i]
               : const SizedBox.shrink(),
         ),
