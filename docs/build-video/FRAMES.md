@@ -40,3 +40,4 @@ screen at 2x) unless it says otherwise. `tool/build_frame.sh` adds one.
 | 33 | [033-ignition-sequence.jpg](frames/033-ignition-sequence.jpg) | `69923ae` | The ignition: the needle swings back from redline as the numerals roll up and the horizon is about to draw. |
 | 34 | [034-connection-states.jpg](frames/034-connection-states.jpg) | `e3983c8` | Connection states: the cluster in standby, a sweep beam circling the arc while it looks for the adapter. |
 | 35 | [035-hud.jpg](frames/035-hud.jpg) | `84db5c1` | The HUD: pure black, one colour, Bold numerals, and the red zone stands taller as well as red. |
+| 36 | [036-demo-shell.jpg](frames/036-demo-shell.jpg) | `bd5696c` | The app opens on a live simulated drive: the cluster, the clock and the DEMO badge, the page tape beneath. |

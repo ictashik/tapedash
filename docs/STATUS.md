@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. All five Drive clusters (Apex, Road, Tape, Minimal, Telemetry) render against a real `DemoDrive`; the Strip (DESIGN.md 7.1) carries them as one panel -- a swipe with parallax, the page tape, the motion lock, and the parked dock -- and the Motion <-> Parked choreography (DESIGN.md 7.2) runs the whole screen's parked treatment on one shared spring. The speed's shared-element flight (Drive hero to Money's status corner) is in too; the trip-rupees flight waits on phase 4's money engine. The ignition sequence (DESIGN.md 7.13) plays in Apex. The HUD (DESIGN.md 8) is in too. What remains of the phase: Demo Mode, onboarding, the brand, and the phase's review package. Phases are in CLAUDE.md 13.
+Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. All five Drive clusters (Apex, Road, Tape, Minimal, Telemetry) render against a real `DemoDrive`; the Strip (DESIGN.md 7.1) carries them as one panel -- a swipe with parallax, the page tape, the motion lock, and the parked dock -- and the Motion <-> Parked choreography (DESIGN.md 7.2) runs the whole screen's parked treatment on one shared spring. The speed's shared-element flight (Drive hero to Money's status corner) is in too; the trip-rupees flight waits on phase 4's money engine. The ignition sequence (DESIGN.md 7.13) plays in Apex. The HUD (DESIGN.md 8) is in too. Demo Mode opens the app. What remains of the phase: onboarding, the brand, and the phase's review package. Phases are in CLAUDE.md 13.
 
 ## Where we are
 
@@ -127,6 +127,14 @@ Numbers as of this section: **2,188 tests** (2,179 before), `49915fa` at HEAD fo
 ## Phase 3b, still to do
 
 **Immediate next step:** the HUD (DESIGN.md 8), then Demo Mode wired into the app shell, onboarding and the brand. See `handoff.md` at the repo root for exact next steps and session context.
+
+## Phase 3b: Demo Mode in the app shell
+
+`lib/app/drive_shell.dart` (`DriveShell`): the app now opens on the Strip, fed by `DemoDrive` (a simulated car through the real OBD stack), with the parked dock and the HUD over it and `DriveSignals.demoMode` putting the DEMO badge on every cluster. Time is injected (`TapeDashApp(clock:, scheduler:)`; tests use a `FakeClock`). The Design Lab dev button stays. Tests: two new in `app_shell_test.dart` (the demo car drives; double-tap toggles the HUD), a capture, frame 36.
+
+**Not done:** onboarding (the choice between a demo and a real car; today the app goes straight to the demo), the demo scenario/profile picker (Garage), Review/Coach/History are still placeholders.
+
+**Real bugs found by running the clusters in a real shell for the first time:** the status strip's right flank painted off the right edge in every cluster (only the clock's first digit showed; the component's tests had centred it), and the parked dock overflowed a 640 lp screen by 184 lp (only tested at 800). Both fixed in their own commits, with tests at 640/720/800.
 
 ## Phase 3b: the HUD (DESIGN.md 8)
 

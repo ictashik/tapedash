@@ -30,7 +30,9 @@ The speed flight is committed; the trip-rupees flight waits on phase 4. The sect
 
 Also found: `CenteredNumeral` centres on an estimated digit width (54 lp off at 198 lp); the HUD works around it, the other clusters were not re-measured -- worth one measurement pass.
 
-## Next step: Demo Mode in the app shell (`_Shell` in `lib/app/app.dart` still shows only the void), then onboarding, brand, then the phase's design review package. Wire `HudHost` and `TheStrip.onToggleHud` there.
+## Done since: Demo Mode in the app shell (`bd5696c`; `DriveShell`), plus two fixes it exposed (status strip right flank, dock at 640 lp). Frame 36.
+
+## Next step: onboarding (DESIGN.md 7.11: cold open, choice, demo path), then the brand (icon, launch, wordmark), then the phase's design review package (docs/design-review/, template: phase-3a). Capture at 640/720/800 wide, in Motion and Parked, in the clusters not yet looked at inside the shell (Tape, Minimal, Telemetry, Road) -- two layout bugs hid until the shell existed.
 
 (Original note on the shared-element transition follows.)
 
