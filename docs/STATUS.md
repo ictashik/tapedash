@@ -128,6 +128,12 @@ Numbers as of this section: **2,188 tests** (2,179 before), `49915fa` at HEAD fo
 
 **Immediate next step:** the HUD (DESIGN.md 8), then Demo Mode wired into the app shell, onboarding and the brand. See `handoff.md` at the repo root for exact next steps and session context.
 
+## Phase 3b: onboarding (DESIGN.md 7.11)
+
+`lib/ui/onboarding/onboarding_screen.dart` and `lib/ui/brand/wordmark.dart`: the cold open (line draws from the centre, wordmark resolves, 1.2 s), then the choice. The cold open's frame timings feed `TierDetector` and the tier goes into the theme. The demo path connects behind the choice (the demo drive starts at launch), so the ignition plays within a second of the tap (tested on a fake clock; it took 4.15 s when the drive only started on the tap). Tests: `onboarding_test.dart` (11), a capture, frame 37.
+
+**Not done:** the connect path (adapter type, pairing, car setup, price, cluster choice, progress tape) -- needs phase 6; CONNECT MY CAR is disabled with a plain note. The choice is not remembered across launches (needs `shared_preferences`, which is a dependency to record in DECISIONS.md). The real frame timings during the cold open are unverified on a device.
+
 ## Phase 3b: Demo Mode in the app shell
 
 `lib/app/drive_shell.dart` (`DriveShell`): the app now opens on the Strip, fed by `DemoDrive` (a simulated car through the real OBD stack), with the parked dock and the HUD over it and `DriveSignals.demoMode` putting the DEMO badge on every cluster. Time is injected (`TapeDashApp(clock:, scheduler:)`; tests use a `FakeClock`). The Design Lab dev button stays. Tests: two new in `app_shell_test.dart` (the demo car drives; double-tap toggles the HUD), a capture, frame 36.

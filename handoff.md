@@ -32,7 +32,9 @@ Also found: `CenteredNumeral` centres on an estimated digit width (54 lp off at 
 
 ## Done since: Demo Mode in the app shell (`bd5696c`; `DriveShell`), plus two fixes it exposed (status strip right flank, dock at 640 lp). Frame 36.
 
-## Next step: onboarding (DESIGN.md 7.11: cold open, choice, demo path), then the brand (icon, launch, wordmark), then the phase's design review package (docs/design-review/, template: phase-3a). Capture at 640/720/800 wide, in Motion and Parked, in the clusters not yet looked at inside the shell (Tape, Minimal, Telemetry, Road) -- two layout bugs hid until the shell existed.
+## Done since: onboarding's cold open, choice and demo path (frame 37; see STATUS.md).
+
+## Next step: the brand (app icon, adaptive + monochrome; Android launch/splash on void), then the phase's design review package (docs/design-review/, template: phase-3a). Capture at 640/720/800 wide, in Motion and Parked, in the clusters not yet looked at inside the shell (Tape, Minimal, Telemetry, Road) -- two layout bugs hid until the shell existed.
 
 (Original note on the shared-element transition follows.)
 
