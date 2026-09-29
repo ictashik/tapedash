@@ -239,3 +239,12 @@ A short running log of choices and the reasons for them, newest last. It include
 - **The fill-up ledger counts the raw estimate** (before calibration), since the correction is what is being worked out; a factor from a fill-up needs at least 1 L on each side and a ratio between 0.4 and 2.5 (further out means the app missed trips, and is not used).
 - **The engine is judged off from the connection status, not the last voltage:** the car stops answering (waiting for ignition), or answers with rpm 0 and under 13 V. A lost adapter link says nothing about the engine, so the trip carries on (and ends after 5 minutes of nothing).
 - **The fuel PID moves to the fast tier while a trip is recorded** (`RecordingDemand`): 5E, MAF or MAP, whichever is the source, or all three until one is chosen.
+
+## Dependencies added in phase 4
+
+Checked per CLAUDE.md 5: each is BSD or MIT, none pulls in Play Services or Firebase (`tool/check_offline.sh` passes on the release classpath), and both work on API 24 and 32-bit ARM.
+
+- **sqflite** 2.x (BSD-2-Clause, with sqflite_android, sqflite_darwin, sqflite_common, sqflite_platform_interface, synchronized: BSD-2 / MIT): the trip, sample and fill-up log (CLAUDE.md 5's own decision).
+- **shared_preferences** 2.x (BSD-3-Clause, the Flutter team; uses the `SharedPreferencesAsync` API): settings (price, currency, the ledger's counter; later the Garage). The Android implementation stores to the app's private storage; nothing leaves the phone.
+- **sqflite_common_ffi** (dev only, BSD-2, with `sqlite3`, MIT): runs the SQLite repositories headlessly in `flutter test`. It is not linked into the app.
+- **shared_preferences_platform_interface** (dev only, BSD-3): the in-memory platform for the settings test.
