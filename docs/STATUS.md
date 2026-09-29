@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. All five Drive clusters (Apex, Road, Tape, Minimal, Telemetry) render against a real `DemoDrive`; the Strip (DESIGN.md 7.1) carries them as one panel -- a swipe with parallax, the page tape, the motion lock, and the parked dock -- and the Motion <-> Parked choreography (DESIGN.md 7.2) runs the whole screen's parked treatment on one shared spring. What remains of the phase: the shared-element transition, ignition and shutdown, connection states, the HUD, Demo Mode, onboarding, the brand, and the phase's review package. Phases are in CLAUDE.md 13.
+Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. All five Drive clusters (Apex, Road, Tape, Minimal, Telemetry) render against a real `DemoDrive`; the Strip (DESIGN.md 7.1) carries them as one panel -- a swipe with parallax, the page tape, the motion lock, and the parked dock -- and the Motion <-> Parked choreography (DESIGN.md 7.2) runs the whole screen's parked treatment on one shared spring. The speed's shared-element flight (Drive hero to Money's status corner) is in too; the trip-rupees flight waits on phase 4's money engine. What remains of the phase: ignition and shutdown, connection states, the HUD, Demo Mode, onboarding, the brand, and the phase's review package. Phases are in CLAUDE.md 13.
 
 ## Where we are
 
@@ -10,7 +10,7 @@ Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 n
 | 1. Simulator | **Done** |
 | 2. OBD stack on the simulator (tag `v0.1.0-sim`) | **Done** |
 | 3a. Design system (tag `v0.2.0-design`) | **Done** |
-| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | **In progress: all components, all 5 clusters, the Strip, the dock and the Motion <-> Parked choreography** |
+| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | **In progress: all components, all 5 clusters, the Strip, the dock, the Motion <-> Parked choreography and the speed shared-element flight** |
 | 4 to 7 | Not started |
 
 **Suggested tags, neither created:** `v0.1.0-sim` on `d5016d6` (end of phase 2) and `v0.2.0-design` on `62fb1bb` (end of phase 3a). Placing them is your call. Nothing has been pushed, and there is no remote.
@@ -127,6 +127,10 @@ Numbers as of this section: **2,188 tests** (2,179 before), `49915fa` at HEAD fo
 ## Phase 3b, still to do
 
 **Immediate next step:** the shared-element transition from Drive to Money (DESIGN.md 7.1), then ignition and shutdown sequences (DESIGN.md 7.13) and connection states (DESIGN.md 7.12). See `handoff.md` at the repo root for exact next steps and session context.
+
+## Phase 3b: the shared-element flight (DESIGN.md 7.1)
+
+Drive -> Money: the hero speed travels to Money's status corner on the strip's own `spring.page` progress, so it is interruptible and reversible mid-flight with the swipe's velocity. Ends register through `SharedElementEnd` (`lib/ui/design/motion/shared_elements.dart`); `SharedElementsLayer` in the Strip paints the one flying copy. The departing page keeps its own copy to 20% of the flight, the arriving page shows its own from 90% (`TapeMotion.sharedElementDepart/Arrive`). Not built: the trip-rupees flight (Drive floor to Money centre) -- both ends need `money/` (phase 4), so it is registered by id only. Money's page is still a placeholder. Committed `e3f2e09`; frame 32.
 
 ## Phase 3b: the Motion <-> Parked choreography
 

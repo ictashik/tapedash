@@ -16,7 +16,13 @@ Updated 2026-09-28, at the end of a session that built the Motion <-> Parked cho
 - 31 build-video frames registered, one per piece of work, `docs/build-video/FRAMES.md`.
 - The user has been getting periodic progress reports and wants build-video material as work lands. Keep registering frames with `tool/build_frame.sh` as each piece lands, the same as every commit so far.
 
-## Immediate next step: the shared-element transition
+## Done since: the shared-element transition (`e3f2e09`)
+
+The speed flight is committed; the trip-rupees flight waits on phase 4. The section below is kept for the design notes.
+
+## Next step: ignition and shutdown sequences (DESIGN.md 7.13)
+
+(Original note on the shared-element transition follows.)
 
 DESIGN.md 7.1's shared elements: moving from Drive to Money, the hero speed shrinks and flies to the Money page's status corner while the floor's ₹ grows and flies to Money's centre. Money's own centre value is phase 4, so the Money-side landing is the placeholder's slot for now, documented. The double-tap that toggles the HUD belongs with the HUD's own piece, not this.
 
@@ -78,8 +84,8 @@ Partway through an earlier session, a context-window summarisation happened, and
 - ~~The vertical cluster reel (DESIGN.md 7.3)~~ -- **done** (`addce3b`): a vertical swipe on Drive cycles the five clusters, the choice persists in the page's own state.
 - ~~The parked dock (DESIGN.md 7.1)~~ -- **done** (`a505ef4`): rises into the floor zone when parked, Garage/Pit Stop/Diagnostics/HUD as disabled documented buttons, reacts to mode.
 - ~~Motion <-> Parked (DESIGN.md 7.2)~~ -- **done** (`d177350`): one shared parked share; the arc thinned and dimmed to 60%, the heroes shrunken, the captions fading. The flanks' unfolded detail panels are phase 4's data and are honestly absent.
-- The shared-element transition (DESIGN.md 7.1): the hero speed flying to Money's status corner while the floor's ₹ grows to Money's centre. **Next.**
-- Ignition and shutdown sequences (DESIGN.md 7.13).
+- ~~The shared-element transition (DESIGN.md 7.1)~~ -- **speed flight done** (`e3f2e09`); the ₹ flight is phase 4's.
+- Ignition and shutdown sequences (DESIGN.md 7.13). **Next.**
 - Connection states (DESIGN.md 7.12): the full per-state cluster treatment (searching sweep beam, waiting-for-ignition dim breathing dot, lost freeze-and-fade). `DriveSignals.adapter`/`.connection` already expose the raw state; only the status strip's own small 3-state glyph currently reacts to it (see `_adapterStateFor` in `drive_signals.dart`) -- the fuller treatment is this bullet's job.
 - HUD (DESIGN.md 8): layouts, the flips, the alignment pattern. Not started.
 - Demo Mode: `DemoDrive` (`lib/app/demo_drive.dart`, phase 3a) and the clusters' capture tests prove the wiring works, but nothing in `lib/app/app.dart` actually shows a real page yet -- `_Shell` in `app.dart` still only shows the void canvas and the Design Lab button. Wiring a real `DemoDrive` into the app shell, showing the DEMO badge (already built, `status_strip.dart`), belongs here.
