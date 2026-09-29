@@ -1,6 +1,7 @@
 import '../core/scheduler.dart';
 import 'drive_scenario.dart';
 import 'driver.dart';
+import 'driver_inputs.dart';
 import 'ground_truth.dart';
 import 'scenario_events.dart';
 import 'vehicle_model.dart';
@@ -18,6 +19,7 @@ class SimulatedCar {
     VehicleProfile? profile,
     this.seed = 1,
     this.scheduler,
+    this.stopWhenFinished = false,
   }) : profile = profile ?? scenario.profile {
     _reset();
   }
@@ -26,6 +28,12 @@ class SimulatedCar {
   final VehicleProfile profile;
   final int seed;
   final Scheduler? scheduler;
+
+  /// Brakes to a stop once the scenario's time is up, rather than carrying on
+  /// with the plan: a scenario that is cut off mid-drive then ends parked, as a
+  /// looping demo needs (its trip can end, and Review opens). Off by default, so
+  /// the ground truth of a test drive is the plan's, however it ends.
+  final bool stopWhenFinished;
 
   late VehicleModel model;
   late Driver _driver;
@@ -86,7 +94,9 @@ class SimulatedCar {
 
   /// Advances the car by one step.
   void tick() {
-    final inputs = _driver.decide(model);
+    final inputs = stopWhenFinished && isFinished && model.state.speedMs > 0.05
+        ? const DriverInputs(brake: 0.3)
+        : _driver.decide(model);
     model.step(inputs);
     _applyDtcInjections();
   }

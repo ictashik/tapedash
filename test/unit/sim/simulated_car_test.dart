@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/sim/drive_scenario.dart';
+import 'package:tapedash/sim/drive_style.dart';
 import 'package:tapedash/sim/driver.dart';
 import 'package:tapedash/sim/scenario_events.dart';
 import 'package:tapedash/sim/scenarios.dart';
@@ -23,6 +24,49 @@ DriveScenario _idleScenario({
 );
 
 void main() {
+  group('stopWhenFinished', () {
+    // Cruising at 60 km/h for the whole of a two-minute scenario: it is cut off
+    // by its time, mid-drive.
+    DriveScenario cruise() => DriveScenario(
+      name: 'cruise',
+      description: 'cruise',
+      route: SimRoute.straight(20000),
+      duration: const Duration(minutes: 2),
+      driverBuilder: () => ScriptedDriver([
+        GoToSpeed(60, style: DriveStyle.gentle, holdSeconds: 1000),
+      ]),
+    );
+
+    test('a scenario cut off mid-drive brakes to a stop, gently', () {
+      final car = SimulatedCar(scenario: cruise(), stopWhenFinished: true);
+      car.runToEnd();
+      expect(car.isFinished, isTrue);
+      expect(car.state.speedKmh, greaterThan(40));
+
+      var hardest = 0.0;
+      var before = car.state.speedMs;
+      for (var i = 0; i < 20 * 60 && car.state.speedMs > 0; i++) {
+        car.tick();
+        hardest = hardest > before - car.state.speedMs
+            ? hardest
+            : before - car.state.speedMs;
+        before = car.state.speedMs;
+      }
+      expect(car.state.speedMs, 0);
+      // Under 3 m/s2 (a step is 50 ms): well short of a hard braking.
+      expect(hardest / VehicleModel.stepSeconds, lessThan(3));
+    });
+
+    test('by default the plan is the ground truth, however it ends', () {
+      final car = SimulatedCar(scenario: cruise());
+      car.runToEnd();
+      for (var i = 0; i < 20 * 20; i++) {
+        car.tick();
+      }
+      expect(car.state.speedKmh, greaterThan(40));
+    });
+  });
+
   group('running on a scheduler', () {
     test('one step every 50 ms of scheduled time', () {
       final clock = FakeClock();
