@@ -467,6 +467,8 @@ After the user's first real drives, the next session:
 
 ## 13. Roadmap
 
+**Plan as of 2026-09-29 (the human's instruction):** phases 4, 5 and 6 are built back to back, and the human tests on a real phone and car after phase 6 (the hardware handoff, section 11). Until then the app runs on Demo Mode only. The per-phase design review packages (screenshots, video) are waived for phases 4 and 5 and for phase 6's UI, at the human's request; the honest notes about what was not verified still go in `docs/STATUS.md`, and the phase 3b package stands as written (its open questions are unanswered and are carried in `docs/STATUS.md`). Everything else in this file still applies: tests, the offline check, the commit rules.
+
 Each bullet is one or more commits. Don't start a phase until the previous phase's tests are green. **Every phase that touches UI ends with a design review package (DESIGN.md §14.4).**
 
 ### Phase 0: Foundation
