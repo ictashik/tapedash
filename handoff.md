@@ -26,7 +26,11 @@ The speed flight is committed; the trip-rupees flight waits on phase 4. The sect
 
 `ConnectionPresentation` + `ConnectionLayer` over the Drive reel; frame 34. Gaps recorded in STATUS.md. Still open from the ignition: the arc wave, horizon draw and flank fade are wired into Apex only.
 
-## Next step: the HUD (DESIGN.md 8) -- layouts, the flips, the alignment pattern. Then Demo Mode in the app shell, onboarding, brand.
+## Done since: the HUD (`84db5c1`, dock repaint fix `5e56153`; see STATUS.md). Frame 35.
+
+Also found: `CenteredNumeral` centres on an estimated digit width (54 lp off at 198 lp); the HUD works around it, the other clusters were not re-measured -- worth one measurement pass.
+
+## Next step: Demo Mode in the app shell (`_Shell` in `lib/app/app.dart` still shows only the void), then onboarding, brand, then the phase's design review package. Wire `HudHost` and `TheStrip.onToggleHud` there.
 
 (Original note on the shared-element transition follows.)
 

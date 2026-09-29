@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. All five Drive clusters (Apex, Road, Tape, Minimal, Telemetry) render against a real `DemoDrive`; the Strip (DESIGN.md 7.1) carries them as one panel -- a swipe with parallax, the page tape, the motion lock, and the parked dock -- and the Motion <-> Parked choreography (DESIGN.md 7.2) runs the whole screen's parked treatment on one shared spring. The speed's shared-element flight (Drive hero to Money's status corner) is in too; the trip-rupees flight waits on phase 4's money engine. The ignition sequence (DESIGN.md 7.13) plays in Apex. What remains of the phase: connection states, the HUD, Demo Mode, onboarding, the brand, and the phase's review package. Phases are in CLAUDE.md 13.
+Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. All five Drive clusters (Apex, Road, Tape, Minimal, Telemetry) render against a real `DemoDrive`; the Strip (DESIGN.md 7.1) carries them as one panel -- a swipe with parallax, the page tape, the motion lock, and the parked dock -- and the Motion <-> Parked choreography (DESIGN.md 7.2) runs the whole screen's parked treatment on one shared spring. The speed's shared-element flight (Drive hero to Money's status corner) is in too; the trip-rupees flight waits on phase 4's money engine. The ignition sequence (DESIGN.md 7.13) plays in Apex. The HUD (DESIGN.md 8) is in too. What remains of the phase: Demo Mode, onboarding, the brand, and the phase's review package. Phases are in CLAUDE.md 13.
 
 ## Where we are
 
@@ -127,6 +127,16 @@ Numbers as of this section: **2,188 tests** (2,179 before), `49915fa` at HEAD fo
 ## Phase 3b, still to do
 
 **Immediate next step:** the HUD (DESIGN.md 8), then Demo Mode wired into the app shell, onboarding and the brand. See `handoff.md` at the repo root for exact next steps and session context.
+
+## Phase 3b: the HUD (DESIGN.md 8)
+
+`lib/ui/hud/`: `HudSettings` (colour, layout, the two flips, vertical position, scale, active, alignment pattern; plain state, no storage), `HudView` (pure black, one colour, Bold numerals, no halos, 5 lp strokes, labels at 0.06H; one `Transform` over everything, so the alignment pattern is mirrored exactly as the HUD is), `AlignmentPattern` (frame, crosshair and thirds grid, the wordmark, a large F, an arrow path and UP), `HudHost` (lays the HUD over the strip; a double-tap puts it down). `TheStrip.onToggleHud` is the double-tap on Drive or Money; `ParkedDock.onHud` enables the dock's HUD button. The HUD runs under `Liveries.hud(HudColor)`; a stale value is the HUD colour at 45%. Tokens: `tokens/hud.dart`. Tests: 26 in `test/widget/hud_test.dart` (settings, the mirror's maths, black-and-one-colour at 640/720/800 x 360 in all three layouts, centring, redline, the pattern through the flips, the toggles). Capture: `test/design/capture/hud_capture_test.dart`, build-video frame 35.
+
+**Honestly absent:** the money figures (phase 4: the two money layouts say MONEY UNAVAILABLE), the persistence of the settings and the last mode (Garage), the brightness curve, wake lock and immersive mode (app shell, `DeviceChannel`), the 50 C dim, and the HUD's own alert source (the slot exists; nothing feeds it yet). Not viewed on a real windshield or a real phone.
+
+**Real bugs found:** the parked dock never repainted its position as it rose (fixed in its own commit, `5e56153`; its test had asserted the buggy position); `CenteredNumeral` centred 54 lp off at HUD sizes (the HUD reads the atlas advance; the component itself is unchanged and its other users were not re-measured); a stale HUD numeral drew grey, a second colour.
+
+Numbers: full suite green as of the commit after `84db5c1`, nothing pushed, no tags.
 
 ## Phase 3b: the connection states (DESIGN.md 7.12)
 
