@@ -38,9 +38,15 @@ Also found: `CenteredNumeral` centres on an estimated digit width (54 lp off at 
 
 ## Done since: the phase 3b review package (`d1d0202`; `docs/design-review/phase-3b/`), plus the layout fixes its captures forced (`8d12e2e`) and the first emulator run of the whole app.
 
-## Next step: wait for the human's review of the package (five open questions in its README), and act on the answers. If told to go on regardless: phase 4 (trips, fuel, money: CLAUDE.md 13), whose money data fills the slots every cluster leaves empty. Before that, worth doing whenever convenient: the Layer 4/4b page-level tests (goldens matrix, contrast, motion-lock, flash-rate: DESIGN.md 14.1-14.2), which the composed pages now make possible, and a release-build run on a real phone.
+## Done since: phase 4 (see STATUS.md, "Phase 4"): fuel, money, trips, GPS channel, the Money page, Pit Stop.
 
-Useful now: `test/design/capture/review_matrix_capture_test.dart` renders every cluster in both modes at three widths inside the real shell (contact-sheet script was ad hoc: PIL); `integration_test/demo_drive_perf_test.dart` runs the demo drive on a device and prints frame costs (`flutter test integration_test/demo_drive_perf_test.dart -d emulator-5554`; the emulator was already running, see docs/DEV_SETUP.md). Don't trust a clean per-component test to mean a clean screen: five layout bugs hid until the shell existed.
+## Next step: phase 5 (coach and review), then phase 6 (real transports), then STOP for the hardware handoff. The human has asked for 4, 5 and 6 back to back (CLAUDE.md 13's note) and will test on a real phone and car after 6.
+
+Things a fresh session would not guess:
+- Widget tests must not `await` anything that needs the recorder's queued writes in a tear-down (`Rig.close` in `test/widget/money_ui_test.dart` explains): those futures only complete when a test pumps.
+- `flutter test` on the whole suite takes ~2 minutes; the shell may time out a foreground run. Run it in the background and poll a log file, and use `flutter test <file> --timeout 40s -r expanded > log` to find a hang.
+- The auto-mode classifier sometimes fails to give a verdict on a Bash call; retrying once usually works, and the Write/Edit tools do not need it.
+- `docs/DECISIONS.md` has the phase 4 reasoning (closed throttle, VE shape, block assignment, ledger rules).
 
 (Original note on the shared-element transition follows.)
 

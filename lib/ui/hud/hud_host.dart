@@ -44,15 +44,17 @@ class HudHost extends StatelessWidget {
   final NumeralSource? costPerKm;
   final ValueListenable<AlertLevel>? alert;
 
-  Widget _hud(NumeralSource? cost, NumeralSource? perKm) => HudView(
-    signals: signals,
-    settings: settings,
-    width: width,
-    height: height,
-    tripCost: cost,
-    costPerKm: perKm,
-    alert: alert,
-  );
+  Widget _hud(NumeralSource? cost, NumeralSource? perKm, {String? note}) =>
+      HudView(
+        signals: signals,
+        settings: settings,
+        width: width,
+        height: height,
+        tripCost: cost,
+        costPerKm: perKm,
+        alert: alert,
+        moneyNote: note ?? 'MONEY UNAVAILABLE',
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +74,13 @@ class HudHost extends StatelessWidget {
                         valueListenable: money!.view,
                         builder: (context, view, _) => view == MoneyView.rupees
                             ? _hud(money!.cost, money!.costPerKm)
-                            : _hud(null, null),
+                            : _hud(
+                                null,
+                                null,
+                                note: view == MoneyView.litres
+                                    ? 'SET A FUEL PRICE'
+                                    : null,
+                              ),
                       ),
               ),
             ),

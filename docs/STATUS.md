@@ -128,6 +128,29 @@ Numbers as of this section: **2,188 tests** (2,179 before), `49915fa` at HEAD fo
 
 **Immediate next step:** the HUD (DESIGN.md 8), then Demo Mode wired into the app shell, onboarding and the brand. See `handoff.md` at the repo root for exact next steps and session context.
 
+## Phase 4: trips, fuel and money (2026-09-30)
+
+**Built and tested** (all on the simulator; nothing here has met a real car):
+
+- `fuel/`: the estimator (5E, MAF or speed-density, best fresh source; hand-computed formulas), fuel-cut handling, a gap-safe integrator, per-vehicle constants.
+- `money/`: the trip computer (distance, fuel, cost, idle, instant and average km/L, fuel left; the four spend buckets summing exactly to the total; the rupee block stream), calibration, the fill-up ledger, the price and currency, the Pit Stop form's rules.
+- `coach/`: thresholds and the hard-acceleration and hard-braking detector (the rest of the coach is phase 5).
+- `trips/`: the trip model and repositories (in memory and SQLite), the recorder (start on rpm > 400, end after 10 s off, resume within 5 minutes, one sample a second), the fuel PID moved to the fast tier while recording.
+- `platform/`: the phone's GPS through a `LocationManager` channel (`GpsChannel.kt`, `native_location_source.dart`) and the settings store on `shared_preferences`.
+- UI: money on Apex, Tape and Minimal; the Money page (Motion and Parked); Pit Stop with its numpad and 900 ms save animation; the HUD's money layouts; the demo's own price and fill-ups.
+
+**Layer 3 results (`test/e2e/trips_test.dart`, 46 tests):** every petrol profile is within 2% on distance and within about 2% on fuel over city, highway, aggressive, eco and jam drives (criteria: 5%, and 10% for speed-density), idle time within 5% and idle cost within 7%, calibration through simulated fill-ups corrects a deliberately wrong displacement, aggressive-city hard events match the scripted ones within one, eco_city costs at least 15% less than aggressive_city, the Money Tape adds up to the total and matches the buckets, the trip rules (start, end, resume at 3 minutes, a new trip at 8, never ended by a jam or a flaky adapter), an old car with no fuel PID has no money.
+
+**Real problems found and fixed** (details in DECISIONS.md): PID 11 reads ~12% closed, so "throttle at 0" never matched and a coast counted as burning fuel (+5.7% on the sporty manual); a flat 0.85 VE over-counted idle fuel by about a fifth (the rpm-shaped VE is a generic shape and both it and the simulator's curve are "typical road engine": agreement proves the machinery, not accuracy on a real car); giving a rupee block to the bucket that crossed the line favoured one bucket.
+
+**Not done / not verified:**
+- The shared ₹ flight (Drive to Money) is not built; the speed flight from phase 3b is.
+- GPS is not wired into a drive yet (the demo has no GPS; a real drive gets it in phase 6), so the GPS glyph still says no fix and the GPS fallback and cross-check for distance is tested only by the unit path, not on a device.
+- `GpsChannel.kt` compiles (debug APK builds) and its Dart side is mock-tested; **it has never run on a phone.** Likewise the SQLite adapters ran only on the desktop FFI SQLite, not on an Android phone.
+- The Debrief that should begin when a trip ends is phase 5; the recorder already tells the app when a trip ends and resumes.
+- No design review package for this phase (waived, see CLAUDE.md 13). I did look at renders of the new screens and fixed what was wrong; they were not judged in motion, on a device, or in any livery but ION.
+- The Money Tape does not yet compact into ₹5 and ₹10 blocks when full (a known gap in the component since 3b).
+
 ## Phase 3b: the review package, and where the phase stands
 
 `docs/design-review/phase-3b/` (README, perf.md, screenshots): written, with the fixes its captures forced (`8d12e2e`), the first real emulator run of the whole app (Reference_API24: cold open, demo path, all five clusters, the HUD, all working) and the first emulator frame costs. **Phase 3b's build list is complete; the phase is not "done" in CLAUDE.md 1's sense until the human has reviewed the package** (five open questions in its README). Suggested tag once reviewed: `v0.3.0-sim` (not placed). Also suggested, still unplaced: `v0.1.0-sim`, `v0.2.0-design`.

@@ -14,6 +14,8 @@ import 'package:tapedash/ui/design/components/controls/tape_numpad.dart';
 import 'package:tapedash/ui/design/components/money.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
+import 'package:tapedash/ui/hud/hud_host.dart';
+import 'package:tapedash/ui/hud/hud_settings.dart';
 import 'package:tapedash/ui/pages/drive/apex_cluster.dart';
 import 'package:tapedash/ui/pages/drive/drive_signals.dart';
 import 'package:tapedash/ui/pages/drive/minimal_cluster.dart';
@@ -629,6 +631,57 @@ void main() {
       await tester.tap(find.widgetWithText(TapeButton, 'SAVE'));
       await tester.pump();
       expect(saves, 0);
+    });
+  });
+
+  group('the HUD\'s money layouts', () {
+    Future<void> show(WidgetTester tester, Rig rig) async {
+      setWindow(tester, const Size(720, 360));
+      final settings = HudSettings(active: true, layout: HudLayout.money);
+      addTearDown(settings.dispose);
+      await tester.pumpWidget(
+        tapeHarness(
+          kit: kit,
+          motion: rig.motion,
+          child: HudHost(
+            settings: settings,
+            signals: rig.signals,
+            money: rig.money,
+            width: 720,
+            height: 360,
+            child: const SizedBox.expand(),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    testWidgets(
+      'with a price and fuel, the ₹ is shown and nothing says unavailable',
+      (tester) async {
+        final rig = make();
+        rig.drive(60);
+        await show(tester, rig);
+        expect(find.text('MONEY UNAVAILABLE'), findsNothing);
+        expect(find.text('₹'), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'with no fuel figure it says so, and does not invent a number',
+      (tester) async {
+        final rig = make();
+        await show(tester, rig);
+        expect(find.text('MONEY UNAVAILABLE'), findsOneWidget);
+      },
+    );
+
+    testWidgets('with fuel and no price it asks for the price', (tester) async {
+      final rig = make(price: null);
+      rig.drive(30);
+      await show(tester, rig);
+      expect(find.text('SET A FUEL PRICE'), findsOneWidget);
+      expect(find.text('MONEY UNAVAILABLE'), findsNothing);
     });
   });
 }

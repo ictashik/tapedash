@@ -50,6 +50,7 @@ class HudView extends StatelessWidget {
     this.costPerKm,
     this.alert,
     this.alertIcon = TapeIcon.checkEngine,
+    this.moneyNote = 'MONEY UNAVAILABLE',
   });
 
   final DriveSignals signals;
@@ -66,6 +67,10 @@ class HudView extends StatelessWidget {
   /// The alert slot's level. Null is no alert.
   final ValueListenable<AlertLevel>? alert;
   final TapeIcon alertIcon;
+
+  /// What the money layouts say in place of a figure: that money is unavailable
+  /// (the car gives no fuel figure), or that a price is needed.
+  final String moneyNote;
 
   /// The matrix the HUD's content is drawn through: the scale, the two flips,
   /// and the vertical position, which moves the content up (positive) in its
@@ -133,6 +138,7 @@ class HudView extends StatelessWidget {
       width: width,
       height: height,
       tripCost: tripCost,
+      note: moneyNote,
       color: settings.color.color,
     ),
     HudLayout.money => _MoneyHud(
@@ -140,6 +146,7 @@ class HudView extends StatelessWidget {
       height: height,
       tripCost: tripCost,
       costPerKm: costPerKm,
+      note: moneyNote,
       color: settings.color.color,
     ),
   };
@@ -413,6 +420,7 @@ class _DriveMoneyHud extends StatelessWidget {
     required this.width,
     required this.height,
     required this.tripCost,
+    required this.note,
     required this.color,
   });
 
@@ -420,6 +428,7 @@ class _DriveMoneyHud extends StatelessWidget {
   final double width;
   final double height;
   final NumeralSource? tripCost;
+  final String note;
   final Color color;
 
   @override
@@ -499,11 +508,7 @@ class _DriveMoneyHud extends StatelessWidget {
           left: half,
           width: half,
           child: Center(
-            child: _label(
-              source == null ? 'MONEY UNAVAILABLE' : 'THIS TRIP',
-              height,
-              color,
-            ),
+            child: _label(source == null ? note : 'THIS TRIP', height, color),
           ),
         ),
       ],
@@ -517,6 +522,7 @@ class _MoneyHud extends StatelessWidget {
     required this.height,
     required this.tripCost,
     required this.costPerKm,
+    required this.note,
     required this.color,
   });
 
@@ -524,6 +530,7 @@ class _MoneyHud extends StatelessWidget {
   final double height;
   final NumeralSource? tripCost;
   final NumeralSource? costPerKm;
+  final String note;
   final Color color;
 
   @override
@@ -588,11 +595,7 @@ class _MoneyHud extends StatelessWidget {
           left: 0,
           right: 0,
           child: Center(
-            child: _label(
-              trip == null ? 'MONEY UNAVAILABLE' : 'THIS TRIP',
-              height,
-              color,
-            ),
+            child: _label(trip == null ? note : 'THIS TRIP', height, color),
           ),
         ),
       ],
