@@ -34,7 +34,9 @@ Also found: `CenteredNumeral` centres on an estimated digit width (54 lp off at 
 
 ## Done since: onboarding's cold open, choice and demo path (frame 37; see STATUS.md).
 
-## Next step: the brand (app icon, adaptive + monochrome; Android launch/splash on void), then the phase's design review package (docs/design-review/, template: phase-3a). Capture at 640/720/800 wide, in Motion and Parked, in the clusters not yet looked at inside the shell (Tape, Minimal, Telemetry, Road) -- two layout bugs hid until the shell existed.
+## Done since: the brand (icon, splash icon; frame 38).
+
+## Next step: the phase's design review package (docs/design-review/, template: phase-3a). Capture at 640/720/800 wide, in Motion and Parked, in the clusters not yet looked at inside the shell (Tape, Minimal, Telemetry, Road) -- two layout bugs hid until the shell existed.
 
 (Original note on the shared-element transition follows.)
 

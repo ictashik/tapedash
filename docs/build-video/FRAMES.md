@@ -42,3 +42,4 @@ screen at 2x) unless it says otherwise. `tool/build_frame.sh` adds one.
 | 35 | [035-hud.jpg](frames/035-hud.jpg) | `84db5c1` | The HUD: pure black, one colour, Bold numerals, and the red zone stands taller as well as red. |
 | 36 | [036-demo-shell.jpg](frames/036-demo-shell.jpg) | `bd5696c` | The app opens on a live simulated drive: the cluster, the clock and the DEMO badge, the page tape beneath. |
 | 37 | [037-onboarding.jpg](frames/037-onboarding.jpg) | `09b7a6d` | First launch: the wordmark over its tape line, and the choice beneath it. |
+| 38 | [038-brand.jpg](frames/038-brand.jpg) | `c98471c` | The app icon: a fragment of the tach arc with its last segment lit, above the tape. |
