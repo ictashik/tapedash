@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. All five Drive clusters (Apex, Road, Tape, Minimal, Telemetry) render against a real `DemoDrive`; the Strip (DESIGN.md 7.1) carries them as one panel -- a swipe with parallax, the page tape, the motion lock, and the parked dock -- and the Motion <-> Parked choreography (DESIGN.md 7.2) runs the whole screen's parked treatment on one shared spring. The speed's shared-element flight (Drive hero to Money's status corner) is in too; the trip-rupees flight waits on phase 4's money engine. What remains of the phase: ignition and shutdown, connection states, the HUD, Demo Mode, onboarding, the brand, and the phase's review package. Phases are in CLAUDE.md 13.
+Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. All five Drive clusters (Apex, Road, Tape, Minimal, Telemetry) render against a real `DemoDrive`; the Strip (DESIGN.md 7.1) carries them as one panel -- a swipe with parallax, the page tape, the motion lock, and the parked dock -- and the Motion <-> Parked choreography (DESIGN.md 7.2) runs the whole screen's parked treatment on one shared spring. The speed's shared-element flight (Drive hero to Money's status corner) is in too; the trip-rupees flight waits on phase 4's money engine. The ignition sequence (DESIGN.md 7.13) plays in Apex. What remains of the phase: connection states, the HUD, Demo Mode, onboarding, the brand, and the phase's review package. Phases are in CLAUDE.md 13.
 
 ## Where we are
 
@@ -127,6 +127,10 @@ Numbers as of this section: **2,188 tests** (2,179 before), `49915fa` at HEAD fo
 ## Phase 3b, still to do
 
 **Immediate next step:** the shared-element transition from Drive to Money (DESIGN.md 7.1), then ignition and shutdown sequences (DESIGN.md 7.13) and connection states (DESIGN.md 7.12). See `handoff.md` at the repo root for exact next steps and session context.
+
+## Phase 3b: the ignition sequence (DESIGN.md 7.13)
+
+`DriveSignals.ignition` (`ui/design/motion/ignition_sequence.dart`) plays once per connection on the first rpm above 400: the arc wave (expo-out, 0-450 ms), the needle to redline and back (`SmoothedSignal.hold`/`release`, spring.needle), the numerals rolling up from 0 (300-900 ms), the horizon drawing out from the centre and the flank fading in (600-1,200 ms, staggered). Subtle = numerals and horizon only; Off = nothing; reduce motion = a 200 ms fade. It never delays live data: a reading arriving mid-sequence retargets. A lost link and back does not replay it (that is 7.12's quick re-light, not built). Wired into Apex only: the other four clusters get the needle sweep and numeral roll (signal-level) but not yet the arc wave, horizon draw or flank fade. Shutdown is the needle falling on spring.needle, already true; the Debrief is phase 5. Not verified: real frame timings (DESIGN.md 14: no frame above 32 ms during the sequence) -- no device or emulator here. Also fixed a latent `ShiftHorizon` bug the sweep exposed (a stale edge segment never zeroed on a fast fall). `Presence` is a documented, transient-only exception to the no-Opacity rule. Frame 33.
 
 ## Phase 3b: the shared-element flight (DESIGN.md 7.1)
 
