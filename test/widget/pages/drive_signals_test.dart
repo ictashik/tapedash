@@ -97,6 +97,10 @@ void main() {
     test('starts parked with a parked vehicle, at rest', () {
       expect(signals.mode.value, DrivingMode.parked);
       expect(signals.parkedShare.value, 1);
+      // Searching turns the connection beam (DESIGN.md 7.12), which does ask
+      // for frames; the share itself is at rest once connected.
+      connection.value = ConnectionStatus.connected;
+      run(const Duration(seconds: 2));
       expect(motion.attachedCount, 0);
     });
 

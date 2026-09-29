@@ -7,6 +7,7 @@ import '../../../obd/obd_session.dart' show ConnectionStatus;
 import '../../../vehicle/reading.dart';
 import '../../../vehicle/vehicle_state.dart';
 import '../../design/components/status_strip.dart' show AdapterLinkState;
+import '../../design/motion/connection_presentation.dart';
 import '../../design/motion/ignition_sequence.dart';
 import '../../design/motion/motion_clock.dart';
 import '../../design/motion/observable_listenable.dart';
@@ -108,8 +109,27 @@ class DriveSignals {
     );
     vehicle.rpm.addListener(_maybeIgnite);
     _connection.addListener(_maybeIgnite);
+    linkPresentation = ConnectionPresentation(
+      clock: motion,
+      initial: _phaseFor(_connection.value),
+    );
+    _connection.addListener(_onConnection);
     _maybeIgnite();
   }
+
+  /// The connection states' shares (DESIGN.md 7.12), read by the page's
+  /// [ConnectionLayer].
+  late final ConnectionPresentation linkPresentation;
+
+  void _onConnection() => linkPresentation.update(_phaseFor(_connection.value));
+
+  static LinkPhase _phaseFor(ConnectionStatus status) => switch (status) {
+    ConnectionStatus.stopped ||
+    ConnectionStatus.searching => LinkPhase.searching,
+    ConnectionStatus.waitingForIgnition => LinkPhase.waitingForIgnition,
+    ConnectionStatus.connected => LinkPhase.connected,
+    ConnectionStatus.lost => LinkPhase.lost,
+  };
 
   /// The ignition sequence (DESIGN.md 7.13): plays once per connection, on
   /// the first valid rpm above 400 while connected. The clusters read its
@@ -207,11 +227,11 @@ class DriveSignals {
 
   /// The status strip's own small vocabulary (DESIGN.md 6.9), mapped from
   /// the session's real ConnectionStatus (DESIGN.md 7.12's full states are
-  /// a separate, later piece of phase 3b; this is only the adapter glyph).
+  /// [linkPresentation]'s; this is only the adapter glyph).
   ValueListenable<AdapterLinkState> get adapter => _adapter;
 
   /// The raw connection status, for chrome that needs more than the
-  /// adapter glyph's three states (DESIGN.md 7.12, not yet built).
+  /// adapter glyph's three states (DESIGN.md 7.12).
   ValueListenable<ConnectionStatus> get connection => _connection;
 
   /// GPS has no real source yet: the native channel is phase 4 (CLAUDE.md
@@ -247,6 +267,8 @@ class DriveSignals {
   void dispose() {
     vehicle.rpm.removeListener(_maybeIgnite);
     _connection.removeListener(_maybeIgnite);
+    _connection.removeListener(_onConnection);
+    linkPresentation.dispose();
     arcWave.dispose();
     horizonDraw.dispose();
     flankAway.dispose();

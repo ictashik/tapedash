@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../design/components/connection_layer.dart';
 import '../../design/motion/motion_clock.dart';
 import '../../design/motion/spring_value.dart';
 import '../../design/tokens/motion_tokens.dart';
@@ -200,6 +201,15 @@ class DrivePageState extends State<DrivePage> {
               child: Flow(
                 delegate: _ReelFlowDelegate(reel: _reel, height: widget.height),
                 children: children,
+              ),
+            ),
+            // Connection states (DESIGN.md 7.12): over whichever cluster
+            // is showing, and nothing at all once connected.
+            Positioned.fill(
+              child: ConnectionLayer(
+                presentation: widget.signals.linkPresentation,
+                width: widget.width,
+                height: widget.height,
               ),
             ),
           ],
