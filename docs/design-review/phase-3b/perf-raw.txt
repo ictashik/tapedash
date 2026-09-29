@@ -1,0 +1,8 @@
+PERF tier chosen by the cold open: LITE
+PERF cold-open n=24 p50=10.5 p90=16.9 p99=87.7 ms
+PERF apex n=217 p50=10.6 p90=12.7 p99=63.7 ms
+PERF tape n=175 p50=9.5 p90=10.8 p99=13.1 ms
+PERF minimal n=176 p50=9.6 p90=11.1 p99=13.7 ms
+PERF telemetry n=173 p50=12.3 p90=14.1 p99=41.7 ms
+PERF road n=175 p50=9.7 p90=11.6 p99=16.7 ms
+PERF hud n=132 p50=12.1 p90=14.3 p99=27.5 ms
