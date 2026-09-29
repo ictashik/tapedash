@@ -53,7 +53,7 @@ Future<Color> _cornerColour(WidgetTester tester) async {
 void main() {
   testWidgets('boots to the void canvas with no exceptions', (tester) async {
     _setPhoneWindow(tester);
-    await tester.pumpWidget(const TapeDashApp());
+    await tester.pumpWidget(const TapeDashApp(onboarding: false));
     await tester.pump();
 
     expect(find.byType(TapeBackdrop), findsOneWidget);
@@ -68,7 +68,7 @@ void main() {
     tester,
   ) async {
     _setPhoneWindow(tester);
-    await tester.pumpWidget(const TapeDashApp());
+    await tester.pumpWidget(const TapeDashApp(onboarding: false));
     await tester.pump();
     expect(find.byType(DesignLab), findsNothing);
 
@@ -88,7 +88,9 @@ void main() {
   ) async {
     _setPhoneWindow(tester);
     final clock = FakeClock()..advance(const Duration(seconds: 100));
-    await tester.pumpWidget(TapeDashApp(clock: clock, scheduler: clock));
+    await tester.pumpWidget(
+      TapeDashApp(clock: clock, scheduler: clock, onboarding: false),
+    );
     for (var i = 0; i < 300; i++) {
       clock.advance(const Duration(milliseconds: 100));
       await tester.pump(const Duration(milliseconds: 100));
@@ -108,7 +110,9 @@ void main() {
   ) async {
     _setPhoneWindow(tester);
     final clock = FakeClock()..advance(const Duration(seconds: 100));
-    await tester.pumpWidget(TapeDashApp(clock: clock, scheduler: clock));
+    await tester.pumpWidget(
+      TapeDashApp(clock: clock, scheduler: clock, onboarding: false),
+    );
     await tester.pump();
     Future<void> doubleTap() async {
       await tester.tapAt(const Offset(320, 180));

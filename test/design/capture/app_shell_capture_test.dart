@@ -18,7 +18,7 @@ void main() {
     final clock = FakeClock()..advance(const Duration(seconds: 100));
     await tester.pumpWidget(
       RepaintBoundary(
-        child: TapeDashApp(clock: clock, scheduler: clock),
+        child: TapeDashApp(clock: clock, scheduler: clock, onboarding: false),
       ),
     );
     Future<void> run(int seconds) async {

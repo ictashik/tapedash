@@ -27,7 +27,14 @@ class DriveShell extends StatefulWidget {
     this.clock = const SystemClock(),
     this.scheduler = const SystemScheduler(),
     this.scenario = 'city_stop_go',
+    this.demo,
   });
+
+  /// A demo drive someone else started (and disposes), so that it can be
+  /// connecting while the cold open and the choice are on screen: the ignition
+  /// then plays the moment the drive appears (DESIGN.md 7.11's "within 1 s").
+  /// Null builds and owns one.
+  final DemoDrive? demo;
 
   final Clock clock;
   final Scheduler scheduler;
@@ -38,11 +45,13 @@ class DriveShell extends StatefulWidget {
 }
 
 class _DriveShellState extends State<DriveShell> {
-  late final DemoDrive _demo = DemoDrive(
-    clock: widget.clock,
-    scheduler: widget.scheduler,
-    scenario: widget.scenario,
-  );
+  late final DemoDrive _demo =
+      widget.demo ??
+      DemoDrive(
+        clock: widget.clock,
+        scheduler: widget.scheduler,
+        scenario: widget.scenario,
+      );
   final HudSettings _hud = HudSettings();
   DriveSignals? _signals;
 
@@ -59,7 +68,7 @@ class _DriveShellState extends State<DriveShell> {
         connection: _demo.connection,
         demoMode: true,
       );
-      _demo.start();
+      _demo.start(); // a no-op if it is already running
     }
   }
 
@@ -67,7 +76,7 @@ class _DriveShellState extends State<DriveShell> {
   void dispose() {
     _hud.dispose();
     _signals?.dispose();
-    _demo.dispose();
+    if (widget.demo == null) _demo.dispose();
     super.dispose();
   }
 
