@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The launch window is the `void` colour and nothing else: no white flash at
-     any point (CLAUDE.md 3, DESIGN.md 12). The brand mark arrives with the
-     adaptive icon in phase 3b. -->
+     any point (CLAUDE.md 3, DESIGN.md 12). The brand mark is the icon (tool/make_brand.py);
+     Android 12+ shows it on the system splash, and the Flutter cold open draws
+     the wordmark, so nothing is drawn here that would have to line up with it. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/tapedash_void" />
 </layer-list>

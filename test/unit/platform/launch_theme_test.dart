@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/ui/design/tokens/colors.dart';
+import 'package:tapedash/ui/design/tokens/livery.dart';
 
 const _res = 'android/app/src/main/res';
 const _voidColor = '@color/tapedash_void';
@@ -110,5 +111,47 @@ void main() {
     ).readAsStringSync();
 
     expect(manifest, contains('android:screenOrientation="sensorLandscape"'));
+  });
+
+  _brandTests();
+}
+
+void _brandTests() {
+  group('the app icon (DESIGN.md 12)', () {
+    test('is adaptive, on void, with a monochrome layer for themed icons', () {
+      final xml = File(
+        '$_res/mipmap-anydpi-v26/ic_launcher.xml',
+      ).readAsStringSync();
+      expect(xml, contains('<background android:drawable="$_voidColor"'));
+      expect(xml, contains('@drawable/ic_launcher_foreground'));
+      expect(xml, contains('<monochrome'));
+      expect(
+        File('$_res/drawable/ic_launcher_monochrome.xml').existsSync(),
+        isTrue,
+      );
+    });
+
+    test('the lit segment is the ION accent from the tokens', () {
+      final xml = File(
+        '$_res/drawable/ic_launcher_foreground.xml',
+      ).readAsStringSync();
+      final core = Liveries.ion.accentCore.toARGB32() & 0xFFFFFF;
+      expect(
+        xml.toUpperCase(),
+        contains('#${core.toRadixString(16).toUpperCase()}'),
+      );
+    });
+
+    test('has a legacy PNG at every density for API 24 and 25', () {
+      for (final d in ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']) {
+        expect(File('$_res/mipmap-$d/ic_launcher.png').existsSync(), isTrue);
+      }
+    });
+
+    test('the Android 12 splash shows the icon foreground', () {
+      final xml = File('$_res/values-v31/styles.xml').readAsStringSync();
+      expect(xml, contains('windowSplashScreenAnimatedIcon'));
+      expect(xml, contains('@drawable/ic_launcher_foreground'));
+    });
   });
 }
