@@ -1,0 +1,419 @@
+// Review, the Debrief, Coach and History (DESIGN.md 7.5 to 7.7), on a trip log
+// filled by hand: each lays out at the three phone sizes, tips never show while
+// the car moves, demo trips stay out of the statistics, and the Debrief plays,
+// skips and is put away.
+import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:tapedash/core/fake_clock.dart';
+import 'package:tapedash/money/spend_bucket.dart';
+import 'package:tapedash/trips/trip.dart';
+import 'package:tapedash/trips/trip_library.dart';
+import 'package:tapedash/ui/design/motion/motion_clock.dart';
+import 'package:tapedash/ui/design/render/render_kit.dart';
+import 'package:tapedash/ui/pages/coach/coach_page.dart';
+import 'package:tapedash/ui/pages/history/history_page.dart';
+import 'package:tapedash/ui/pages/review/review_page.dart';
+import 'package:tapedash/vehicle/vehicle_state.dart' show DrivingMode;
+
+import '../design/support/harness.dart';
+
+const _sizes = [Size(640, 360), Size(720, 360), Size(800, 360)];
+
+/// A trip with a tip in it: 14 minutes of idling in a 20 minute trip.
+Future<Trip> addTrip(
+  MemoryTripRepository repo, {
+  DateTime? at,
+  bool demo = false,
+  bool gps = true,
+  double idling = 0.24,
+}) async {
+  final trip = await repo.create(
+    Trip(
+      startedAt: at ?? DateTime(2026, 3, 10, 9),
+      endedAt: (at ?? DateTime(2026, 3, 10, 9)).add(
+        const Duration(minutes: 20),
+      ),
+      isDemo: demo,
+      distanceKm: 8.2,
+      litres: 0.9 + idling,
+      cost: (0.9 + idling) * 100,
+      pricePerLitre: 100,
+      idleSeconds: 14 * 60,
+      engineSeconds: 20 * 60,
+      bucketLitres: {
+        SpendBucket.normal: 0.9,
+        SpendBucket.idling: idling,
+        SpendBucket.hardAcceleration: 0,
+        SpendBucket.highSpeed: 0,
+      },
+    ),
+  );
+  await repo.addSamples(trip.id!, [
+    for (var t = 0; t < 120; t++)
+      TripSample(
+        seconds: t.toDouble(),
+        speedKmh: 20 + 20 * ((t % 40) / 40),
+        rpm: 1800,
+        throttle: 20,
+        litresPerHour: 3,
+        latitude: gps ? 12.9 + t * 0.0001 : null,
+        longitude: gps ? 77.6 + (t % 20) * 0.00005 : null,
+      ),
+  ]);
+  return trip;
+}
+
+/// Steady driving in three speed bands, enough for a sweet spot at 50 to 60.
+Future<void> addSteadyTrip(MemoryTripRepository repo) async {
+  final trip = await repo.create(
+    Trip(
+      startedAt: DateTime(2026, 3, 9, 9),
+      endedAt: DateTime(2026, 3, 9, 10),
+      distanceKm: 40,
+      litres: 3,
+      cost: 300,
+      pricePerLitre: 100,
+    ),
+  );
+  var t = 0.0;
+  final samples = <TripSample>[];
+  for (final (kmh, lph, seconds) in const [
+    (35.0, 5.0, 450),
+    (55.0, 3.0, 300),
+    (85.0, 5.5, 200),
+  ]) {
+    for (var i = 0; i < seconds; i++) {
+      samples.add(
+        TripSample(
+          seconds: t++,
+          speedKmh: kmh,
+          rpm: 2000,
+          throttle: 20,
+          litresPerHour: lph,
+        ),
+      );
+    }
+  }
+  await repo.addSamples(trip.id!, samples);
+}
+
+void main() {
+  late TapeRenderKit kit;
+  late ManualMotionClock motion;
+  late FakeClock clock;
+  late MemoryTripRepository repo;
+  late TripLibrary library;
+  late ValueNotifier<DrivingMode> mode;
+
+  setUpAll(loadTapeFonts);
+
+  setUp(() {
+    kit = TapeRenderKit();
+    motion = ManualMotionClock();
+    clock = FakeClock(start: DateTime(2026, 3, 10, 12));
+    repo = MemoryTripRepository();
+    library = TripLibrary(repo);
+    mode = ValueNotifier(DrivingMode.parked);
+  });
+
+  tearDown(() {
+    kit.dispose();
+    motion.dispose();
+    mode.dispose();
+  });
+
+  Future<void> show(
+    WidgetTester tester,
+    Widget Function(Size size) page, {
+    Size size = const Size(720, 360),
+  }) async {
+    setWindow(tester, size);
+    await tester.pumpWidget(
+      tapeHarness(kit: kit, motion: motion, child: page(size)),
+    );
+    await tester.pump();
+    await tester.pump();
+  }
+
+  Future<void> settle(WidgetTester tester, [int ms = 1000]) async {
+    for (var t = 0; t < ms; t += 100) {
+      motion.advance(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+  }
+
+  group('Review', () {
+    ReviewPage review(Size s, {DebriefRequest? debrief}) => ReviewPage(
+      library: library,
+      mode: mode,
+      width: s.width,
+      height: s.height,
+      debrief: debrief,
+    );
+
+    for (final size in _sizes) {
+      testWidgets('lays out at ${size.width.toInt()}x360', (tester) async {
+        await tester.runAsync(() async {
+          await addTrip(repo);
+          await library.refresh();
+        });
+        await show(tester, review, size: size);
+        expect(find.byType(TipPanel), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('with no trips it says so', (tester) async {
+      await show(tester, review);
+      expect(find.textContaining('No trips yet'), findsOneWidget);
+    });
+
+    testWidgets(
+      'a trip with no GPS says there is no route, and still lays out',
+      (tester) async {
+        await tester.runAsync(() async {
+          await addTrip(repo, gps: false);
+          await library.refresh();
+        });
+        await show(tester, review);
+        expect(find.textContaining('no GPS'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets('tips never appear while the vehicle is moving', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await addTrip(repo);
+        await library.refresh();
+      });
+      await show(tester, review);
+      expect(find.byType(TipPanel), findsOneWidget);
+      expect(find.textContaining('went on idling'), findsOneWidget);
+
+      mode.value = DrivingMode.motion;
+      await tester.pump();
+      expect(find.byType(TipPanel), findsNothing);
+      expect(find.textContaining('went on idling'), findsNothing);
+
+      mode.value = DrivingMode.parked;
+      await tester.pump();
+      expect(find.byType(TipPanel), findsOneWidget);
+    });
+
+    testWidgets('the Debrief plays for 4.5 s, and a tap skips it', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await addTrip(repo);
+        await library.refresh();
+      });
+      await show(tester, review);
+      final state = tester.state<ReviewPageState>(find.byType(ReviewPage));
+      expect(state.isDebriefing, isFalse);
+
+      state.playDebrief();
+      await tester.pump();
+      expect(state.isDebriefing, isTrue);
+      await settle(tester, 2000);
+      expect(state.isDebriefing, isTrue);
+      await settle(tester, 3000);
+      expect(state.isDebriefing, isFalse);
+
+      state.playDebrief();
+      await tester.pump();
+      expect(state.isDebriefing, isTrue);
+      await tester.tapAt(const Offset(300, 150));
+      await tester.pump();
+      expect(state.isDebriefing, isFalse);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a request for the Debrief is taken once the page is on screen', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await addTrip(repo);
+        await library.refresh();
+      });
+      final request = DebriefRequest();
+      addTearDown(request.dispose);
+      // Asked for before the page is there, as the shell does when the Strip has
+      // not built Review yet.
+      request.request();
+      await show(tester, (s) => review(s, debrief: request));
+      await tester.pump();
+      final state = tester.state<ReviewPageState>(find.byType(ReviewPage));
+      expect(state.isDebriefing, isTrue);
+      expect(request.pending, isFalse);
+
+      // Taken: the same request does not play it again.
+      await settle(tester, 5000);
+      expect(state.isDebriefing, isFalse);
+      await tester.pump();
+      expect(state.isDebriefing, isFalse);
+    });
+
+    testWidgets('a cleared request does not play', (tester) async {
+      await tester.runAsync(() async {
+        await addTrip(repo);
+        await library.refresh();
+      });
+      final request = DebriefRequest();
+      addTearDown(request.dispose);
+      request.request();
+      request.clear();
+      await show(tester, (s) => review(s, debrief: request));
+      await tester.pump();
+      final state = tester.state<ReviewPageState>(find.byType(ReviewPage));
+      expect(state.isDebriefing, isFalse);
+    });
+
+    testWidgets('the metric selector recolours without an exception', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await addTrip(repo);
+        await library.refresh();
+      });
+      await show(tester, review);
+      await tester.tap(find.text('THROTTLE'));
+      await tester.pump();
+      await tester.tap(find.text('₹/KM').first);
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('Coach', () {
+    CoachPage coach(Size s) => CoachPage(
+      library: library,
+      clock: clock,
+      mode: mode,
+      width: s.width,
+      height: s.height,
+    );
+
+    for (final size in _sizes) {
+      testWidgets('lays out at ${size.width.toInt()}x360', (tester) async {
+        await tester.runAsync(() async {
+          await addSteadyTrip(repo);
+          await addTrip(repo);
+          await library.refresh();
+        });
+        await show(tester, coach, size: size);
+        await settle(tester, 1500);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('with no steady driving it says what fills the curve in', (
+      tester,
+    ) async {
+      await show(tester, coach);
+      await settle(tester, 1500);
+      expect(find.text('Not enough steady driving yet.'), findsOneWidget);
+      expect(find.textContaining('curve fills in'), findsOneWidget);
+    });
+
+    testWidgets('the sweet spot is named from real trips', (tester) async {
+      await tester.runAsync(() async {
+        await addSteadyTrip(repo);
+        await library.refresh();
+      });
+      await show(tester, coach);
+      await settle(tester, 1500);
+      expect(find.text('50–60 km/h'), findsOneWidget);
+    });
+
+    testWidgets('demo trips do not count: no sweet spot, and ₹0 this week', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await addTrip(repo, demo: true, at: DateTime(2026, 3, 10, 8));
+        await library.refresh();
+      });
+      await show(tester, coach);
+      await settle(tester, 1500);
+      expect(find.text('Not enough steady driving yet.'), findsOneWidget);
+      expect(find.text('₹0'), findsWidgets);
+      // Its tip is not among the recent tips either.
+      expect(find.textContaining('went on idling'), findsNothing);
+    });
+
+    testWidgets('recent tips show while parked and never while moving', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await addTrip(repo);
+        await library.refresh();
+      });
+      await show(tester, coach);
+      await settle(tester, 1500);
+      expect(find.textContaining('went on idling'), findsOneWidget);
+
+      mode.value = DrivingMode.motion;
+      await tester.pump();
+      expect(find.textContaining('went on idling'), findsNothing);
+    });
+  });
+
+  group('History', () {
+    HistoryPage history(Size s, {ValueChanged<Trip>? onOpen}) => HistoryPage(
+      library: library,
+      clock: clock,
+      width: s.width,
+      height: s.height,
+      onOpen: onOpen,
+    );
+
+    for (final size in _sizes) {
+      testWidgets('lays out at ${size.width.toInt()}x360', (tester) async {
+        await tester.runAsync(() async {
+          await addTrip(repo);
+          await addTrip(repo, at: DateTime(2026, 3, 8, 18), gps: false);
+          await library.refresh();
+        });
+        await show(tester, history, size: size);
+        expect(find.byType(TripRow), findsNWidgets(2));
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('an empty log says so', (tester) async {
+      await show(tester, history);
+      expect(find.textContaining('No trips'), findsOneWidget);
+    });
+
+    testWidgets('a demo trip is listed with its badge but not counted', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await addTrip(repo, demo: true);
+        await library.refresh();
+      });
+      await show(tester, history);
+      expect(find.byType(TripRow), findsOneWidget);
+      expect(find.text('DEMO'), findsOneWidget);
+      // The month's header counts only real trips.
+      expect(find.text('0.0 km'), findsOneWidget);
+    });
+
+    testWidgets('tapping a row selects that trip and opens it', (tester) async {
+      Trip? opened;
+      await tester.runAsync(() async {
+        await addTrip(repo, at: DateTime(2026, 3, 8, 18));
+        await addTrip(repo);
+        await library.refresh();
+      });
+      await show(tester, (s) => history(s, onOpen: (t) => opened = t));
+      final older = library.trips.value.last;
+      expect(library.selected.value, isNot(older));
+      await tester.tap(find.byType(TripRow).last);
+      await tester.pump();
+      expect(library.selected.value?.id, older.id);
+      expect(opened?.id, older.id);
+    });
+  });
+}

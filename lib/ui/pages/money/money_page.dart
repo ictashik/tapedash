@@ -406,7 +406,11 @@ class _ParkedPanel extends StatelessWidget {
             child: ValueListenableBuilder<MoneyView>(
               valueListenable: money.view,
               builder: (context, view, _) => view == MoneyView.rupees
-                  ? BucketBreakdown(money: money, width: panelWidth)
+                  ? BucketBreakdown(
+                      cost: money.bucketCost,
+                      percent: money.bucketPercent,
+                      width: panelWidth,
+                    )
                   : const SizedBox.shrink(),
             ),
           ),

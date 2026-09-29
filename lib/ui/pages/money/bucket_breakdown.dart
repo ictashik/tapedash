@@ -10,7 +10,7 @@ import '../../design/theme/palette.dart';
 import '../../design/theme/tape_theme.dart';
 import '../../design/tokens/spacing.dart';
 import '../../design/tokens/strokes.dart';
-import 'money_signals.dart';
+import 'money_figure.dart';
 
 /// The words for a bucket (DESIGN.md 10): idling is "avoidable"; the others say
 /// what happened and never "wasted".
@@ -29,20 +29,30 @@ String bucketLabel(SpendBucket b) => switch (b) {
 class BucketBreakdown extends StatelessWidget {
   const BucketBreakdown({
     super.key,
-    required this.money,
+    required this.cost,
+    required this.percent,
     required this.width,
     this.labelSize = 11,
     this.numeralSize = 18,
+    this.compact = false,
   });
 
-  final MoneySignals money;
+  /// What each bucket cost, in rupees, and its share of the fuel, in percent, as
+  /// numerals (the Money page's are live; Review's roll up when the trip ends).
+  final Map<SpendBucket, NumeralSource> cost;
+  final Map<SpendBucket, NumeralSource> percent;
   final double width;
   final double labelSize;
   final double numeralSize;
 
+  /// A two-by-two legend of swatch, name and ₹, with no percent: for a screen with
+  /// no room for the full one (Review on a 360 lp screen).
+  final bool compact;
+
   @override
   Widget build(BuildContext context) {
     final palette = TapeTheme.of(context).palette;
+    if (compact) return _buildCompact(palette);
     return SizedBox(
       width: width,
       child: Column(
@@ -55,18 +65,15 @@ class BucketBreakdown extends StatelessWidget {
             width: width,
             height: 12,
             child: CustomPaint(
-              painter: BucketBarPainter(
-                shares: money.bucketPercent,
-                palette: palette,
-              ),
+              painter: BucketBarPainter(shares: percent, palette: palette),
             ),
           ),
           const SizedBox(height: TapeSpace.s3),
           for (final b in SpendBucket.values) ...[
             _LegendRow(
               bucket: b,
-              cost: money.bucketCost[b]!,
-              percent: money.bucketPercent[b]!,
+              cost: cost[b]!,
+              percent: percent[b]!,
               palette: palette,
               labelSize: labelSize,
               numeralSize: numeralSize,
@@ -78,6 +85,107 @@ class BucketBreakdown extends StatelessWidget {
       ),
     );
   }
+}
+
+extension on BucketBreakdown {
+  Widget _buildCompact(TapePalette palette) {
+    return SizedBox(
+      width: width,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TapeLabel('Where it went', size: labelSize),
+          const SizedBox(height: TapeSpace.s1),
+          SizedBox(
+            width: width,
+            height: 10,
+            child: CustomPaint(
+              painter: BucketBarPainter(shares: percent, palette: palette),
+            ),
+          ),
+          const SizedBox(height: TapeSpace.s1),
+          for (var row = 0; row < 2; row++)
+            SizedBox(
+              height: numeralSize * 1.1,
+              child: Row(
+                children: [
+                  for (var col = 0; col < 2; col++)
+                    Expanded(
+                      child: _CompactCell(
+                        bucket: SpendBucket.values[row * 2 + col],
+                        cost: cost[SpendBucket.values[row * 2 + col]]!,
+                        palette: palette,
+                        labelSize: labelSize,
+                        numeralSize: numeralSize,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactCell extends StatelessWidget {
+  const _CompactCell({
+    required this.bucket,
+    required this.cost,
+    required this.palette,
+    required this.labelSize,
+    required this.numeralSize,
+  });
+
+  final SpendBucket bucket;
+  final NumeralSource cost;
+  final TapePalette palette;
+  final double labelSize;
+  final double numeralSize;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      SizedBox(
+        width: 10,
+        height: 8,
+        child: CustomPaint(
+          painter: BucketSwatchPainter(bucket: bucket, palette: palette),
+        ),
+      ),
+      const SizedBox(width: 4),
+      Expanded(child: TapeLabel(_short(bucket), size: labelSize)),
+      SizedBox(
+        width: numeralSize * 3,
+        height: numeralSize,
+        child: OverflowBox(
+          maxHeight: NumeralMetrics(numeralSize).boxHeight,
+          alignment: Alignment.centerRight,
+          child: FittedNumerals(
+            source: cost,
+            maxDigits: 4,
+            builder: (context, digits) => RollingNumerals(
+              source: cost,
+              format: NumeralFormat(
+                integerDigits: digits,
+                grouping: DigitGrouping.indian,
+              ),
+              size: numeralSize,
+              role: NumeralRole.money,
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
+
+  static String _short(SpendBucket b) => switch (b) {
+    SpendBucket.normal => 'Normal',
+    SpendBucket.idling => 'Idling',
+    SpendBucket.hardAcceleration => 'Hard accel.',
+    SpendBucket.highSpeed => 'High speed',
+  };
 }
 
 class _LegendRow extends StatelessWidget {

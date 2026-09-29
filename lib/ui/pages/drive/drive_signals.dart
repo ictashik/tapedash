@@ -44,7 +44,9 @@ class DriveSignals {
     bool reduceMotion = false,
     this.demoMode = false,
     this.money,
-  }) : wallClock = WallClockTicker(clock: clock, scheduler: scheduler),
+    ValueListenable<bool>? gpsHasFix,
+  }) : gpsHasFix = gpsHasFix ?? ValueNotifier(false),
+       wallClock = WallClockTicker(clock: clock, scheduler: scheduler),
        rpm = SmoothedSignal(
          motion: motion,
          clock: clock,
@@ -259,9 +261,9 @@ class DriveSignals {
   /// adapter glyph's three states (DESIGN.md 7.12).
   ValueListenable<ConnectionStatus> get connection => _connection;
 
-  /// GPS has no real source yet: the native channel is phase 4 (CLAUDE.md
-  /// 13), not phase 3b. A plain "no fix" rather than inventing one.
-  final ValueListenable<bool> gpsHasFix = ValueNotifier(false);
+  /// Whether the phone has a usable GPS fix. Without a location source it is a
+  /// plain "no fix", never an invented one.
+  final ValueListenable<bool> gpsHasFix;
 
   /// Likewise: phone-temperature polling (CLAUDE.md 9) is cross-cutting app
   /// shell work, not yet wired to any page. A plain "not hot" rather than

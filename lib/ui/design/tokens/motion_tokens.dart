@@ -222,3 +222,25 @@ abstract final class TapeMotion {
   /// an idle clock costs almost nothing.
   static const Duration wallClockTick = Duration(seconds: 20);
 }
+
+/// The Debrief (DESIGN.md 7.5): what runs when a trip ends, in seconds from its
+/// start. At most 4.5 s in all; tapping skips to the end.
+abstract final class TapeDebrief {
+  /// The Money Tape rolls up into the WHERE IT WENT bar (0.6 s).
+  static const double barFrom = 0.8;
+  static const double barTo = 1.4;
+
+  /// The route draws itself in light with a comet head (1.6 s).
+  static const double routeFrom = 1.4;
+  static const double routeTo = 3.0;
+
+  /// The receipt's figures roll up from 0 (0.8 s).
+  static const double receiptFrom = 3.0;
+  static const double receiptTo = 3.8;
+
+  /// The tip fades in last.
+  static const double tipFrom = 3.8;
+  static const double tipTo = 4.3;
+
+  static const Duration length = Duration(milliseconds: 4500);
+}

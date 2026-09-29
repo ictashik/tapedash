@@ -2,22 +2,29 @@ import 'package:flutter/widgets.dart';
 
 import '../core/clock.dart';
 import '../core/scheduler.dart';
+import '../location/location_status.dart';
 import '../money/pit_stop_form.dart';
+import '../trips/trip.dart';
+import '../trips/trip_library.dart';
 import '../ui/design/components/backdrop.dart';
 import '../ui/design/motion/motion_scope.dart';
+import '../ui/design/motion/observable_listenable.dart';
 import '../ui/hud/hud_host.dart';
 import '../ui/hud/hud_settings.dart';
+import '../ui/pages/coach/coach_page.dart';
 import '../ui/pages/drive/drive_page.dart';
 import '../ui/pages/drive/drive_signals.dart';
+import '../ui/pages/history/history_page.dart';
 import '../ui/pages/money/money_page.dart';
 import '../ui/pages/money/money_signals.dart';
 import '../ui/pages/pitstop/pit_stop_page.dart';
+import '../ui/pages/review/review_page.dart';
 import '../ui/pages/strip/parked_dock.dart';
-import '../ui/pages/strip/placeholder_page.dart';
 import '../ui/pages/strip/the_strip.dart';
 import '../vehicle/vehicle_state.dart' show DrivingMode;
 import 'app_services.dart';
 import 'demo_drive.dart';
+import 'demo_location_source.dart';
 import 'drive_services.dart';
 
 /// Which full-screen form is over the Strip.
@@ -76,6 +83,12 @@ class _DriveShellState extends State<DriveShell> {
   late final AppServices _app = widget.app ?? AppServices.inMemory();
   late final AppServices _demoApp = AppServices.demo(_app.trips);
   final HudSettings _hud = HudSettings();
+  late final TripLibrary _library = TripLibrary(_app.trips);
+  final DebriefRequest _debrief = DebriefRequest();
+  final GlobalKey<TheStripState> _stripKey = GlobalKey();
+  DemoLocationSource? _location;
+  LocationStatus? _gps;
+  ObservableListenable<bool>? _gpsListenable;
   DriveServices? _services;
   MoneySignals? _money;
   DriveSignals? _signals;
@@ -87,6 +100,15 @@ class _DriveShellState extends State<DriveShell> {
     // The signals need the app's motion clock, which is only in scope here.
     if (_signals == null) {
       final motion = MotionScope.of(context);
+      // The demo's GPS follows the demo car, so a demo trip has a route.
+      final location = DemoLocationSource(
+        demo: _demo,
+        scheduler: widget.scheduler,
+        clock: widget.clock,
+      );
+      _location = location;
+      _gps = LocationStatus(source: location, scheduler: widget.scheduler);
+      _gpsListenable = ObservableListenable(_gps!.hasFix);
       final services = DriveServices(
         vehicle: _demo.vehicle,
         connection: _demo.connection,
@@ -95,6 +117,7 @@ class _DriveShellState extends State<DriveShell> {
         scheduler: widget.scheduler,
         sessions: _demo.sessions,
         isDemo: true,
+        location: location,
       );
       _services = services;
       _money = MoneySignals(
@@ -113,17 +136,48 @@ class _DriveShellState extends State<DriveShell> {
         connection: _demo.connection,
         demoMode: true,
         money: _money,
+        gpsHasFix: _gpsListenable,
       );
       _demo.start(); // a no-op if it is already running
+      location.start();
+      _library.refresh();
+      // A trip that ends is laid out in Review, and the Debrief plays; one that
+      // resumes (the engine came back within five minutes) puts it away.
+      services.recorder
+        ..onTripEnded(_onTripEnded)
+        ..onTripResumed(_onTripResumed);
+      // The demo drive starting over is the engine going off.
+      _demo.loops.addListener(_onDemoLoop);
     }
   }
 
+  Future<void> _onTripEnded(Trip trip) async {
+    await _services!.recorder.idle;
+    await _library.refresh();
+    if (!mounted) return;
+    _debrief.request();
+    _stripKey.currentState?.goTo(0);
+  }
+
+  void _onTripResumed(Trip trip) {
+    _debrief.clear();
+    _stripKey.currentState?.goTo(TheStrip.homePage);
+    _library.refresh();
+  }
+
+  void _onDemoLoop() => _services?.recorder.endNow();
+
   @override
   void dispose() {
+    _demo.loops.removeListener(_onDemoLoop);
+    _debrief.dispose();
     _hud.dispose();
     _signals?.dispose();
     _money?.dispose();
     _services?.close();
+    _gpsListenable?.dispose();
+    _gps?.dispose();
+    _location?.dispose();
     if (widget.demo == null) _demo.dispose();
     super.dispose();
   }
@@ -158,8 +212,6 @@ class _DriveShellState extends State<DriveShell> {
       builder: (context, box) {
         final w = box.maxWidth;
         final h = box.maxHeight;
-        Widget later(String name, String note) =>
-            StripPlaceholder(name: name, note: note, width: w, height: h);
         return HudHost(
           settings: _hud,
           signals: signals,
@@ -169,13 +221,20 @@ class _DriveShellState extends State<DriveShell> {
           child: Stack(
             children: [
               TheStrip(
+                key: _stripKey,
                 width: w,
                 height: h,
                 motion: motion,
                 mode: signals.mode,
                 onToggleHud: _hud.toggle,
                 pages: [
-                  later('REVIEW', 'Arrives with trips.'),
+                  ReviewPage(
+                    debrief: _debrief,
+                    library: _library,
+                    mode: signals.mode,
+                    width: w,
+                    height: h,
+                  ),
                   MoneyPage(
                     signals: signals,
                     width: w,
@@ -189,8 +248,20 @@ class _DriveShellState extends State<DriveShell> {
                     width: w,
                     height: h,
                   ),
-                  later('COACH', 'Arrives with the coach.'),
-                  later('HISTORY', 'Arrives with trips.'),
+                  CoachPage(
+                    library: _library,
+                    clock: widget.clock,
+                    mode: signals.mode,
+                    width: w,
+                    height: h,
+                  ),
+                  HistoryPage(
+                    library: _library,
+                    clock: widget.clock,
+                    width: w,
+                    height: h,
+                    onOpen: (_) => _stripKey.currentState?.goTo(0),
+                  ),
                 ],
               ),
               ParkedDock(
