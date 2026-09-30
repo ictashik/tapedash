@@ -15,6 +15,28 @@ import '../ui/design/theme/mode_controller.dart';
 import '../ui/design/theme/palette.dart' show TapeMode;
 import 'app_settings.dart';
 
+/// How the frames are going, once a second.
+class FrameStats {
+  const FrameStats({required this.fps, required this.p90Milliseconds});
+
+  /// Frames drawn a second, over the last second.
+  final double fps;
+
+  /// The 90th percentile of what a frame cost, in milliseconds.
+  final double p90Milliseconds;
+
+  static const FrameStats none = FrameStats(fps: 0, p90Milliseconds: 0);
+
+  @override
+  bool operator ==(Object other) =>
+      other is FrameStats &&
+      other.fps == fps &&
+      other.p90Milliseconds == p90Milliseconds;
+
+  @override
+  int get hashCode => Object.hash(fps, p90Milliseconds);
+}
+
 /// The phone's side of the display (DESIGN.md 4.4, 9.2; CLAUDE.md 9): which mode
 /// the light calls for, how bright the screen is, how the fidelity tier follows the
 /// frames, and what a hot phone does. It joins the pieces the design system built
@@ -83,7 +105,13 @@ class DisplayController {
   final ObservableValue<bool> _hot = ObservableValue(false);
   final ObservableValue<bool> _tooHot = ObservableValue(false);
   final ObservableValue<double?> _temperature = ObservableValue(null);
+  final ObservableValue<FrameStats> _frameStats = ObservableValue(
+    FrameStats.none,
+  );
+  final ObservableValue<double?> _luxValue = ObservableValue(null);
   double? _lux;
+  final List<double> _costs = [];
+  Duration? _statsSince;
   int? _sentBrightness;
   bool _sent = false;
 
@@ -99,6 +127,12 @@ class DisplayController {
   /// The phone is too hot: dimmed, and Lite at 30 fps.
   Observable<bool> get phoneTooHot => _tooHot;
 
+  /// The frames a second and what the slow ones cost, for the debug overlay.
+  Observable<FrameStats> get frameStats => _frameStats;
+
+  /// The last ambient light reading, in lux, or null with no sensor.
+  Observable<double?> get lux => _luxValue;
+
   /// The battery temperature, or null until one is read or if the phone has none.
   Observable<double?> get temperature => _temperature;
 
@@ -112,7 +146,7 @@ class DisplayController {
     _tooHot.addListener(_applyBrightness);
 
     if (watchFrames) {
-      _probe = FrameProbe(_governor.onFrames)..start();
+      _probe = FrameProbe(onFrames)..start();
     }
     try {
       final support = await device.sensorSupport();
@@ -139,9 +173,32 @@ class DisplayController {
 
   void _onLux(double lux) {
     _lux = lux;
+    _luxValue.value = lux;
     _modes.onLux(lux);
     // Night's brightness follows the light between the mode's changes too.
     if (_modes.mode.value == TapeMode.night) _applyBrightness();
+  }
+
+  /// Takes the cost, in milliseconds, of some frames that were just drawn: they go
+  /// to the governor, and to the frame statistics.
+  void onFrames(List<double> milliseconds) {
+    _governor.onFrames(milliseconds);
+    final now = clock.monotonic();
+    _statsSince ??= now;
+    _costs.addAll(milliseconds);
+    final span = now - _statsSince!;
+    if (span < const Duration(seconds: 1)) return;
+    final seconds = span.inMicroseconds / 1e6;
+    final sorted = List.of(_costs)..sort();
+    final p90 = sorted.isEmpty
+        ? 0.0
+        : sorted[math.min(sorted.length - 1, (sorted.length * 0.9).floor())];
+    _frameStats.value = FrameStats(
+      fps: _costs.length / seconds,
+      p90Milliseconds: p90,
+    );
+    _costs.clear();
+    _statsSince = now;
   }
 
   /// The tier the cold open's frame timings chose.
@@ -202,5 +259,7 @@ class DisplayController {
     _hot.dispose();
     _tooHot.dispose();
     _temperature.dispose();
+    _frameStats.dispose();
+    _luxValue.dispose();
   }
 }

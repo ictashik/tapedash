@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 
 import '../core/clock.dart';
+import '../core/observable.dart';
 import '../core/scheduler.dart';
 import '../obd/adapter_config.dart';
 import '../obd/transport/session_sink.dart';
@@ -21,6 +22,7 @@ import '../ui/design/theme/tape_theme.dart';
 import '../ui/design/tokens/colors.dart';
 import '../ui/design/tokens/livery.dart';
 import '../ui/design/tokens/spacing.dart';
+import '../ui/dev/debug_overlay.dart';
 import '../ui/dev/dev_settings.dart';
 import '../ui/lab/design_lab.dart';
 import '../ui/onboarding/connect_flow.dart';
@@ -165,6 +167,51 @@ class _ShellState extends State<_Shell> {
     _display.phoneHot,
   );
 
+  /// What the debug overlay says of the phone and the display (CLAUDE.md 9).
+  late final List<DebugRow> _debugRows = _makeDebugRows();
+
+  List<DebugRow> _makeDebugRows() {
+    DebugRow row(
+      String label,
+      List<Observable<Object?>> sources,
+      String Function() text,
+    ) {
+      final c = ComputedText([
+        for (final s in sources) ObservableListenable<Object?>(s),
+      ], text);
+      _debugTexts.add(c);
+      return DebugRow(label, c);
+    }
+
+    return [
+      row('Frames', [_display.frameStats], () {
+        final f = _display.frameStats.value;
+        return f.fps == 0
+            ? '—'
+            : '${f.fps.toStringAsFixed(0)} fps  ·  p90 ${f.p90Milliseconds.toStringAsFixed(1)} ms';
+      }),
+      row('Tier', [_display.tier], () {
+        final t = _display.tier.value;
+        return '${t.tier.label}  ·  ${t.reason.name}'
+            '${t.fpsCap == null ? '' : '  ·  ${t.fpsCap} fps cap'}';
+      }),
+      row('Mode', [_display.mode, _display.lux], () {
+        final lux = _display.lux.value;
+        return '${_display.mode.value.name}'
+            '${lux == null ? '' : '  ·  ${lux.round()} lux'}';
+      }),
+      row(
+        'Battery',
+        [_display.temperature],
+        () => _display.temperature.value == null
+            ? '—'
+            : '${_display.temperature.value!.toStringAsFixed(1)} °C',
+      ),
+    ];
+  }
+
+  final List<ComputedText> _debugTexts = [];
+
   void _onBenchmark(List<double> frames) {
     _display.onDetected(const TierDetector().decide(frameMilliseconds: frames));
   }
@@ -252,6 +299,9 @@ class _ShellState extends State<_Shell> {
     _demo?.dispose();
     unawaited(_live?.dispose());
     _phoneHot.dispose();
+    for (final t in _debugTexts) {
+      t.dispose();
+    }
     unawaited(_display.dispose());
     _kit.dispose();
     super.dispose();
@@ -294,6 +344,8 @@ class _ShellState extends State<_Shell> {
         onChangeAdapter: _openConnect,
         phoneHot: _phoneHot,
         phoneTemperature: _display.temperature,
+        debugRows: _debugRows,
+        onOpenLab: () => setState(() => _labOpen = true),
       );
     }
     return LayoutBuilder(

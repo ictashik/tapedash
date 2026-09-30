@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 name for this phase now exists, and is built, tested and committed. All five Drive clusters (Apex, Road, Tape, Minimal, Telemetry) render against a real `DemoDrive`; the Strip (DESIGN.md 7.1) carries them as one panel -- a swipe with parallax, the page tape, the motion lock, and the parked dock -- and the Motion <-> Parked choreography (DESIGN.md 7.2) runs the whole screen's parked treatment on one shared spring. The speed's shared-element flight (Drive hero to Money's status corner) is in too; the trip-rupees flight waits on phase 4's money engine. The ignition sequence (DESIGN.md 7.13) plays in Apex. The HUD (DESIGN.md 8) is in too. Demo Mode opens the app. What remains of the phase: onboarding, the brand, and the phase's review package. Phases are in CLAUDE.md 13.
+Updated 2026-09-30, at the end of phase 6: **the app is ready for real-hardware testing** (CLAUDE.md 11). Phases 0 to 6 are built, tested and committed, on the simulator. The app opens on a cold open and a choice: **TRY A DEMO DRIVE** (a simulated car, no hardware) or **CONNECT MY CAR** (a WiFi, Bluetooth or BLE ELM327), and then drives, records trips, works out where the money goes, coaches, and shows Review, Coach, History, Garage and Diagnostics. **Nothing here has met a real phone, adapter or car.** The next step is yours: `docs/HARDWARE_HANDOFF.md`.
 
 ## Where we are
 
@@ -10,14 +10,13 @@ Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 n
 | 1. Simulator | **Done** |
 | 2. OBD stack on the simulator (tag `v0.1.0-sim`) | **Done** |
 | 3a. Design system (tag `v0.2.0-design`) | **Done** |
-| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | **In progress: all components, all 5 clusters, the Strip, the dock, the Motion <-> Parked choreography and the speed shared-element flight** |
+| 3b. Cockpit and HUD (tag `v0.3.0-sim`) | **Done**; its review package's five open questions are still unanswered |
 | 4. Trips, fuel and money (tag `v0.4.0-sim`) | **Done** (simulator only) |
 | 5. Coach and review (tag `v0.5.0-sim`) | **Done** (simulator only) |
-| 6 and 7 | Not started |
+| 6. Real transports (tag `v0.6.0-handoff`) | **Done, unverified on hardware**; stopped for the handoff |
+| 7. After hardware | Not started |
 
-**Suggested tags, neither created:** `v0.1.0-sim` on `d5016d6` (end of phase 2) and `v0.2.0-design` on `62fb1bb` (end of phase 3a). Placing them is your call. Nothing has been pushed, and there is no remote.
-
-There is something to see now: the app boots onto the `void` canvas with real grain and a vignette, and a dev button opens the Design Lab, a gallery of every component built so far in every livery and mode, running on the API 24 emulator with no exceptions. There is still no Drive page and no Strip; those are the rest of phase 3b, below. The design review package for phase 3a, with device screenshots and the two real bugs its own tests found, is `docs/design-review/phase-3a/`. Phases 0 to 2 are summarised in `docs/DECISIONS.md` and in the git history; phase 3a's design decisions are appended to the same file, below the phase 2 sections.
+**Suggested tags, none created** (placing them is your call; nothing has been pushed, and there is no remote): `v0.1.0-sim` on `d5016d6`, `v0.2.0-design` on `62fb1bb`, `v0.3.0-sim` on `57cd4e2`, `v0.4.0-sim` on `f0105e3`, `v0.5.0-sim` on `2db202f`, `v0.6.0-handoff` on the commit that adds `docs/HARDWARE_HANDOFF.md`.
 
 ## Phase 3b so far: every component
 
@@ -179,6 +178,27 @@ Numbers as of this section: **2,188 tests** (2,179 before), `49915fa` at HEAD fo
 - **Diagnostics:** the PID matrix does not pulse on each response, and the voltage is the module voltage the poller reads (not `ATRV`).
 - The Money Tape still does not compact into ₹5 and ₹10 blocks when full; the ₹ shared-element flight from Drive to Money is still not built.
 - `assets/dtc/dtc.json` covers common generic codes only; manufacturer codes are described by their system, never guessed.
+
+## Phase 6: real transports and the connect path (2026-09-30)
+
+**Built and tested** (the transports against mocks and a simulated adapter; nothing against hardware):
+
+- **WiFi transport** (`lib/obd/transport/wifi_transport.dart`, the only socket code in the app) behind `NetworkGuard`: literal private, loopback and link-local addresses only, no host names, checked before any socket exists. Tested over real loopback sockets and, in real time, against `tool/sim_server.dart` through the whole OBD stack, including unplugging the adapter and plugging it back in.
+- **Bluetooth Classic and BLE** through thin Kotlin channels (`BtClassicChannel.kt`, `BleChannel.kt`, `BluetoothPermissions.kt`) and one Dart side (`AdapterRadio`, `NativeLinkTransport`, both mock-channel tested). Classic: paired devices, discovery, pairing, an SPP socket tried three ways (secure, insecure, RFCOMM channel 1). BLE: scanning, GATT, finding the serial characteristics (FFE0/FFE1, FFF0/FFF1+FFF2, 18F0, OBDLink CX, then any serial-looking service), MTU, chunked serialised writes. **BLE is a thin channel and not a package, so there is no dependency and no licence to verify** (CLAUDE.md 5). **Compiles (debug APK); has never run on a phone.**
+- **The connect flow** (DESIGN.md 7.11): adapter type, find and pair (permission, radio off, unsupported, PIN hint) or a WiFi address on a numpad with a Test, the car, the price (skippable), the layout; a thin progress tape; line-art scenes. Wired to CONNECT MY CAR and to Garage.
+- **`LiveDrive`**: the same OBD stack as the demo over the chosen adapter, with auto-reconnect and backoff (`ObdSession`), the protocol remembered per adapter, compatibility mode, and **session recording** (raw traffic to `recordings/` in the app's external files folder, every 20 s and at the end). `DriveFeed` is what the drive screens read, demo or real; a real drive uses the real money and the phone's GPS, and the demo keeps its own money and its own simulated GPS.
+- **Garage's Adapter group**: the adapter, drive from it or the demo, compatibility mode, recording, forget.
+- **The display, wired to the phone** (this had never been wired; the design system had built the pieces): the ambient light drives Daylight and Night, the window brightness follows the mode, the battery temperature drives the phone-hot glyph, a dimmer screen and Lite at 30 fps above 50 C, the cold open's benchmark sets the starting tier, and Garage can hold a brightness mode or a tier.
+- **The debug overlay** (CLAUDE.md 9): a long-press on a driving screen shows frames a second, the poll rate, the fuel source, the tier, the mode and lux, the battery temperature, and a way into the Design Lab.
+- `docs/HARDWARE_HANDOFF.md`: how to build and install, a check at your desk against the simulator over USB, the in-car script (WiFi, Bluetooth Classic, then BLE), session recording, the design check, and what to report.
+
+**Real problems found and fixed** while building it: the offline check's `INTERNET` permission was missing (a socket would have failed on a phone); the UI layer was importing transports (the architecture test caught it; the connect flow now asks an `AdapterChecker`); the display's pieces were never connected to the phone.
+
+**Not done / not verified:**
+- **Everything native and radio-related is unverified on hardware:** all three Kotlin files, Android's Bluetooth permission flow on Android 12+ and before it, pairing, discovery (before Android 12 it also needs the phone's location services on), the BLE characteristic guesses, the light sensor, the battery temperature, the brightness calls, and the real frame timings. The WiFi transport has run only against the simulator.
+- **The connect flow's last step lists the layouts by name;** DESIGN.md asks for live previews.
+- Not yet in Garage: currency and units, shift-light settings, CSV export, the licences screen and its QR code (see phase 5).
+- The design review package is waived for phases 4 to 6; I looked at renders of the connect flow at 720 wide in ION only.
 
 ## Phase 3b: the review package, and where the phase stands
 

@@ -16,8 +16,10 @@ import '../platform/native_location_source.dart';
 import '../trips/trip.dart';
 import '../trips/trip_library.dart';
 import '../ui/design/components/backdrop.dart';
+import '../ui/design/motion/motion_clock.dart';
 import '../ui/design/motion/motion_scope.dart';
 import '../ui/design/motion/observable_listenable.dart';
+import '../ui/dev/debug_overlay.dart';
 import '../ui/hud/hud_host.dart';
 import '../ui/hud/hud_settings.dart';
 import '../ui/pages/coach/coach_page.dart';
@@ -70,6 +72,8 @@ class DriveShell extends StatefulWidget {
     this.onChangeAdapter,
     this.phoneHot,
     this.phoneTemperature,
+    this.debugRows = const [],
+    this.onOpenLab,
   });
 
   final Clock clock;
@@ -98,6 +102,13 @@ class DriveShell extends StatefulWidget {
 
   /// The battery temperature, for Garage to say so when it is high.
   final Observable<double?>? phoneTemperature;
+
+  /// What the app knows about the phone, for the debug overlay (its own rows come
+  /// after the drive's).
+  final List<DebugRow> debugRows;
+
+  /// Opens the Design Lab from the debug overlay.
+  final VoidCallback? onOpenLab;
 
   @override
   State<DriveShell> createState() => _DriveShellState();
@@ -136,6 +147,11 @@ class _DriveShellState extends State<DriveShell> {
   MoneySignals? _money;
   DriveSignals? _signals;
   _Form _form = _Form.none;
+
+  /// The debug overlay (CLAUDE.md 9), opened by a long-press.
+  bool _debug = false;
+  final List<ChangeNotifier> _debugSources = [];
+  List<DebugRow> _rows = const [];
 
   @override
   void didChangeDependencies() {
@@ -208,7 +224,40 @@ class _DriveShellState extends State<DriveShell> {
       settings.speedLimitKmh.addListener(_onCoach);
       settings.cluster.addListener(_onCluster);
       _loadDescriptions();
+      _buildDebugRows(services);
     }
+  }
+
+  void _buildDebugRows(DriveServices services) {
+    ObservableListenable<T> watch<T>(Observable<T> o) {
+      final l = ObservableListenable<T>(o);
+      _debugSources.add(l);
+      return l;
+    }
+
+    DebugRow row(
+      String label,
+      List<Listenable> sources,
+      String Function() text,
+    ) {
+      final c = ComputedText(sources, text);
+      _debugSources.add(c);
+      return DebugRow(label, c);
+    }
+
+    final poll = watch(_feed.pollRate);
+    final link = watch(_feed.connection);
+    final description = watch(_feed.description);
+    final source = watch(services.estimator.source);
+    _rows = [
+      row('Source', [description], () => _feed.description.value),
+      row('Link', [link], () => _feed.connection.value.name),
+      row('Poll rate', [
+        poll,
+      ], () => '${_feed.pollRate.value.toStringAsFixed(1)} /s'),
+      row('Fuel from', [source], () => services.estimator.source.value.label),
+      ...widget.debugRows,
+    ];
   }
 
   Future<void> _onTripEnded(Trip trip) async {
@@ -268,6 +317,9 @@ class _DriveShellState extends State<DriveShell> {
     settings.cluster.removeListener(_onCluster);
     _debrief.dispose();
     _diagnostics?.dispose();
+    for (final source in _debugSources) {
+      source.dispose();
+    }
     _signals?.dispose();
     _money?.dispose();
     _services?.close();
@@ -367,79 +419,121 @@ class _DriveShellState extends State<DriveShell> {
       builder: (context, box) {
         final w = box.maxWidth;
         final h = box.maxHeight;
-        return HudHost(
-          settings: _hud,
-          signals: signals,
-          money: _money,
-          width: w,
-          height: h,
-          child: Stack(
-            children: [
-              TheStrip(
-                key: _stripKey,
-                width: w,
-                height: h,
-                motion: motion,
-                mode: signals.mode,
-                onToggleHud: _hud.toggle,
-                pages: [
-                  ReviewPage(
-                    debrief: _debrief,
-                    library: _library,
-                    mode: signals.mode,
-                    width: w,
-                    height: h,
-                  ),
-                  MoneyPage(
-                    signals: signals,
-                    width: w,
-                    height: h,
-                    onPitStop: () => _open(_Form.pitStop),
-                    onSetPrice: () => _open(_Form.price),
-                  ),
-                  DrivePage(
-                    key: _driveKey,
-                    signals: signals,
-                    motion: motion,
-                    width: w,
-                    height: h,
-                    initialCluster: _app.settings.cluster.value,
-                    onClusterSettled: (i) => _app.settings.cluster.value = i,
-                  ),
-                  CoachPage(
-                    library: _library,
-                    clock: widget.clock,
-                    mode: signals.mode,
-                    width: w,
-                    height: h,
-                  ),
-                  HistoryPage(
-                    library: _library,
-                    clock: widget.clock,
-                    width: w,
-                    height: h,
-                    onOpen: (_) => _stripKey.currentState?.goTo(0),
-                  ),
-                ],
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                // A long-press opens the debug overlay: for the person testing in a
+                // car, never shown by itself.
+                behavior: HitTestBehavior.translucent,
+                // Nothing to announce: it is a tool, and a gesture node over the
+                // whole screen upsets the semantics tree of what is under it.
+                excludeFromSemantics: true,
+                onLongPress: () => setState(() => _debug = true),
+                child: _driving(signals, motion, w, h),
               ),
-              ParkedDock(
-                mode: signals.mode,
-                motion: motion,
-                width: w,
-                height: h,
-                onHud: _hud.toggle,
-                onPitStop: () => _open(_Form.pitStop),
-                onGarage: () => _open(_Form.garage),
-                onDiagnostics: () => _open(_Form.diagnostics),
-              ),
-              if (_form != _Form.none)
-                Positioned.fill(
-                  child: TapeBackdrop(child: _overlay(signals, w, h)),
+            ),
+            if (_debug)
+              Positioned(
+                left: 0,
+                top: 0,
+                // A tool for the person testing, not something to read out.
+                child: ExcludeSemantics(
+                  child: DebugOverlay(
+                    rows: _rows,
+                    onClose: () => setState(() => _debug = false),
+                    onOpenLab: widget.onOpenLab == null
+                        ? null
+                        : () {
+                            setState(() => _debug = false);
+                            widget.onOpenLab!();
+                          },
+                  ),
                 ),
-            ],
-          ),
+              ),
+          ],
         );
       },
+    );
+  }
+
+  Widget _driving(
+    DriveSignals signals,
+    MotionClock motion,
+    double w,
+    double h,
+  ) {
+    return HudHost(
+      settings: _hud,
+      signals: signals,
+      money: _money,
+      width: w,
+      height: h,
+      child: Stack(
+        children: [
+          TheStrip(
+            key: _stripKey,
+            width: w,
+            height: h,
+            motion: motion,
+            mode: signals.mode,
+            onToggleHud: _hud.toggle,
+            pages: [
+              ReviewPage(
+                debrief: _debrief,
+                library: _library,
+                mode: signals.mode,
+                width: w,
+                height: h,
+              ),
+              MoneyPage(
+                signals: signals,
+                width: w,
+                height: h,
+                onPitStop: () => _open(_Form.pitStop),
+                onSetPrice: () => _open(_Form.price),
+              ),
+              DrivePage(
+                key: _driveKey,
+                signals: signals,
+                motion: motion,
+                width: w,
+                height: h,
+                initialCluster: _app.settings.cluster.value,
+                onClusterSettled: (i) => _app.settings.cluster.value = i,
+              ),
+              CoachPage(
+                library: _library,
+                clock: widget.clock,
+                mode: signals.mode,
+                width: w,
+                height: h,
+              ),
+              HistoryPage(
+                library: _library,
+                clock: widget.clock,
+                width: w,
+                height: h,
+                onOpen: (_) => _stripKey.currentState?.goTo(0),
+              ),
+            ],
+          ),
+          ParkedDock(
+            mode: signals.mode,
+            motion: motion,
+            width: w,
+            height: h,
+            onHud: _hud.toggle,
+            onPitStop: () => _open(_Form.pitStop),
+            onGarage: () => _open(_Form.garage),
+            onDiagnostics: () => _open(_Form.diagnostics),
+          ),
+          if (_form != _Form.none)
+            Positioned.fill(
+              child: TapeBackdrop(child: _overlay(signals, w, h)),
+            ),
+        ],
+      ),
     );
   }
 }
