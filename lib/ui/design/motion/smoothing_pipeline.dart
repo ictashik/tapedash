@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import '../../../core/clock.dart';
+import '../../../core/dsp/tracking_filter.dart';
 import '../../../core/observable.dart';
 import '../../../vehicle/reading.dart';
 import '../tokens/motion_tokens.dart';
@@ -17,16 +18,25 @@ import 'spring_value.dart';
 /// each sample at the middle of its round trip (`Reading.at`), and `VehicleState`
 /// rejects the impossible ones. What is left:
 ///
-///  3. **Lead compensation** (optional): the target is the value plus its rate
-///     times a lead. The lead is 0 until it is tuned on a real car, capped at
-///     150 ms, and off while the rate is noisy.
+///  3. **Tracking** (for a signal given a [TrackingSpec]): a Kalman filter
+///     estimates the value and its velocity from the samples, and the target,
+///     every frame, is that estimate carried on to *now*. Samples from a cheap
+///     adapter come once or twice a second, and each one moves the target
+///     only by its correction, so the display does not stair-step, and the time
+///     a sample spent on the wire is made up for.
+///     **Lead compensation** (optional, for a signal without a tracker): the
+///     target is the value plus its rate times a lead. The lead is 0 until it
+///     is tuned on a real car, capped at 150 ms, and off while the rate is noisy.
 ///  4. **Spring**: the displayed value moves towards the target on a spring. Each
-///     new sample retargets it from the current position and velocity, so
-///     momentum is kept and nothing jumps.
+///     new sample retargets it from the current position and velocity (with a
+///     tracker, every frame follows the moving target), so momentum is kept and
+///     nothing jumps.
 ///  5. **Render**: painters read [value] on the frame they draw, from the one
 ///     [MotionClock].
 ///
-/// **Stale data:** with no sample for [staleAfter] the value holds, and
+/// **Stale data:** with no sample for [staleAfter] (or 2.5 times the signal's
+/// usual gap between samples, if that is longer, up to 4 s, so a slow adapter is
+/// not called stale between two of its own samples) the value holds, and
 /// [staleness] rises from 0 to 1 over 600 ms, which the readout draws as a fade
 /// to the `stale` colour. A fresh sample brings it back over 200 ms.
 ///
@@ -45,7 +55,9 @@ class SmoothedSignal extends ChangeNotifier
     double precision = 0.001,
     this.animateFirst = false,
     this.noiseFloor = 1,
+    TrackingSpec? tracking,
   }) : _lead = _capped(lead),
+       _filter = tracking == null ? null : TrackingFilter(tracking),
        _spring = SpringValue(
          clock: motion,
          spec: spring,
@@ -77,7 +89,10 @@ class SmoothedSignal extends ChangeNotifier
   final double noiseFloor;
 
   final SpringValue _spring;
+  final TrackingFilter? _filter;
   Duration _lead;
+  double _interval = 0;
+  Duration? _lastArrival;
   Observable<Reading?>? _source;
 
   Reading? _last;
@@ -103,7 +118,7 @@ class SmoothedSignal extends ChangeNotifier
 
   /// The rate of change of the readings, in units per second, lightly filtered.
   /// The trend vector on a tape reads this (DESIGN.md 6.3).
-  double get rate => _rate;
+  double get rate => _filter?.hasEstimate == true ? _filter!.velocity : _rate;
 
   /// Whether the readings are jumping about too much for the rate to be trusted:
   /// it has changed sign on each of the last two samples.
@@ -120,7 +135,16 @@ class SmoothedSignal extends ChangeNotifier
   /// Whether the value is stale now: nothing has arrived for [staleAfter].
   bool get isStale {
     final last = _last;
-    return last != null && last.age(clock.monotonic()) > staleAfter;
+    return last != null && last.age(clock.monotonic()) > _effectiveStaleAfter;
+  }
+
+  /// [staleAfter], or longer if this signal's samples come further apart than
+  /// that allows for: 2.5 of its usual gaps, at most 4 s.
+  Duration get _effectiveStaleAfter {
+    final adaptive = Duration(microseconds: (_interval * 2.5e6).round());
+    if (adaptive <= staleAfter) return staleAfter;
+    const cap = TapeMotion.staleAfterMax;
+    return adaptive > cap ? (cap > staleAfter ? cap : staleAfter) : adaptive;
   }
 
   Duration get lead => _lead;
@@ -178,6 +202,8 @@ class SmoothedSignal extends ChangeNotifier
     final previous = _last;
     if (previous == reading) return;
     _last = reading;
+    _noteArrival(reading.receivedAt);
+    _filter?.update(reading.value, reading.at);
     if (_held != null) return;
 
     if (previous == null) {
@@ -186,6 +212,8 @@ class SmoothedSignal extends ChangeNotifier
       } else {
         _spring.jumpTo(reading.value);
       }
+    } else if (_filter != null) {
+      // The tracker's estimate moves the target, a frame at a time, in [advance].
     } else {
       final seconds = (reading.at - previous.at).inMicroseconds / 1e6;
       if (seconds > 0) {
@@ -201,6 +229,16 @@ class SmoothedSignal extends ChangeNotifier
     }
     // Stay on the clock while fresh, to notice when it goes stale.
     motion.attach(this);
+  }
+
+  /// Keeps a running average of the gap between arrivals, for the stale limit.
+  void _noteArrival(Duration receivedAt) {
+    final before = _lastArrival;
+    _lastArrival = receivedAt;
+    if (before == null) return;
+    final gap = (receivedAt - before).inMicroseconds / 1e6;
+    if (gap <= 0 || gap > 10) return;
+    _interval = _interval == 0 ? gap : _interval + 0.2 * (gap - _interval);
   }
 
   /// Counts consecutive sign flips of the instantaneous rate, ignoring anything
@@ -221,7 +259,16 @@ class SmoothedSignal extends ChangeNotifier
   bool advance(double dt, Duration time) {
     final last = _last;
     if (last == null) return false;
-    final stale = last.age(clock.monotonic()) > staleAfter;
+    final stale = last.age(clock.monotonic()) > _effectiveStaleAfter;
+    final filter = _filter;
+    if (filter != null && _held == null && filter.hasEstimate) {
+      // Fresh: follow the estimate carried on to now. Stale: hold where the
+      // estimate was at the last sample, and let the spring settle there.
+      _spring.track(
+        stale ? filter.value : filter.predict(clock.monotonic()),
+        dt,
+      );
+    }
     final before = _staleness;
     if (stale) {
       _staleness = math.min(

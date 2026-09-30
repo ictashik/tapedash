@@ -75,11 +75,16 @@ void main() {
       run(const Duration(seconds: 1));
       final first = signals.rpm.value;
 
-      ingest(Sensor.rpm, 4000);
-      run(const Duration(seconds: 1));
+      // The car goes on saying 4000: the display settles on it. (Between the
+      // first sample and the second the tracker runs on ahead, as it would up
+      // a real ramp, by at most 800 rpm.)
+      for (var i = 0; i < 6; i++) {
+        ingest(Sensor.rpm, 4000);
+        run(const Duration(milliseconds: 500));
+      }
 
       expect(signals.rpm.value, isNot(first));
-      expect(signals.rpm.value, closeTo(4000, 1));
+      expect(signals.rpm.value, closeTo(4000, 60));
     });
   });
 

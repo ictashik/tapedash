@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/animation.dart' show Cubic, Curve, Curves;
 import 'package:flutter/physics.dart' show SpringDescription;
 
+import '../../../core/dsp/tracking_filter.dart';
+
 /// A spring, by its stiffness and damping ratio (mass is 1, DESIGN.md 5.3).
 class SpringSpec {
   const SpringSpec(this.name, this.stiffness, this.dampingRatio);
@@ -54,6 +56,40 @@ abstract final class TapeSprings {
 
 /// Durations, for fades and draw-ons only. Everything positional uses a spring
 /// (DESIGN.md 5.4).
+/// How each live signal is tracked between samples (DESIGN.md 5.2, step 3).
+///
+/// The sigmas are the size of the noise on a sample and how hard the signal can
+/// be pushed; the numbers are estimates from what a car does, to be tuned on the
+/// recordings of a real drive (docs/HARDWARE_HANDOFF.md).
+abstract final class TapeTracking {
+  /// Engine speed: 0.25 rpm steps, but the engine itself wanders about 20 rpm,
+  /// and a rev pull is 5000 rpm/s.
+  static const TrackingSpec rpm = TrackingSpec(
+    measurementSigma: 20,
+    accelerationSigma: 3500,
+    maxExtrapolation: 800,
+    min: 0,
+    extrapolationTau: Duration(milliseconds: 600),
+  );
+
+  /// Road speed: whole km/h steps, and a hard launch is about 10 km/h/s.
+  static const TrackingSpec speed = TrackingSpec(
+    measurementSigma: 0.7,
+    accelerationSigma: 6,
+    maxExtrapolation: 4,
+    min: 0,
+  );
+
+  /// Throttle position and engine load, in percent.
+  static const TrackingSpec percent = TrackingSpec(
+    measurementSigma: 1.5,
+    accelerationSigma: 150,
+    maxExtrapolation: 15,
+    min: 0,
+    max: 100,
+  );
+}
+
 abstract final class TapeDurations {
   static const Duration micro = Duration(milliseconds: 120);
   static const Duration quick = Duration(milliseconds: 220);
@@ -95,6 +131,10 @@ abstract final class TapeMotion {
   static const Duration staleAfter = Duration(milliseconds: 1500);
   static const Duration staleFade = Duration(milliseconds: 600);
   static const Duration staleRecover = Duration(milliseconds: 200);
+
+  /// A signal whose samples come far apart is allowed 2.5 of its own gaps before
+  /// it is stale, but never longer than this (DESIGN.md 5.2).
+  static const Duration staleAfterMax = Duration(seconds: 4);
 
   /// The odometer's detent (DESIGN.md 5.6): a digit rests centred for the first
   /// 0.3 of the way to the next one, rolls through the middle 0.4, and rests on

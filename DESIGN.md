@@ -235,11 +235,11 @@ Never animate live data with a fixed-duration tween. Never make a UI transition 
 ### 5.2 The smoothing pipeline (live data to pixels)
 1. **Timestamp** each PID sample at receipt minus half the measured round-trip latency, since the value was read mid-request.
 2. **Reject outliers:** discard a sample implying a physically impossible change (RPM faster than 10,000 rpm/s; speed changing more than 15 km/h in 100 ms) unless the next sample confirms it.
-3. **Lead compensation (optional):** target = value + rate × lead. Default lead is 0 ms. It's tuned after the hardware handoff, capped at 150 ms, and disabled when the rate is noisy.
-4. **Spring** the displayed value towards the target (§5.3). On every new sample, retarget by creating a new `SpringSimulation` from the current position and velocity. This preserves momentum and never jumps.
+3. **Track (for the fast, low-rate signals: RPM, speed, throttle, load):** a two-state Kalman filter (value and velocity, `lib/core/dsp/tracking_filter.dart`) takes each sample and estimates where the signal is and how fast it is moving. Every frame the target is that estimate carried on to *now*: run ahead at the estimated velocity, which fades with a 0.5 to 0.6 s time constant, by at most a small cap (800 rpm, 4 km/h, 15 %), never past the signal's physical range, and never for more than 1.5 s. This is what makes a cheap adapter's 1 to 2 samples a second read as motion rather than as steps, and it makes up for the sample's time on the wire. The filter's gain is computed from how noisy a sample is and how hard the signal can be pushed (`TapeTracking` in the tokens), so the slower the samples, the more each one is believed. **Lead compensation (for a signal without a tracker):** target = value + rate × lead. Default lead is 0 ms. It's tuned after the hardware handoff, capped at 150 ms, and disabled when the rate is noisy.
+4. **Spring** the displayed value towards the target (§5.3). On every new sample, retarget by creating a new `SpringSimulation` from the current position and velocity. This preserves momentum and never jumps. A tracked signal's target moves every frame, so its spring is stepped in closed form (`SpringValue.track`: the same spring, exact for the frame, no allocation) instead of being restarted.
 5. **Render** from the spring state, driven by the single `MotionClock` vsync ticker.
 
-**Stale data** (no sample for 1.5 s): the value holds, fades to `stale` over 600 ms, and needles stop. Fresh data returns it to colour over 200 ms.
+**Stale data** (no sample for 1.5 s, or for 2.5 times the signal's usual gap between samples if that is longer, at most 4 s, so a slow adapter is not called stale between two of its own samples): the value holds, fades to `stale` over 600 ms, and needles stop. Fresh data returns it to colour over 200 ms.
 
 ### 5.3 Spring tokens
 Built with `SpringDescription.withDampingRatio`, mass 1.

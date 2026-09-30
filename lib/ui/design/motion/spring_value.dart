@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/physics.dart';
 
@@ -68,6 +70,47 @@ class SpringValue extends ChangeNotifier
     );
     _startedAt = clock.now;
     clock.attach(this);
+  }
+
+  /// Follows a target that moves every frame (the tracking filter's estimate,
+  /// see `SmoothedSignal`), by one frame of [dt] seconds.
+  ///
+  /// It is the same spring, in closed form: the exact position and velocity
+  /// after [dt] with the target held where it is, so it needs no
+  /// `SpringSimulation` and allocates nothing, and a dropped frame (a larger
+  /// [dt]) changes nothing but the step. Tells its listeners only if the value
+  /// moved.
+  void track(double target, double dt) {
+    if (_disposed || !target.isFinite || !(dt > 0)) return;
+    _simulation = null;
+    _target = target;
+    final w = math.sqrt(_spec.stiffness);
+    final zeta = _spec.dampingRatio;
+    final d = _value - target;
+    final v = _velocity;
+    double d2;
+    double v2;
+    if (zeta >= 1) {
+      // Critically damped (an over-damped spring is treated as critical: the
+      // tokens have none).
+      final e = math.exp(-w * dt);
+      d2 = e * (d + (v + w * d) * dt);
+      v2 = e * (v - w * (v + w * d) * dt);
+    } else {
+      final wd = w * math.sqrt(1 - zeta * zeta);
+      final e = math.exp(-zeta * w * dt);
+      final c = math.cos(wd * dt);
+      final sn = math.sin(wd * dt);
+      d2 = e * (d * c + (v + zeta * w * d) / wd * sn);
+      v2 = e * (v * c - (zeta * w * v + w * w * d) / wd * sn);
+    }
+    final x = target + d2;
+    if (!x.isFinite || !v2.isFinite) return;
+    final moved =
+        (x - _value).abs() > precision * 0.01 || (v2 - v).abs() > precision;
+    _value = x;
+    _velocity = v2;
+    if (moved) notifyListeners();
   }
 
   /// Puts the value at [value] at once, at rest. For the first reading of a
