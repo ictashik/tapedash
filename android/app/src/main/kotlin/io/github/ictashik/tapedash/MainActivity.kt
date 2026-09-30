@@ -9,6 +9,7 @@ class MainActivity : FlutterActivity() {
     private var bluetoothPermissions: BluetoothPermissions? = null
     private var btClassic: BtClassicChannel? = null
     private var ble: BleChannel? = null
+    private var engineAudio: EngineAudioChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -19,6 +20,7 @@ class MainActivity : FlutterActivity() {
         bluetoothPermissions = permissions
         btClassic = BtClassicChannel(this, messenger, permissions)
         ble = BleChannel(this, messenger, permissions)
+        engineAudio = EngineAudioChannel(this, messenger)
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
@@ -30,9 +32,17 @@ class MainActivity : FlutterActivity() {
         btClassic = null
         ble?.dispose()
         ble = null
+        engineAudio?.dispose()
+        engineAudio = null
         bluetoothPermissions?.dispose()
         bluetoothPermissions = null
         super.cleanUpFlutterEngine(flutterEngine)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // The engine sound is a sound of the screen that is showing (no service).
+        engineAudio?.onAppStopped()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
