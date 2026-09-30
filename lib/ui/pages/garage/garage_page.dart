@@ -3,11 +3,14 @@ import 'package:flutter/widgets.dart';
 
 import '../../../app/app_services.dart';
 import '../../../app/app_settings.dart';
+import '../../../app/drive_sound.dart';
 import '../../../core/fuel_blend.dart';
 import '../../../core/observable.dart';
 import '../../../fuel/fuel_constants.dart';
 import '../../../money/calibration.dart';
 import '../../../obd/adapter_config.dart';
+import '../../../sound/engine_profile.dart';
+import '../../../sound/engine_sound.dart' show SoundStatus;
 import '../../../trips/trip_library.dart';
 import '../../../vehicle/vehicle_state.dart' show DrivingMode;
 import '../../design/components/controls/slide_to_confirm.dart';
@@ -56,8 +59,12 @@ class GaragePage extends StatefulWidget {
     this.demo,
     this.onEndTrip,
     this.onAlignment,
+    this.sound,
     this.version = 'dev',
   });
+
+  /// The engine sound, for its group: null leaves the group out.
+  final DriveSound? sound;
 
   final AppSettings settings;
 
@@ -127,6 +134,14 @@ class GaragePageState extends State<GaragePage> {
       s.demoScenario,
       s.demoProfile,
       s.hud,
+      s.soundEnabled,
+      s.soundProfile,
+      s.soundVolume,
+      s.soundOnSpeaker,
+      if (widget.sound != null) ...[
+        widget.sound!.status,
+        widget.sound!.testing,
+      ],
       ObservableListenable(widget.services.setup),
       ObservableListenable(widget.services.money.price),
       ObservableListenable(widget.services.ledger.confidence),
@@ -441,6 +456,7 @@ class GaragePageState extends State<GaragePage> {
             onChanged: (v) => s.speedLimitKmh.value = (v / 5).round() * 5.0,
           ),
         ]),
+        if (widget.sound != null) _soundGroup(s, widget.sound!),
         _Group('Display', [
           _Field(
             'Brightness mode',
@@ -599,6 +615,73 @@ class GaragePageState extends State<GaragePage> {
         ),
       ],
     ]);
+  }
+
+  /// The engine sound (lib/sound): off until turned on. It plays only on car audio
+  /// unless the speaker is allowed, and the test plays on whatever there is.
+  Widget _soundGroup(AppSettings s, DriveSound sound) {
+    final profile = EngineProfile.byId(s.soundProfile.value);
+    final testing = sound.testing.value;
+    return _Group('Engine sound', [
+      _Toggle(
+        'Engine sound',
+        s.soundEnabled.value,
+        (v) => s.soundEnabled.value = v,
+      ),
+      TapeListRow(
+        label: 'Engine',
+        value: profile.name,
+        onTap: () => _pick(
+          _choose<String>(
+            'Engine',
+            [
+              for (final p in EngineProfile.all)
+                (p.id, '${p.name}  ·  ${p.description}'),
+            ],
+            profile.id,
+            (id) => s.soundProfile.value = id,
+          ),
+        ),
+      ),
+      TapeSlider(
+        label: 'Volume',
+        value: s.soundVolume.value,
+        min: 0.05,
+        max: 1,
+        format: (v) => '${(v * 100).round()}%',
+        onChanged: (v) => s.soundVolume.value = (v * 20).round() / 20,
+      ),
+      _Toggle(
+        'Also on the phone speaker',
+        s.soundOnSpeaker.value,
+        (v) => s.soundOnSpeaker.value = v,
+      ),
+      TapeListRow(
+        label: testing ? 'Stop the test' : 'Test the sound',
+        value: testing ? 'Playing' : 'Ten seconds, on whatever output there is',
+        chevron: false,
+        onTap: () => sound.test(),
+      ),
+      _Info(_soundStatus(sound.status.value, s.soundEnabled.value), _soundNote),
+    ]);
+  }
+
+  static const String _soundNote =
+      'It plays on car audio (Bluetooth, a wire, USB) and stops when the app leaves '
+      'the screen. Turned on, it follows the revs: a replay in Review has it too.';
+
+  static String _soundStatus(SoundStatus status, bool enabled) {
+    if (!enabled) return 'Off';
+    return switch (status) {
+      SoundStatus.off => 'On: starts when the app is on screen',
+      SoundStatus.starting => 'Starting',
+      SoundStatus.playing => 'Playing',
+      SoundStatus.noOutput =>
+        'No car audio to play on: connect the phone to the car, or allow the speaker',
+      SoundStatus.lost =>
+        'Stopped: the audio output went away. Turn it off and on to start again',
+      SoundStatus.failed => 'The phone would not start its audio output',
+    };
   }
 
   Future<void> _deleteAll() async {

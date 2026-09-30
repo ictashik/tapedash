@@ -6,10 +6,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/app/app_services.dart';
 import 'package:tapedash/app/app_settings.dart';
 import 'package:tapedash/app/demo_drive.dart';
+import 'package:tapedash/app/drive_sound.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/core/fuel_blend.dart';
 import 'package:tapedash/core/observable.dart';
 import 'package:tapedash/fuel/fuel_constants.dart';
+import 'package:tapedash/sound/engine_profile.dart';
+import 'package:tapedash/sound/engine_sound.dart';
+import 'package:tapedash/sound/pcm_sink.dart';
+import 'package:tapedash/sound/voice_host.dart';
 import 'package:tapedash/trips/trip.dart';
 import 'package:tapedash/trips/trip_library.dart';
 import 'package:tapedash/ui/design/components/controls/slide_to_confirm.dart';
@@ -24,6 +29,45 @@ import 'package:tapedash/ui/pages/garage/garage_page.dart';
 import 'package:tapedash/vehicle/vehicle_state.dart' show DrivingMode;
 
 import '../design/support/harness.dart';
+
+/// A voice that plays nothing and says it started.
+class _QuietVoice implements VoiceHost {
+  bool running = false;
+
+  @override
+  Stream<String> get events => const Stream.empty();
+
+  @override
+  Future<SinkStart> start(
+    EngineProfile profile, {
+    required double volume,
+    bool requireExternalOutput = false,
+  }) async {
+    running = true;
+    return SinkStart.started;
+  }
+
+  @override
+  void setProfile(EngineProfile profile) {}
+
+  @override
+  void setVolume(double volume) {}
+
+  @override
+  void setControls({
+    required double rpm,
+    required double load,
+    required bool active,
+  }) {}
+
+  @override
+  Future<void> stop() async => running = false;
+}
+
+class _NoSource implements EngineSoundSource {
+  @override
+  bool read(EngineControls out) => false;
+}
 
 void main() {
   late TapeRenderKit kit;
@@ -65,6 +109,7 @@ void main() {
     WidgetTester tester, {
     Size size = const Size(720, 360),
     bool withDemo = true,
+    DriveSound? sound,
   }) async {
     setWindow(tester, size);
     await tester.pumpWidget(
@@ -82,6 +127,7 @@ void main() {
           onSetPrice: () => priceAsked++,
           demo: withDemo ? demo : null,
           onEndTrip: () => endTrips++,
+          sound: sound,
           version: '9.9',
         ),
       ),
@@ -501,5 +547,122 @@ void main() {
     mode.value = DrivingMode.motion;
     await tester.pump();
     expect(closed, 2);
+  });
+
+  group('the engine sound', () {
+    late DriveSound sound;
+
+    setUp(() {
+      sound = DriveSound(
+        settings: settings,
+        live: _NoSource(),
+        scheduler: clock,
+        clock: clock,
+        hostFactory: _QuietVoice.new,
+      );
+    });
+
+    tearDown(() => sound.dispose());
+
+    testWidgets('it has a group of its own, off to begin with', (tester) async {
+      await show(tester, sound: sound);
+
+      await visible(tester, find.text('Also on the phone speaker'));
+      expect(find.text('ENGINE SOUND'), findsOneWidget);
+      expect(find.text('Off'), findsOneWidget);
+      expect(settings.soundEnabled.value, isFalse);
+      expect(find.text('Inline-4'), findsOneWidget);
+    });
+
+    testWidgets('with none given the group is not there', (tester) async {
+      await show(tester);
+
+      expect(find.text('Also on the phone speaker'), findsNothing);
+      expect(find.text('Test the sound'), findsNothing);
+    });
+
+    testWidgets('the toggle turns it on, and the status says it is playing', (
+      tester,
+    ) async {
+      sound.start();
+      await show(tester, sound: sound);
+      await visible(tester, find.text('Engine sound'));
+
+      await tester.tap(find.text('Engine sound'));
+      await tester.pump();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pump();
+
+      expect(settings.soundEnabled.value, isTrue);
+      expect(find.text('Playing'), findsOneWidget);
+    });
+
+    testWidgets('an engine is chosen from a list of them, each described', (
+      tester,
+    ) async {
+      await show(tester, sound: sound);
+      await visible(tester, find.text('Inline-4'));
+
+      await tester.tap(find.text('Inline-4'));
+      await tester.pump();
+      for (final p in EngineProfile.all) {
+        await visible(tester, find.textContaining(p.name));
+        expect(find.textContaining(p.name), findsOneWidget, reason: p.id);
+      }
+      await visible(tester, find.textContaining('V8'));
+      await tester.tap(find.textContaining('V8'));
+      await tester.pump();
+
+      expect(settings.soundProfile.value, 'v8');
+      await visible(tester, find.text('V8'));
+      expect(find.text('V8'), findsOneWidget);
+    });
+
+    testWidgets('the speaker is allowed by its own toggle', (tester) async {
+      await show(tester, sound: sound);
+      await visible(tester, find.text('Also on the phone speaker'));
+      expect(settings.soundOnSpeaker.value, isFalse);
+
+      await tester.tap(find.text('Also on the phone speaker'));
+      await tester.pump();
+
+      expect(settings.soundOnSpeaker.value, isTrue);
+    });
+
+    testWidgets('the test row plays, and says so, and stops', (tester) async {
+      sound.start();
+      await show(tester, sound: sound);
+      await visible(tester, find.text('Test the sound'));
+
+      await tester.tap(find.text('Test the sound'));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pump();
+
+      expect(sound.testing.value, isTrue);
+      expect(find.text('Stop the test'), findsOneWidget);
+
+      await tester.tap(find.text('Stop the test'));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pump();
+      expect(sound.testing.value, isFalse);
+      expect(find.text('Test the sound'), findsOneWidget);
+    });
+
+    for (final size in const [Size(640, 360), Size(720, 360), Size(800, 360)]) {
+      testWidgets('lays out at ${size.width.toInt()}x360', (tester) async {
+        await show(tester, size: size, sound: sound);
+
+        await visible(tester, find.text('Also on the phone speaker'));
+        await visible(tester, find.textContaining('TapeDash 9.9'));
+
+        expect(tester.takeException(), isNull);
+      });
+    }
   });
 }

@@ -13,6 +13,7 @@ import '../money/pit_stop_form.dart';
 import '../obd/dtc/dtc_descriptions.dart';
 import '../obd/session_diagnostics.dart';
 import '../platform/native_location_source.dart';
+import '../sound/voice_host.dart';
 import '../trips/trip.dart';
 import '../trips/trip_library.dart';
 import '../ui/design/components/backdrop.dart';
@@ -41,6 +42,8 @@ import 'demo_drive.dart';
 import 'demo_location_source.dart';
 import 'drive_feed.dart';
 import 'drive_services.dart';
+import 'drive_sound.dart';
+import 'engine_sound_sources.dart';
 import 'live_drive.dart';
 
 /// Which full-screen form is over the Strip.
@@ -74,7 +77,13 @@ class DriveShell extends StatefulWidget {
     this.phoneTemperature,
     this.debugRows = const [],
     this.onOpenLab,
+    this.soundHost,
   });
+
+  /// Makes the engine sound's voice (lib/sound). Null uses the real one, which plays
+  /// on the phone's audio output from an isolate of its own; tests give one in
+  /// memory.
+  final VoiceHost Function()? soundHost;
 
   final Clock clock;
   final Scheduler scheduler;
@@ -149,6 +158,9 @@ class _DriveShellState extends State<DriveShell> {
   final ValueNotifier<bool> _tripRunning = ValueNotifier(false);
   MoneySignals? _money;
   DriveSignals? _signals;
+
+  /// The engine sound: off until it is turned on in Garage.
+  DriveSound? _sound;
   _Form _form = _Form.none;
 
   /// The debug overlay (CLAUDE.md 9), opened by a long-press.
@@ -210,6 +222,14 @@ class _DriveShellState extends State<DriveShell> {
         ignitionMode: _app.settings.ignition.value,
         reduceMotion: _app.settings.reduceMotion.value,
       );
+      _sound = DriveSound(
+        settings: _app.settings,
+        live: LiveSoundSource(_signals!),
+        scheduler: widget.scheduler,
+        clock: widget.clock,
+        hostFactory: widget.soundHost,
+        note: _feed is LiveDrive ? _feed.note : null,
+      )..start();
       _diagnostics = SessionDiagnostics(
         sessions: _feed.sessions,
         estimator: services.estimator,
@@ -329,6 +349,7 @@ class _DriveShellState extends State<DriveShell> {
     for (final source in _debugSources) {
       source.dispose();
     }
+    _sound?.dispose();
     _signals?.dispose();
     _money?.dispose();
     _services?.recorder.phase.removeListener(_syncTrip);
@@ -390,6 +411,7 @@ class _DriveShellState extends State<DriveShell> {
           phoneTemperature: widget.phoneTemperature,
           onEndTrip: () => _services?.recorder.endNow(),
           onAlignment: () => _hud.showAlignment = true,
+          sound: _sound,
           version: appVersion,
         );
       case _Form.diagnostics:
@@ -492,6 +514,7 @@ class _DriveShellState extends State<DriveShell> {
             pages: [
               ReviewPage(
                 debrief: _debrief,
+                replaySound: _sound,
                 library: _library,
                 mode: signals.mode,
                 width: w,

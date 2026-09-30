@@ -38,6 +38,7 @@ import '../../design/tokens/typography.dart';
 import '../money/bucket_breakdown.dart';
 import '../money/money_figure.dart';
 import 'replay_hud.dart';
+import 'replay_sound.dart';
 import 'roll_up_source.dart';
 
 /// A request for the Debrief to play (DESIGN.md 7.5): the shell makes one when a
@@ -136,7 +137,11 @@ class ReviewPage extends StatefulWidget {
     this.tips = const TipEngine(),
     this.reduceMotion = false,
     this.debrief,
+    this.replaySound,
   });
+
+  /// The engine sound, which follows a replay when it is on (null with none).
+  final ReplaySound? replaySound;
 
   /// Asks the page to play the Debrief, when it is on screen.
   final DebriefRequest? debrief;
@@ -267,6 +272,7 @@ class ReviewPageState extends State<ReviewPage> {
 
   @override
   void dispose() {
+    if (_replaying) widget.replaySound?.end();
     widget.library.selected.removeListener(_onSelected);
     widget.debrief?.removeListener(_onDebriefRequest);
     _debrief?.dispose();
@@ -413,6 +419,7 @@ class ReviewPageState extends State<ReviewPage> {
     _follow = true;
     _wasChasing = false;
     _heading = 0;
+    widget.replaySound?.begin(player);
     setState(() {
       _replaying = true;
       _hudBuilt = true;
@@ -442,6 +449,7 @@ class ReviewPageState extends State<ReviewPage> {
   void _leaveReplay() {
     if (!_replaying) return;
     _replaying = false;
+    widget.replaySound?.end();
     _player?.pause();
     _car.hide();
     _playhead.value = null;

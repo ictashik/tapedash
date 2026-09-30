@@ -48,6 +48,10 @@ class AppSettings {
   static const _scenarioKey = 'demo_scenario';
   static const _profileKey = 'demo_profile';
   static const _onboardedKey = 'onboarded';
+  static const _soundKey = 'sound_enabled';
+  static const _soundProfileKey = 'sound_profile';
+  static const _soundVolumeKey = 'sound_volume';
+  static const _soundSpeakerKey = 'sound_speaker';
   static const _hudColorKey = 'hud_color';
   static const _hudLayoutKey = 'hud_layout';
   static const _hudFlipHKey = 'hud_flip_h';
@@ -83,6 +87,15 @@ class AppSettings {
   final ValueNotifier<double> speedLimitKmh = ValueNotifier(100);
   final ValueNotifier<String> demoScenario = ValueNotifier('city_stop_go');
   final ValueNotifier<String> demoProfile = ValueNotifier('');
+
+  /// The engine sound (lib/sound): off until it is turned on, the engine it makes,
+  /// how loud (0 to 1 of full scale, under the phone's own volume), and whether it
+  /// may play on the phone's own speaker on a drive (by default it plays only on car
+  /// audio, a wire or USB, so that it never blares from the dash).
+  final ValueNotifier<bool> soundEnabled = ValueNotifier(false);
+  final ValueNotifier<String> soundProfile = ValueNotifier('inline4');
+  final ValueNotifier<double> soundVolume = ValueNotifier(0.7);
+  final ValueNotifier<bool> soundOnSpeaker = ValueNotifier(false);
 
   /// Whether the choice at first launch has been made, so it is not asked again.
   final ValueNotifier<bool> onboarded = ValueNotifier(false);
@@ -133,6 +146,13 @@ class AppSettings {
     demoScenario.value = await _store.getString(_scenarioKey) ?? 'city_stop_go';
     demoProfile.value = await _store.getString(_profileKey) ?? '';
     onboarded.value = await _store.getBool(_onboardedKey) ?? false;
+    soundEnabled.value = await _store.getBool(_soundKey) ?? false;
+    soundProfile.value = await _store.getString(_soundProfileKey) ?? 'inline4';
+    soundVolume.value = (await _store.getDouble(_soundVolumeKey) ?? 0.7).clamp(
+      0.0,
+      1.0,
+    );
+    soundOnSpeaker.value = await _store.getBool(_soundSpeakerKey) ?? false;
 
     hud
       ..color = pick(
@@ -196,6 +216,18 @@ class AppSettings {
       () => _store.setString(_profileKey, demoProfile.value),
     );
     onboarded.addListener(() => _store.setBool(_onboardedKey, onboarded.value));
+    soundEnabled.addListener(
+      () => _store.setBool(_soundKey, soundEnabled.value),
+    );
+    soundProfile.addListener(
+      () => _store.setString(_soundProfileKey, soundProfile.value),
+    );
+    soundVolume.addListener(
+      () => _store.setDouble(_soundVolumeKey, soundVolume.value),
+    );
+    soundOnSpeaker.addListener(
+      () => _store.setBool(_soundSpeakerKey, soundOnSpeaker.value),
+    );
     hud.addListener(() {
       _store.setString(_hudColorKey, hud.color.name);
       _store.setString(_hudLayoutKey, hud.layout.name);
@@ -221,6 +253,10 @@ class AppSettings {
       demoScenario,
       demoProfile,
       onboarded,
+      soundEnabled,
+      soundProfile,
+      soundVolume,
+      soundOnSpeaker,
     ]) {
       n.dispose();
     }

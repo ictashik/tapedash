@@ -16,6 +16,21 @@ class EngineControls {
 /// Where the engine sound gets its controls: the drive's smoothed signals
 /// (live), or a replayed trip.
 abstract interface class EngineSoundSource {
+  /// The load the engine is under, 0 to 1, from the throttle position and the
+  /// engine load, both in percent (either may be missing: pass 0).
+  ///
+  /// An engine at an idle reports a throttle of about 12 % and a load of 25 to 30 %,
+  /// and that is no load to the ear: each is measured from its idle, and the load is
+  /// weighed a little below the throttle, which is what the driver's foot is doing.
+  static double loadFrom(double throttlePercent, double loadPercent) {
+    final foot = (throttlePercent - 12) / 88;
+    final engine = (loadPercent - 28) / 72 * 0.85;
+    return (foot > engine ? foot : engine).clamp(0.0, 1.0).toDouble();
+  }
+
+  /// The revs below which there is no engine to hear: off, or turning over.
+  static const double minRpm = 350;
+
   /// Fills [out] with the revs and the load as they should sound now, and says
   /// whether there is an engine to hear: false with no data, a stale link, or the
   /// engine off, and the sound fades out.

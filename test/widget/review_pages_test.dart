@@ -16,16 +16,33 @@ import 'package:tapedash/ui/design/components/telemetry_scrubber.dart';
 import 'package:tapedash/ui/design/components/trip_transport.dart';
 import 'package:tapedash/ui/design/icons/icons.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
+import 'package:tapedash/ui/design/motion/trip_player.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
 import 'package:tapedash/ui/pages/coach/coach_page.dart';
 import 'package:tapedash/ui/pages/history/history_page.dart';
 import 'package:tapedash/ui/pages/review/replay_hud.dart';
+import 'package:tapedash/ui/pages/review/replay_sound.dart';
 import 'package:tapedash/ui/pages/review/review_page.dart';
 import 'package:tapedash/vehicle/vehicle_state.dart' show DrivingMode;
 
 import '../design/support/harness.dart';
 
 const _sizes = [Size(640, 360), Size(720, 360), Size(800, 360)];
+
+/// A [ReplaySound] that writes down what it is told.
+class _RecordingSound implements ReplaySound {
+  final List<String> events = [];
+  TripPlayer? player;
+
+  @override
+  void begin(TripPlayer player) {
+    events.add('begin');
+    this.player = player;
+  }
+
+  @override
+  void end() => events.add('end');
+}
 
 /// A trip with a tip in it: 14 minutes of idling in a 20 minute trip.
 Future<Trip> addTrip(
@@ -1103,6 +1120,65 @@ void main() {
       await tester.pump();
 
       expect(state.isReplaying, isFalse);
+    });
+
+    testWidgets('the engine sound is told when the replay begins and ends', (
+      tester,
+    ) async {
+      final sound = _RecordingSound();
+      await tester.runAsync(() async {
+        await addTrip(repo, channels: true);
+        await library.refresh();
+      });
+      await show(
+        tester,
+        (s) => ReviewPage(
+          library: library,
+          mode: mode,
+          width: s.width,
+          height: s.height,
+          replaySound: sound,
+        ),
+      );
+      final state = tester.state<ReviewPageState>(find.byType(ReviewPage));
+
+      await tapPlay(tester);
+      await run(tester, 1);
+      expect(sound.events, ['begin']);
+      expect(sound.player, same(state.player));
+
+      await tapPlay(tester); // pause: still a replay
+      expect(sound.events, ['begin']);
+
+      state.endReplay();
+      expect(sound.events, ['begin', 'end']);
+    });
+
+    testWidgets('a page taken away mid-replay puts the sound away', (
+      tester,
+    ) async {
+      final sound = _RecordingSound();
+      await tester.runAsync(() async {
+        await addTrip(repo, channels: true);
+        await library.refresh();
+      });
+      await show(
+        tester,
+        (s) => ReviewPage(
+          library: library,
+          mode: mode,
+          width: s.width,
+          height: s.height,
+          replaySound: sound,
+        ),
+      );
+      await tapPlay(tester);
+      await run(tester, 1);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+
+      expect(sound.events, ['begin', 'end']);
     });
 
     for (final size in _sizes) {
