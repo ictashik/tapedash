@@ -53,13 +53,13 @@ class DriveSignals {
          motion: motion,
          clock: clock,
          spring: TapeSprings.needle,
-         tracking: TapeTracking.rpm,
+         playout: TapePlayout.rpm,
        ),
        speed = SmoothedSignal(
          motion: motion,
          clock: clock,
          spring: TapeSprings.gauge,
-         tracking: TapeTracking.speed,
+         playout: TapePlayout.speed,
        ),
        coolant = SmoothedSignal(
          motion: motion,
@@ -70,7 +70,7 @@ class DriveSignals {
          motion: motion,
          clock: clock,
          spring: TapeSprings.needle,
-         tracking: TapeTracking.percent,
+         playout: TapePlayout.percent,
        ),
        voltage = SmoothedSignal(
          motion: motion,
@@ -81,7 +81,7 @@ class DriveSignals {
          motion: motion,
          clock: clock,
          spring: TapeSprings.needle,
-         tracking: TapeTracking.percent,
+         playout: TapePlayout.percent,
        ),
        longitudinalAcceleration = SmoothedSignal(
          motion: motion,

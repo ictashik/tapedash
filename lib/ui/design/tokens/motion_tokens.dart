@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/animation.dart' show Cubic, Curve, Curves;
 import 'package:flutter/physics.dart' show SpringDescription;
 
-import '../../../core/dsp/tracking_filter.dart';
+import '../../../core/dsp/playout.dart';
 
 /// A spring, by its stiffness and damping ratio (mass is 1, DESIGN.md 5.3).
 class SpringSpec {
@@ -56,38 +56,20 @@ abstract final class TapeSprings {
 
 /// Durations, for fades and draw-ons only. Everything positional uses a spring
 /// (DESIGN.md 5.4).
-/// How each live signal is tracked between samples (DESIGN.md 5.2, step 3).
-///
-/// The sigmas are the size of the noise on a sample and how hard the signal can
-/// be pushed; the numbers are estimates from what a car does, to be tuned on the
-/// recordings of a real drive (docs/HARDWARE_HANDOFF.md).
-abstract final class TapeTracking {
-  /// Engine speed: 0.25 rpm steps, but the engine itself wanders about 20 rpm,
-  /// and a rev pull is 5000 rpm/s.
-  static const TrackingSpec rpm = TrackingSpec(
-    measurementSigma: 20,
-    accelerationSigma: 3500,
-    maxExtrapolation: 800,
-    min: 0,
-    extrapolationTau: Duration(milliseconds: 600),
-  );
+/// How each live signal is played out between samples (DESIGN.md 5.2, step 3):
+/// the fast PIDs, which a cheap adapter gives once or twice a second. The caps
+/// are how far the value is carried past the newest sample when the next is late;
+/// the numbers were tuned on the recordings of the first real drives (`docs/
+/// DECISIONS.md`).
+abstract final class TapePlayout {
+  /// Engine speed.
+  static const PlayoutSpec rpm = PlayoutSpec(tailCap: 100, min: 0);
 
-  /// Road speed: whole km/h steps, and a hard launch is about 10 km/h/s.
-  static const TrackingSpec speed = TrackingSpec(
-    measurementSigma: 0.7,
-    accelerationSigma: 6,
-    maxExtrapolation: 4,
-    min: 0,
-  );
+  /// Road speed, km/h.
+  static const PlayoutSpec speed = PlayoutSpec(tailCap: 1.5, min: 0);
 
   /// Throttle position and engine load, in percent.
-  static const TrackingSpec percent = TrackingSpec(
-    measurementSigma: 1.5,
-    accelerationSigma: 150,
-    maxExtrapolation: 15,
-    min: 0,
-    max: 100,
-  );
+  static const PlayoutSpec percent = PlayoutSpec(tailCap: 4, min: 0, max: 100);
 }
 
 abstract final class TapeDurations {

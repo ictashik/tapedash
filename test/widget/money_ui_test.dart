@@ -11,6 +11,7 @@ import 'package:tapedash/money/pit_stop_form.dart';
 import 'package:tapedash/obd/obd_session.dart';
 import 'package:tapedash/ui/design/components/controls/tape_button.dart';
 import 'package:tapedash/ui/design/components/controls/tape_numpad.dart';
+import 'package:tapedash/ui/design/components/eco_bar.dart';
 import 'package:tapedash/ui/design/components/money.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
@@ -19,6 +20,7 @@ import 'package:tapedash/ui/hud/hud_settings.dart';
 import 'package:tapedash/ui/pages/drive/apex_cluster.dart';
 import 'package:tapedash/ui/pages/drive/drive_signals.dart';
 import 'package:tapedash/ui/pages/drive/minimal_cluster.dart';
+import 'package:tapedash/ui/pages/drive/money_slots.dart';
 import 'package:tapedash/ui/pages/drive/tape_cluster.dart';
 import 'package:tapedash/ui/pages/money/money_figure.dart';
 import 'package:tapedash/ui/pages/money/money_page.dart';
@@ -436,6 +438,98 @@ void main() {
       expect(find.byType(MoneyReadout), findsOneWidget);
       expect(find.text('₹ THIS TRIP'), findsOneWidget);
       expect(find.text('KM'), findsOneWidget);
+    });
+
+    for (final size in const [Size(640, 360), Size(720, 360), Size(800, 360)]) {
+      testWidgets(
+        'the floor has the trip average km/L right after the trip km, at ${size.width.toInt()}x360',
+        (tester) async {
+          final rig = make();
+          rig.drive(90);
+          setWindow(tester, size);
+          await tester.pumpWidget(
+            tapeHarness(
+              kit: kit,
+              motion: rig.motion,
+              child: ApexCluster(
+                signals: rig.signals,
+                width: size.width,
+                height: 360,
+              ),
+            ),
+          );
+          await tester.pump();
+
+          final floor = find.byType(TripFloor);
+          final km = find.descendant(of: floor, matching: find.text('KM'));
+          final average = find.descendant(
+            of: floor,
+            matching: find.text('KM/L'),
+          );
+          expect(km, findsOneWidget);
+          expect(average, findsOneWidget);
+          // Right after: on the same line, to the right of the distance.
+          final kmRect = tester.getRect(km);
+          final avgRect = tester.getRect(average);
+          expect(avgRect.left, greaterThan(kmRect.right));
+          expect((avgRect.center.dy - kmRect.center.dy).abs(), lessThan(4));
+          // And clear of the eco bar in the middle of the floor.
+          final eco = tester.getRect(find.byType(EcoBar));
+          expect(avgRect.right, lessThan(eco.left));
+          expect(rig.money.kmPerLitre.target, greaterThan(3));
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+
+    testWidgets('until there is a trip to average, the average is a dash', (
+      tester,
+    ) async {
+      final rig = make();
+      setWindow(tester, const Size(720, 360));
+      await tester.pumpWidget(
+        tapeHarness(
+          kit: kit,
+          motion: rig.motion,
+          child: ApexCluster(signals: rig.signals, width: 720, height: 360),
+        ),
+      );
+      await tester.pump();
+      rig.drive(3, kmh: 0);
+      await tester.pump();
+
+      expect(rig.money.kmPerLitreAvailable.value, isFalse);
+      expect(
+        find.descendant(
+          of: find.byType(TripFloor),
+          matching: find.text(noValue),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a car with no fuel figure has no average km/L in the floor', (
+      tester,
+    ) async {
+      final rig = make(price: null);
+      setWindow(tester, const Size(720, 360));
+      await tester.pumpWidget(
+        tapeHarness(
+          kit: kit,
+          motion: rig.motion,
+          child: ApexCluster(signals: rig.signals, width: 720, height: 360),
+        ),
+      );
+      await tester.pump();
+
+      expect(rig.money.view.value, MoneyView.unavailable);
+      expect(
+        find.descendant(
+          of: find.byType(TripFloor),
+          matching: find.text('KM/L'),
+        ),
+        findsNothing,
+      );
     });
 
     testWidgets(

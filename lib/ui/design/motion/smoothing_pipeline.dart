@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import '../../../core/clock.dart';
-import '../../../core/dsp/tracking_filter.dart';
+import '../../../core/dsp/playout.dart';
 import '../../../core/observable.dart';
 import '../../../vehicle/reading.dart';
 import '../tokens/motion_tokens.dart';
@@ -18,18 +18,18 @@ import 'spring_value.dart';
 /// each sample at the middle of its round trip (`Reading.at`), and `VehicleState`
 /// rejects the impossible ones. What is left:
 ///
-///  3. **Tracking** (for a signal given a [TrackingSpec]): a Kalman filter
-///     estimates the value and its velocity from the samples, and the target,
-///     every frame, is that estimate carried on to *now*. Samples from a cheap
-///     adapter come once or twice a second, and each one moves the target
-///     only by its correction, so the display does not stair-step, and the time
-///     a sample spent on the wire is made up for.
-///     **Lead compensation** (optional, for a signal without a tracker): the
+///  3. **Playout** (for a signal given a [PlayoutSpec]): a cheap adapter gives
+///     the fast PIDs once or twice a second. The target, every frame, is the
+///     straight line between the two samples either side of a moment a little
+///     in the past (two thirds of the usual gap between samples), so it only
+///     ever moves between two readings the car has given: no stair-steps, and
+///     no overshoot to swing back from. See `PlayoutBuffer`.
+///     **Lead compensation** (optional, for a signal without a playout): the
 ///     target is the value plus its rate times a lead. The lead is 0 until it
 ///     is tuned on a real car, capped at 150 ms, and off while the rate is noisy.
 ///  4. **Spring**: the displayed value moves towards the target on a spring. Each
 ///     new sample retargets it from the current position and velocity (with a
-///     tracker, every frame follows the moving target), so momentum is kept and
+///     playout, every frame follows the moving target), so momentum is kept and
 ///     nothing jumps.
 ///  5. **Render**: painters read [value] on the frame they draw, from the one
 ///     [MotionClock].
@@ -55,9 +55,9 @@ class SmoothedSignal extends ChangeNotifier
     double precision = 0.001,
     this.animateFirst = false,
     this.noiseFloor = 1,
-    TrackingSpec? tracking,
+    PlayoutSpec? playout,
   }) : _lead = _capped(lead),
-       _filter = tracking == null ? null : TrackingFilter(tracking),
+       _playout = playout == null ? null : PlayoutBuffer(playout),
        _spring = SpringValue(
          clock: motion,
          spec: spring,
@@ -89,7 +89,7 @@ class SmoothedSignal extends ChangeNotifier
   final double noiseFloor;
 
   final SpringValue _spring;
-  final TrackingFilter? _filter;
+  final PlayoutBuffer? _playout;
   Duration _lead;
   double _interval = 0;
   Duration? _lastArrival;
@@ -118,7 +118,7 @@ class SmoothedSignal extends ChangeNotifier
 
   /// The rate of change of the readings, in units per second, lightly filtered.
   /// The trend vector on a tape reads this (DESIGN.md 6.3).
-  double get rate => _filter?.hasEstimate == true ? _filter!.velocity : _rate;
+  double get rate => _rate;
 
   /// Whether the readings are jumping about too much for the rate to be trusted:
   /// it has changed sign on each of the last two samples.
@@ -203,7 +203,7 @@ class SmoothedSignal extends ChangeNotifier
     if (previous == reading) return;
     _last = reading;
     _noteArrival(reading.receivedAt);
-    _filter?.update(reading.value, reading.at);
+    _playout?.add(reading.value, reading.at);
     if (_held != null) return;
 
     if (previous == null) {
@@ -212,8 +212,8 @@ class SmoothedSignal extends ChangeNotifier
       } else {
         _spring.jumpTo(reading.value);
       }
-    } else if (_filter != null) {
-      // The tracker's estimate moves the target, a frame at a time, in [advance].
+    } else if (_playout != null) {
+      // The playout buffer moves the target, a frame at a time, in [advance].
     } else {
       final seconds = (reading.at - previous.at).inMicroseconds / 1e6;
       if (seconds > 0) {
@@ -260,12 +260,12 @@ class SmoothedSignal extends ChangeNotifier
     final last = _last;
     if (last == null) return false;
     final stale = last.age(clock.monotonic()) > _effectiveStaleAfter;
-    final filter = _filter;
-    if (filter != null && _held == null && filter.hasEstimate) {
-      // Fresh: follow the estimate carried on to now. Stale: hold where the
-      // estimate was at the last sample, and let the spring settle there.
+    final playout = _playout;
+    if (playout != null && _held == null && playout.hasSamples) {
+      // Fresh: follow the playout. Stale: hold at the newest sample, and let the
+      // spring settle there.
       _spring.track(
-        stale ? filter.value : filter.predict(clock.monotonic()),
+        stale ? playout.latest : playout.valueAt(clock.monotonic()),
         dt,
       );
     }

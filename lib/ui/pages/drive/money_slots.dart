@@ -206,8 +206,8 @@ class EcoBarSlot extends StatelessWidget {
   }
 }
 
-/// The floor's trip distance (left) and trip time (right), in `ink.mid` at
-/// secondary size (DESIGN.md 7.3). They give way to the dock while parked.
+/// The floor's trip distance and the trip's average km/L (left) and trip time
+/// (right), in `ink.mid` at secondary size (DESIGN.md 7.3). They give way to the dock while parked.
 class TripFloor extends StatelessWidget {
   const TripFloor({
     super.key,
@@ -255,12 +255,38 @@ class TripFloor extends StatelessWidget {
           bottom: bottom,
           child: Presence(
             share: fade,
-            child: LabeledNumeral(
-              source: money.distanceKm,
-              format: rateFormat,
-              size: type.secondary * 0.7,
-              unit: 'KM',
-              role: NumeralRole.mid,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                LabeledNumeral(
+                  source: money.distanceKm,
+                  format: rateFormat,
+                  size: type.secondary * 0.7,
+                  unit: 'KM',
+                  role: NumeralRole.mid,
+                ),
+                // The trip's average, right after its distance: a dash until
+                // there is some distance to average over, and nothing at all
+                // for a car that gives no fuel figure.
+                ValueListenableBuilder<MoneyView>(
+                  valueListenable: money.view,
+                  builder: (context, view, _) => view == MoneyView.unavailable
+                      ? const SizedBox.shrink()
+                      : Padding(
+                          padding: const EdgeInsets.only(left: TapeSpace.s4),
+                          child: GatedNumeral(
+                            available: money.kmPerLitreAvailable,
+                            source: money.kmPerLitre,
+                            format: rateFormat,
+                            size: type.secondary * 0.7,
+                            unit: 'KM/L',
+                            role: NumeralRole.mid,
+                          ),
+                        ),
+                ),
+              ],
             ),
           ),
         ),
