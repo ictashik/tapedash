@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../coach/sample_events.dart';
 import '../../../coach/tips.dart';
+import '../../../core/apportion.dart';
 import '../../../money/spend_bucket.dart';
 import '../../../trips/route_geometry.dart';
 import '../../../trips/trip.dart';
@@ -547,6 +548,11 @@ class _ReceiptState extends State<_Receipt> {
     final type = TypeScale.forHeight(widget.height);
     final total = trip.bucketLitres.values.fold<double>(0, (a, b) => a + b);
     final price = trip.pricePerLitre;
+    final litres = [
+      for (final b in SpendBucket.values) trip.bucketLitres[b] ?? 0.0,
+    ];
+    final shownCost = apportion([for (final l in litres) l * (price ?? 0)]);
+    final shownPercent = apportion(litres, total: 100);
     NumeralSource roll(String key, double v, {int decimals = 1}) =>
         _source(key, v, widget.receiptShare, decimals);
     NumeralSource bar(String key, double v) =>
@@ -669,16 +675,14 @@ class _ReceiptState extends State<_Receipt> {
         if (price != null && total > 0)
           BucketBreakdown(
             compact: true,
+            // Whole rupees and whole percents that add up (CLAUDE.md 1.6, 8.7).
             cost: {
-              for (final b in SpendBucket.values)
-                b: bar('cost:${b.name}', (trip.bucketLitres[b] ?? 0) * price),
+              for (final (i, b) in SpendBucket.values.indexed)
+                b: bar('cost:${b.name}', shownCost[i].toDouble()),
             },
             percent: {
-              for (final b in SpendBucket.values)
-                b: bar(
-                  'pct:${b.name}',
-                  100 * (trip.bucketLitres[b] ?? 0) / total,
-                ),
+              for (final (i, b) in SpendBucket.values.indexed)
+                b: bar('pct:${b.name}', shownPercent[i].toDouble()),
             },
             width: double.infinity,
             labelSize: 10,

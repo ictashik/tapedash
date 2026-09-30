@@ -180,6 +180,35 @@ void main() {
       expect(rig.money.confidence.value, MoneyConfidence.calibrating);
     });
 
+    test('the parked breakdown rupees are whole, and add up to the trip', () {
+      final rig = make();
+      rig.drive(60);
+
+      final parts = [for (final s in rig.money.bucketCost.values) s.target];
+      final litres = rig.services.computer.bucketLitres.values.fold<double>(
+        0,
+        (a, b) => a + b,
+      );
+      final total = (litres * rig.money.pricePerLitre.value!).round();
+
+      for (final p in parts) {
+        expect(p, p.roundToDouble(), reason: 'a whole rupee');
+      }
+      expect(parts.fold<double>(0, (a, b) => a + b), total.toDouble());
+    });
+
+    test('the parked breakdown percents are whole, and add up to 100', () {
+      final rig = make();
+      rig.drive(60);
+
+      final parts = [for (final s in rig.money.bucketPercent.values) s.target];
+
+      for (final p in parts) {
+        expect(p, p.roundToDouble());
+      }
+      expect(parts.fold<double>(0, (a, b) => a + b), 100);
+    });
+
     test('the parked breakdown shares add up to 100', () {
       final rig = make();
       rig.drive(60);
