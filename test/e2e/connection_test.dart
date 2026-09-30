@@ -386,7 +386,14 @@ void main() {
       final after = rpms.where((r) => r.receivedAt > on).toList();
 
       expect(after.length, greaterThan(1000));
-      for (final r in after.take(200)) {
+      // Not the first two seconds: the engine is cranking, the rpm climbs from
+      // 0 to idle faster than one sample can say where it is, and whether a
+      // reading lands in that climb depends on when the probe happened to
+      // find the car.
+      final settled = after.where(
+        (r) => r.receivedAt > on + const Duration(seconds: 3),
+      );
+      for (final r in settled.take(200)) {
         expect((r.value - rig.truthAt(r.at).rpm).abs(), lessThan(350));
       }
     });

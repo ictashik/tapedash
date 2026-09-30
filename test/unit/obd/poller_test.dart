@@ -582,7 +582,7 @@ void main() {
     });
 
     test(
-      'a car that stops answering is an ECU gone quiet, after three requests',
+      'a car that stops answering is an ECU gone quiet, after three requests and four seconds',
       () {
         final rig = PollRig();
         addTearDown(rig.close);
@@ -597,8 +597,33 @@ void main() {
           reason: 'one or two are not enough',
         );
         rig.run(2);
+        expect(
+          rig.poller.health.value,
+          PollHealth.ok,
+          reason:
+              'many misses, but not for four seconds yet: a slow adapter '
+              'and a busy bus can do that without the ignition going off',
+        );
+        rig.run(3);
 
         expect(rig.poller.health.value, PollHealth.ecuSilent);
+      },
+    );
+
+    test(
+      'a short run of misses on a slow adapter is not the ignition going off',
+      () {
+        final rig = PollRig(quirks: AdapterQuirks.bluetoothClone);
+        addTearDown(rig.close);
+        rig.poller.start();
+        rig.run(3);
+
+        rig.ecu.awake = false;
+        rig.run(3);
+        rig.ecu.awake = true;
+        rig.run(3);
+
+        expect(rig.poller.health.value, PollHealth.ok);
       },
     );
 
@@ -607,7 +632,7 @@ void main() {
       addTearDown(rig.close);
       rig.poller.start();
       rig.ecu.awake = false;
-      rig.run(3);
+      rig.run(6);
       expect(rig.poller.health.value, PollHealth.ecuSilent);
 
       rig.ecu.awake = true;
@@ -644,7 +669,7 @@ void main() {
       rig.run(2);
 
       rig.ecu.awake = false;
-      rig.run(3);
+      rig.run(6);
       rig.ecu.awake = true;
       rig.run(2);
 
@@ -652,7 +677,9 @@ void main() {
     });
 
     test('the limits can be changed', () {
-      final rig = PollRig(config: const PollConfig(silentAfter: 1));
+      final rig = PollRig(
+        config: const PollConfig(silentAfter: 1, silentFor: Duration.zero),
+      );
       addTearDown(rig.close);
       rig.poller.start();
       rig.run(1);

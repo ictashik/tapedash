@@ -28,6 +28,7 @@ class PollConfig {
     this.batchPause = const Duration(seconds: 60),
     this.minRequestInterval = const Duration(milliseconds: 5),
     this.silentAfter = 3,
+    this.silentFor = const Duration(seconds: 4),
     this.deadAfter = 5,
   });
 
@@ -58,6 +59,13 @@ class PollConfig {
   /// `CAN ERROR`...) is an ECU that has gone quiet.
   final int silentAfter;
 
+  /// ...and it must have gone on for this long since the car last answered. On
+  /// a slow adapter three requests are two seconds, and a busy bus or a
+  /// dropped BLE packet can cost that; a car whose ignition went off stays
+  /// silent for good, so waiting a little longer costs only a delay in saying
+  /// so (and a trip is not ended on a hiccup).
+  final Duration silentFor;
+
   /// This many requests in a row that the adapter did not answer, or answered
   /// with noise, is an adapter or a link that is failing.
   final int deadAfter;
@@ -71,6 +79,7 @@ class PollConfig {
     batchPause: batchPause,
     minRequestInterval: minRequestInterval,
     silentAfter: silentAfter,
+    silentFor: silentFor,
     deadAfter: deadAfter,
   );
 }
@@ -192,6 +201,8 @@ class Poller {
   int _requests = 0;
   int _failures = 0;
   int _silentRun = 0;
+  Duration? _lastAnswerAt;
+  Duration _startedAt = Duration.zero;
   int _deadRun = 0;
   final List<Duration> _fastReads = [];
 
@@ -290,6 +301,8 @@ class Poller {
   void start() {
     if (_running) return;
     _running = true;
+    _startedAt = clock.monotonic();
+    _lastAnswerAt = null;
     _kick();
   }
 
@@ -458,11 +471,13 @@ class Poller {
     if (failure == null) {
       _silentRun = 0;
       _deadRun = 0;
+      _lastAnswerAt = clock.monotonic();
       _health.value = PollHealth.ok;
     } else if (_carSaidNo(failure)) {
       _silentRun++;
       _deadRun = 0;
-      if (_silentRun >= config.silentAfter) {
+      final quietFor = clock.monotonic() - (_lastAnswerAt ?? _startedAt);
+      if (_silentRun >= config.silentAfter && quietFor >= config.silentFor) {
         _health.value = PollHealth.ecuSilent;
       }
     } else {
