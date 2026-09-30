@@ -99,7 +99,7 @@ With the phone mounted where it will live (the tape, or the holder):
 - **The HUD.** Garage -> HUD -> **Alignment pattern** (parked; it closes Garage and shows the pattern). Set **Height on the glass** and **Size** to sit it in the reflector, and check the flips: a windshield reflection is a mirror, so **Flip left to right** is on by default; if the reflection reads backwards, turn it off. Check the HUD colours in daylight (green, ion, amber, white). Double-tap on the Drive or Money page (or the dock's HUD button) toggles it.
 - **The ignition sequence** on connecting, and the shutdown; the connection states (searching, waiting for the ignition, lost).
 - **Motion and Parked:** when the car starts moving the driving layout should come back within a third of a second, and the dock, Garage, Pit Stop and Review should be unreachable while it moves.
-- **The phone's temperature.** In the sun on the dash the phone gets hot. Above 45 C the status strip shows a phone glyph, and Garage says to unplug the charger and move it; above 50 C the screen dims and the display eases to Lite at 30 fps. Note the battery temperature when the glyph appears (Garage's Display section shows it), and whether the phone got hot enough to matter.
+- **The phone's temperature.** In the sun on the dash the phone gets hot. Above 45 C the status strip shows a phone glyph, and Garage says to unplug the charger and move it; above 50 C the screen dims and the display eases to Lite at 30 fps. Note the battery temperature when the glyph appears (the debug overlay's BATTERY line shows it: long-press a driving screen), and whether the phone got hot enough to matter.
 
 ## 6. What to report back
 
@@ -109,7 +109,7 @@ For each adapter you tried:
 - **The protocol** detected, and **how many PIDs** it supports (the matrix count) with a screenshot.
 - **The fuel source** used (5E, MAF or MAP), and, after your first full-tank fill-up in Pit Stop, the app's litres against the pump's.
 - **The achieved poll rate** (Diagnostics), with and without compatibility mode if you tried both, and how long connecting took.
-- **The auto-selected fidelity tier** and the frame rate (the debug overlay: long-press on a driving screen), and the phone model, Android version and RAM.
+- **The auto-selected fidelity tier** and the frame rate (the debug overlay: long-press on a driving screen, and read the FRAMES and TIER lines), and the phone model, Android version and RAM.
 - **Every error and every visual problem**: a screenshot, what you were doing, and the log file if a recording was on.
 - What was **slow to connect**, what **dropped**, and what **came back by itself** and what did not.
 
