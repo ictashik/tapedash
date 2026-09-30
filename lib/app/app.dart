@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
 import '../core/clock.dart';
-import '../core/key_value_store.dart';
 import '../core/scheduler.dart';
+import '../obd/adapter_config.dart';
+import '../obd/transport/session_sink.dart';
+import '../platform/device_channel.dart';
+import '../platform/file_session_sink.dart';
 import '../ui/design/components/backdrop.dart';
 import '../ui/design/components/controls/tape_button.dart';
 import '../ui/design/fidelity/fidelity_tier.dart';
@@ -16,11 +21,16 @@ import '../ui/design/tokens/livery.dart';
 import '../ui/design/tokens/spacing.dart';
 import '../ui/dev/dev_settings.dart';
 import '../ui/lab/design_lab.dart';
+import '../ui/onboarding/connect_flow.dart';
 import '../ui/onboarding/onboarding_screen.dart';
+import 'app_info.dart';
 import 'app_services.dart';
 import 'app_settings.dart';
 import 'demo_drive.dart';
 import 'drive_shell.dart';
+import 'live_drive.dart';
+import 'radio_transport_factory.dart';
+import 'transport_adapter_checker.dart';
 
 /// Root widget.
 ///
@@ -39,7 +49,16 @@ class TapeDashApp extends StatelessWidget {
     this.skipColdOpen = DevMode.skipColdOpen,
     this.services,
     this.scenario,
+    this.transports,
+    this.sessionSink,
   });
+
+  /// Makes the transport for the adapter the user chose. Null uses the real
+  /// ones (a test gives a factory for a simulated adapter).
+  final RadioTransportFactory? transports;
+
+  /// Where recorded sessions go. Null writes files on the phone.
+  final SessionSink? sessionSink;
 
   /// The demo drive to run, if not the one chosen in Garage (tests).
   final String? scenario;
@@ -71,6 +90,8 @@ class TapeDashApp extends StatelessWidget {
         skipColdOpen: skipColdOpen,
         services: services,
         scenario: scenario,
+        transports: transports,
+        sessionSink: sessionSink,
       ),
     );
   }
@@ -84,8 +105,12 @@ class _Shell extends StatefulWidget {
     required this.skipColdOpen,
     required this.services,
     required this.scenario,
+    required this.transports,
+    required this.sessionSink,
   });
 
+  final RadioTransportFactory? transports;
+  final SessionSink? sessionSink;
   final String? scenario;
   final Clock clock;
   final Scheduler scheduler;
@@ -101,10 +126,9 @@ class _ShellState extends State<_Shell> {
   late final TapeRenderKit _kit = TapeRenderKit();
   bool _labOpen = false;
 
-  /// What the user has set: the services' when there are any (saved on the
-  /// phone), otherwise in memory (tests).
-  late final AppSettings _settings =
-      widget.services?.settings ?? AppSettings(MemoryKeyValueStore());
+  /// What the user has set: saved on the phone when there are services (and in
+  /// memory for a test that gives none).
+  late final AppSettings _settings = _services.settings;
   late final Listenable _themeChanges = Listenable.merge([
     _settings.livery,
     _settings.driverSide,
@@ -125,29 +149,142 @@ class _ShellState extends State<_Shell> {
     }
   }
 
+  late final RadioTransportFactory _transports =
+      widget.transports ?? RadioTransportFactory();
+  late final SessionSink _sink =
+      widget.sessionSink ?? FileSessionSink(DeviceChannel());
+  late final AppServices _services = widget.services ?? AppServices.inMemory();
+
   /// The demo drive, started at launch so that it is already connected when
-  /// the user chooses it (DESIGN.md 7.11: the ignition within a second).
-  late final DemoDrive _demo;
+  /// the user chooses it (DESIGN.md 7.11: the ignition within a second). Not
+  /// built at all for a launch that goes straight to the user's own adapter.
+  DemoDrive? _demo;
+
+  /// The drive from the user's adapter, when that is what they use.
+  LiveDrive? _live;
+  int _syncs = 0;
+
+  /// Whether the connect flow is on screen.
+  bool _connecting = false;
+
+  AdapterStore get _adapters => _services.adapters;
 
   @override
   void initState() {
     super.initState();
-    // Started at launch, so it is already connected when the user chooses it
-    // (DESIGN.md 7.11); with no choice to make the shell finds it running.
-    _demo = DemoDrive(
+    _adapters.adapter.addListener(_syncDrive);
+    _adapters.useAdapter.addListener(_syncDrive);
+    _adapters.compatibilityMode.addListener(_syncDrive);
+    _adapters.recordSessions.addListener(_syncDrive);
+    _syncDrive();
+    if (DevMode.launchScreen == 'lab') _labOpen = true;
+  }
+
+  /// Makes the drive the settings ask for: the adapter's when there is one and it
+  /// is in use, the demo otherwise. Changes made in Garage (another adapter,
+  /// compatibility mode, recording) reach the drive here; they only happen while
+  /// parked.
+  Future<void> _syncDrive() async {
+    final ticket = ++_syncs;
+    final config = _adapters.useAdapter.value ? _adapters.adapter.value : null;
+    if (config == null) {
+      final old = _live;
+      _live = null;
+      _demo ??= DemoDrive(
+        clock: widget.clock,
+        scheduler: widget.scheduler,
+        scenario: widget.scenario ?? _settings.demoScenario.value,
+        profile: _settings.demoProfile.value,
+      );
+      _demo!.start();
+      if (mounted) setState(() {});
+      unawaited(old?.dispose());
+      return;
+    }
+    // Something is in use that is not the demo: let the demo stand down.
+    _demo?.stop();
+    final memory = await _adapters.memoryFor(config);
+    if (!mounted || ticket != _syncs) return;
+    final old = _live;
+    _live = LiveDrive(
+      adapter: config,
+      transports: _transports,
       clock: widget.clock,
       scheduler: widget.scheduler,
-      scenario: widget.scenario ?? _settings.demoScenario.value,
-      profile: _settings.demoProfile.value,
-    )..start();
-    if (DevMode.launchScreen == 'lab') _labOpen = true;
+      memory: memory,
+      compatibility: _adapters.compatibilityMode.value,
+      recordSessions: _adapters.recordSessions.value,
+      sink: _sink,
+      appVersion: appVersion,
+    );
+    setState(() {});
+    unawaited(old?.dispose());
   }
 
   @override
   void dispose() {
-    _demo.dispose();
+    _adapters.adapter.removeListener(_syncDrive);
+    _adapters.useAdapter.removeListener(_syncDrive);
+    _adapters.compatibilityMode.removeListener(_syncDrive);
+    _adapters.recordSessions.removeListener(_syncDrive);
+    _demo?.dispose();
+    unawaited(_live?.dispose());
     _kit.dispose();
     super.dispose();
+  }
+
+  void _openConnect() => setState(() => _connecting = true);
+
+  Widget _screen() {
+    if (_connecting) {
+      return LayoutBuilder(
+        builder: (context, box) => TapeBackdrop(
+          child: ConnectFlow(
+            services: _services,
+            checker: TransportAdapterChecker(_transports),
+            radios: _transports.radio,
+            width: box.maxWidth,
+            height: box.maxHeight,
+            onCancel: () => setState(() => _connecting = false),
+            onDone: () => setState(() {
+              _connecting = false;
+              _onboarded = true;
+            }),
+          ),
+        ),
+      );
+    }
+    if (_onboarded) {
+      final live = _live;
+      final demo = _demo;
+      // Waiting for the adapter's drive to be made (a moment at launch).
+      if (live == null && demo == null) return const SizedBox.shrink();
+      return DriveShell(
+        // A different drive is a different shell: it starts fresh.
+        key: ValueKey(live ?? demo),
+        demo: live == null ? demo : null,
+        live: live,
+        app: _services,
+        clock: widget.clock,
+        scheduler: widget.scheduler,
+        onChangeAdapter: _openConnect,
+      );
+    }
+    return LayoutBuilder(
+      builder: (context, box) => TapeBackdrop(
+        child: OnboardingScreen(
+          width: box.maxWidth,
+          height: box.maxHeight,
+          skipColdOpen: widget.skipColdOpen,
+          onBenchmark: _onBenchmark,
+          onDemo: () {
+            _settings.onboarded.value = true;
+            setState(() => _onboarded = true);
+          },
+          onConnect: _openConnect,
+        ),
+      ),
+    );
   }
 
   @override
@@ -172,29 +309,7 @@ class _ShellState extends State<_Shell> {
                     color: TapeColors.voidColor,
                     child: Stack(
                       children: [
-                        Positioned.fill(
-                          child: _onboarded
-                              ? DriveShell(
-                                  demo: _demo,
-                                  app: widget.services,
-                                  clock: widget.clock,
-                                  scheduler: widget.scheduler,
-                                )
-                              : LayoutBuilder(
-                                  builder: (context, box) => TapeBackdrop(
-                                    child: OnboardingScreen(
-                                      width: box.maxWidth,
-                                      height: box.maxHeight,
-                                      skipColdOpen: widget.skipColdOpen,
-                                      onBenchmark: _onBenchmark,
-                                      onDemo: () {
-                                        _settings.onboarded.value = true;
-                                        setState(() => _onboarded = true);
-                                      },
-                                    ),
-                                  ),
-                                ),
-                        ),
+                        Positioned.fill(child: _screen()),
                         if (DevMode.buttonVisible)
                           Positioned(
                             right: TapeSpace.s4,

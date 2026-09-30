@@ -58,6 +58,7 @@ void main() {
   Future<void> show(
     WidgetTester tester, {
     VoidCallback? onDemo,
+    VoidCallback? onConnect,
     void Function(List<double>)? onBenchmark,
     bool skip = false,
   }) async {
@@ -71,6 +72,7 @@ void main() {
           height: 360,
           skipColdOpen: skip,
           onDemo: onDemo ?? () {},
+          onConnect: onConnect,
           onBenchmark: onBenchmark,
         ),
       ),
@@ -176,29 +178,47 @@ void main() {
     expect(calls, 1);
   });
 
-  testWidgets('after the cold open: demo is primary and works, connect waits', (
+  testWidgets(
+    'after the cold open: demo is primary and works, and connect waits with no flow',
+    (tester) async {
+      var demos = 0;
+      await show(tester, onDemo: () => demos++);
+      await tester.pump();
+      run(3000);
+      await tester.pump();
+      final demo = tester.widget<TapeButton>(
+        find.widgetWithText(TapeButton, 'TRY A DEMO DRIVE'),
+      );
+      final connect = tester.widget<TapeButton>(
+        find.widgetWithText(TapeButton, 'CONNECT MY CAR'),
+      );
+      expect(demo.primary, isTrue);
+      expect(demo.enabled, isTrue);
+      expect(connect.enabled, isFalse);
+      expect(
+        find.text('ADAPTER SETUP ARRIVES IN A LATER UPDATE'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('TRY A DEMO DRIVE'));
+      expect(demos, 1);
+    },
+  );
+
+  testWidgets('with a connect flow to offer, CONNECT MY CAR starts it', (
     tester,
   ) async {
-    var demos = 0;
-    await show(tester, onDemo: () => demos++);
+    var connects = 0;
+    await show(tester, onConnect: () => connects++);
     await tester.pump();
     run(3000);
     await tester.pump();
-    final demo = tester.widget<TapeButton>(
-      find.widgetWithText(TapeButton, 'TRY A DEMO DRIVE'),
-    );
     final connect = tester.widget<TapeButton>(
       find.widgetWithText(TapeButton, 'CONNECT MY CAR'),
     );
-    expect(demo.primary, isTrue);
-    expect(demo.enabled, isTrue);
-    expect(connect.enabled, isFalse);
-    expect(
-      find.text('ADAPTER SETUP ARRIVES IN A LATER UPDATE'),
-      findsOneWidget,
-    );
-    await tester.tap(find.text('TRY A DEMO DRIVE'));
-    expect(demos, 1);
+    expect(connect.enabled, isTrue);
+    expect(find.text('ADAPTER SETUP ARRIVES IN A LATER UPDATE'), findsNothing);
+    await tester.tap(find.text('CONNECT MY CAR'));
+    expect(connects, 1);
   });
 
   testWidgets('skipping the cold open shows the choice at once', (

@@ -24,16 +24,16 @@ import '../design/tokens/spacing.dart';
 ///
 /// **Choice:** two large chamfer buttons, TRY A DEMO DRIVE (primary) and CONNECT
 /// MY CAR. The wordmark stays where the cold open left it and the buttons
-/// reveal beneath it, staggered, so the screen never jumps. The connect path's
-/// scenes (adapter, pairing, car setup, price, cluster) need the real
-/// transports (phase 6), so CONNECT MY CAR is disabled and says so, rather
-/// than lead to a scene that does not exist.
+/// reveal beneath it, staggered, so the screen never jumps. CONNECT MY CAR starts
+/// the connect flow (`ConnectFlow`); where a screen has none to offer it is
+/// disabled and says so.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({
     super.key,
     required this.width,
     required this.height,
     required this.onDemo,
+    this.onConnect,
     this.onBenchmark,
     this.skipColdOpen = false,
   });
@@ -43,6 +43,9 @@ class OnboardingScreen extends StatefulWidget {
 
   /// TRY A DEMO DRIVE.
   final VoidCallback onDemo;
+
+  /// CONNECT MY CAR. Null disables it.
+  final VoidCallback? onConnect;
 
   /// The cost in milliseconds of each frame drawn during the cold open.
   final void Function(List<double> frameMilliseconds)? onBenchmark;
@@ -185,18 +188,21 @@ class OnboardingScreenState extends State<OnboardingScreen> {
                       const SizedBox(width: TapeSpace.s4),
                       SizedBox(
                         width: TapeSpace.s12 * 5,
-                        child: const TapeButton(
+                        child: TapeButton(
                           label: 'Connect my car',
                           icon: TapeIcon.adapter,
+                          onPressed: _ready ? widget.onConnect : null,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: TapeSpace.s3),
-                  TapeLabel(
-                    'Adapter setup arrives in a later update',
-                    color: palette.inkDim,
-                  ),
+                  if (widget.onConnect == null) ...[
+                    const SizedBox(height: TapeSpace.s3),
+                    TapeLabel(
+                      'Adapter setup arrives in a later update',
+                      color: palette.inkDim,
+                    ),
+                  ],
                 ],
               ),
             ),

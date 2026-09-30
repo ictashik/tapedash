@@ -6,6 +6,7 @@ import '../fuel/fuel_constants.dart';
 import '../money/fill_up.dart';
 import '../money/fuel_ledger.dart';
 import '../money/money_settings.dart';
+import '../obd/adapter_config.dart';
 import '../platform/shared_prefs_store.dart';
 import '../trips/sqflite_database.dart';
 import '../trips/sqflite_fill_up_repository.dart';
@@ -43,6 +44,9 @@ class AppServices {
   /// The look, the HUD, the coach and the demo: what the user sets in Garage
   /// (`AppSettings`), saved to [store] as it changes.
   late final AppSettings settings = AppSettings(store);
+
+  /// The adapter the user chose, and how it is used (`AdapterStore`).
+  late final AdapterStore adapters = AdapterStore(store);
 
   /// The car's fuel type, displacement and tank (CLAUDE.md 8.4).
   Observable<VehicleSetup> get setup => _setup;
@@ -85,6 +89,7 @@ class AppServices {
 
   Future<void> load() async {
     await settings.load();
+    await adapters.load();
     await money.load();
     await ledger.load();
     final type = await store.getString(_fuelTypeKey);

@@ -166,6 +166,7 @@ Future<void> main() async {
     await boot(tester);
     await run(tester, 30000);
     await open(tester, 'GARAGE');
+    await visible(tester, find.text('Price a litre'));
     await tester.tap(find.text('Price a litre'));
     await run(tester, 400);
     expect(find.byType(PitStopPage), findsOneWidget);

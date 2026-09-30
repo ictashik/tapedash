@@ -5,6 +5,7 @@ import '../../../app/app_services.dart';
 import '../../../app/app_settings.dart';
 import '../../../fuel/fuel_constants.dart';
 import '../../../money/calibration.dart';
+import '../../../obd/adapter_config.dart';
 import '../../../trips/trip_library.dart';
 import '../../../vehicle/vehicle_state.dart' show DrivingMode;
 import '../../design/components/controls/slide_to_confirm.dart';
@@ -46,6 +47,8 @@ class GaragePage extends StatefulWidget {
     required this.height,
     required this.onClose,
     this.onSetPrice,
+    this.adapters,
+    this.onChangeAdapter,
     this.demo,
     this.onEndTrip,
     this.onAlignment,
@@ -64,6 +67,12 @@ class GaragePage extends StatefulWidget {
 
   /// Opens the price form.
   final VoidCallback? onSetPrice;
+
+  /// The adapter the user chose, and how it is used.
+  final AdapterStore? adapters;
+
+  /// Opens the connect flow, to choose or change the adapter.
+  final VoidCallback? onChangeAdapter;
 
   /// The demo's controls, when there is one.
   final DemoControl? demo;
@@ -114,6 +123,12 @@ class GaragePageState extends State<GaragePage> {
       ObservableListenable(widget.services.setup),
       ObservableListenable(widget.services.money.price),
       ObservableListenable(widget.services.ledger.confidence),
+      if (widget.adapters != null) ...[
+        ObservableListenable(widget.adapters!.adapter),
+        ObservableListenable(widget.adapters!.useAdapter),
+        ObservableListenable(widget.adapters!.compatibilityMode),
+        ObservableListenable(widget.adapters!.recordSessions),
+      ],
       _deleted,
     ]);
     widget.mode.addListener(_onMode);
@@ -230,6 +245,7 @@ class GaragePageState extends State<GaragePage> {
     final price = app.money.price.value;
     final confidence = app.ledger.confidence.value;
     final demo = widget.demo;
+    final adapters = widget.adapters;
 
     return ListView(
       key: const ValueKey('groups'),
@@ -292,6 +308,7 @@ class GaragePageState extends State<GaragePage> {
             CalibrationConfidence.calibrated => 'Estimates, checked twice.',
           }),
         ]),
+        if (adapters != null) _adapterGroup(adapters),
         _Group('Fuel price', [
           TapeListRow(
             label: 'Price a litre',
@@ -516,6 +533,47 @@ class GaragePageState extends State<GaragePage> {
         ]),
       ],
     );
+  }
+
+  Widget _adapterGroup(AdapterStore adapters) {
+    final chosen = adapters.adapter.value;
+    return _Group('Adapter', [
+      TapeListRow(
+        label: 'Adapter',
+        value: chosen == null
+            ? 'None: demo mode'
+            : '${chosen.displayName}  ·  ${chosen.kind.label}',
+        onTap: widget.onChangeAdapter,
+      ),
+      if (chosen != null) ...[
+        _Toggle(
+          'Drive from this adapter',
+          adapters.useAdapter.value,
+          (v) => adapters.setUseAdapter(v),
+        ),
+        _Toggle(
+          'Compatibility mode (slower, for fussy adapters)',
+          adapters.compatibilityMode.value,
+          (v) => adapters.setCompatibilityMode(v),
+        ),
+        _Toggle(
+          'Record what the adapter says',
+          adapters.recordSessions.value,
+          (v) => adapters.setRecordSessions(v),
+        ),
+        if (adapters.recordSessions.value)
+          const _Info(
+            'Saved on this phone',
+            'One file for each drive, in Android/data/io.github.ictashik.tapedash/'
+                'files/recordings. Nothing leaves the phone by itself.',
+          ),
+        TapeListRow(
+          label: 'Forget this adapter',
+          chevron: false,
+          onTap: () => adapters.forget(),
+        ),
+      ],
+    ]);
   }
 
   Future<void> _deleteAll() async {

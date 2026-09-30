@@ -11,6 +11,7 @@ import '../sim/simulated_car.dart';
 import '../sim/vehicle_profile.dart';
 import '../ui/dev/demo_control.dart';
 import '../vehicle/vehicle_state.dart';
+import 'drive_feed.dart';
 
 /// Demo Mode's data (CLAUDE.md 7.6): a simulated car on a simulated adapter, read
 /// by the same OBD stack a real car is. The vehicle it fills is the one the whole UI
@@ -20,7 +21,7 @@ import '../vehicle/vehicle_state.dart';
 /// The drive loops: when the scenario ends it starts again. Changing the scenario or
 /// the car rebuilds the simulator and the session and keeps the [vehicle], so
 /// whatever is reading it carries on.
-class DemoDrive implements DemoControl {
+class DemoDrive implements DemoControl, DriveFeed {
   DemoDrive({
     required this.clock,
     required this.scheduler,
@@ -92,6 +93,7 @@ class DemoDrive implements DemoControl {
 
   /// The same, as something to listen to: the session is replaced whenever the
   /// drive starts over.
+  @override
   Observable<ObdSession?> get sessions => _sessionValue;
 
   /// How long the finished car stands before the trip is ended, and before the
