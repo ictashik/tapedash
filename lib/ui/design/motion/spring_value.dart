@@ -125,6 +125,18 @@ class SpringValue extends ChangeNotifier
     notifyListeners();
   }
 
+  /// Puts the value at [value], at rest, from inside a frame: like [jumpTo], but it
+  /// leaves the clock alone (a clock must not have a driven one let go of while it
+  /// is stepping). A spring that was moving comes to rest on the clock's next visit.
+  void place(double value) {
+    if (_disposed || !value.isFinite) return;
+    _simulation = null;
+    _value = value;
+    _target = value;
+    _velocity = 0;
+    notifyListeners();
+  }
+
   /// Changes the spring, for reduce motion. It takes effect from the next
   /// retarget, and the one in flight is restarted with it so it does not finish
   /// on the old one.

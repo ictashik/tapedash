@@ -291,14 +291,24 @@ abstract final class TapeReplay {
   /// view is a hundred times wider than the ground the camera wants.
   static const double chaseMaxScale = 400;
 
-  /// How quickly the camera follows the car, and the way the map is turned, in
-  /// radians per second of natural frequency (a critically damped follow).
-  static const double chaseFollowOmega = 7;
-  static const double chaseTurnOmega = 3.2;
-  static const double chaseZoomOmega = 2.4;
+  /// How the camera turns the map and changes its zoom: slow and critically
+  /// damped, so that a corner and a change of speed are felt, not jolted.
+  static const SpringSpec turn = SpringSpec('replayTurn', 10.24, 1);
+  static const SpringSpec zoom = SpringSpec('replayZoom', 5.76, 1);
+
+  /// How far a pinch or the zoom buttons can move the chase zoom from what the
+  /// camera chose, in either direction.
+  static const double biasMin = 0.3;
+  static const double biasMax = 3.5;
+
+  /// One press of the zoom buttons while following.
+  static const double biasStep = 1.6;
 
   /// The car's mark, in logical pixels: its half-length.
   static const double carSize = 9;
+
+  /// How much of its colour the part of the route still to be driven keeps.
+  static const double aheadAlpha = 0.28;
 
   /// How far ahead on the route the heading looks, in metres: a corner turns the
   /// map over this distance and GPS scatter does not jerk it.

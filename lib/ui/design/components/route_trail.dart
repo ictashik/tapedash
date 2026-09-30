@@ -8,6 +8,7 @@ import '../../../coach/sample_events.dart';
 import '../../../trips/route_geometry.dart';
 import '../theme/palette.dart';
 import '../theme/tape_theme.dart';
+import '../tokens/motion_tokens.dart';
 import '../tokens/strokes.dart';
 import 'route_view.dart';
 
@@ -31,7 +32,13 @@ class RouteTrail extends StatefulWidget {
     this.view,
     this.onPick,
     this.onTouch,
+    this.car,
   });
+
+  /// The replay's car (DESIGN.md 6.12): where it is on the route, and which way it
+  /// faces. While it is visible the route behind it is drawn at full strength and
+  /// the route ahead dimmed, and the scrubber's cursor dot gives way to it.
+  final RouteCar? car;
 
   /// Any touch on the panel, at the moment of touching (the page's own tap, which
   /// the panel's gestures would otherwise swallow: a tap skips the Debrief, and
@@ -118,7 +125,10 @@ class _RouteTrailState extends State<RouteTrail> {
     // The scrubber moved the cursor: if the view is zoomed in somewhere else,
     // it goes to the cursor.
     final c = widget.cursor?.value;
-    if (widget.view != null && c != null && c != old.cursor?.value) {
+    if (widget.view != null &&
+        c != null &&
+        c != old.cursor?.value &&
+        !widget.view!.isChasing) {
       final g = widget.geometry;
       if (c >= 0 && c < g.length) {
         widget.view!.follow(Offset(g.xs[c], g.ys[c]));
@@ -165,6 +175,7 @@ class _RouteTrailState extends State<RouteTrail> {
           widget.reveal,
           if (widget.cursor != null) widget.cursor!,
           ?view,
+          ?widget.car,
         ]),
       ),
     );
@@ -182,7 +193,11 @@ class _RouteTrailState extends State<RouteTrail> {
                 final factor = d.scale / _lastScale;
                 _lastScale = d.scale;
                 if (factor != 1) view.zoomAt(d.localFocalPoint, factor);
-                view.panBy(d.focalPointDelta);
+                // Following the car, a pinch must not let go of it: only one
+                // finger dragging does.
+                if (d.pointerCount == 1 || !view.isChasing) {
+                  view.panBy(d.focalPointDelta);
+                }
               },
               onDoubleTapDown: (d) => _doubleTapAt = d.localPosition,
               onDoubleTap: () {
@@ -216,6 +231,16 @@ class _TrailPainter extends CustomPainter {
     ..strokeCap = StrokeCap.round;
   final Paint _fill = Paint();
 
+  // The ramp's sixteen colours, and the same dimmed for the route ahead of the car:
+  // made once per painter (a painter is made when the ramp changes), not per frame.
+  late final List<Color> _colours = [
+    for (var b = 0; b < RouteTrail.bins; b++)
+      RouteTrail.colourOf(b, state.widget.ramp),
+  ];
+  late final List<Color> _dimColours = [
+    for (final c in _colours) c.withValues(alpha: TapeReplay.aheadAlpha),
+  ];
+
   @override
   void paint(Canvas canvas, Size size) {
     final w = state.widget;
@@ -233,12 +258,30 @@ class _TrailPainter extends CustomPainter {
 
     // Zoomed, the lines are drawn through the view's transform with their widths
     // divided by its scale, so they stay as thick on screen as at 1; everything
-    // that is a mark (the head, the markers, the cursor) is placed through it
-    // and drawn at its own size.
+    // that is a mark (the head, the markers, the cursor, the car) is placed through
+    // it and drawn at its own size. A heading-up map is turned about the middle of
+    // the panel.
     final view = w.view;
     final sc = view?.scale ?? 1.0;
     final off = view?.offset ?? Offset.zero;
+    final turn = view?.rotation ?? 0.0;
+    Offset screen(double x, double y) =>
+        view == null ? Offset(x, y) : view.toScreen(Offset(x, y));
+    Offset pos(int i) => screen(g.xs[i], g.ys[i]);
+
+    final car = w.car;
+    final replaying = car != null && car.visible;
+    // In a replay the route behind the car is bright and the rest is dim.
+    final driven = replaying
+        ? car.point.floor().clamp(0, g.length - 1)
+        : g.length - 1;
+
     canvas.save();
+    if (turn != 0) {
+      canvas.translate(size.width / 2, size.height / 2);
+      canvas.rotate(turn);
+      canvas.translate(-size.width / 2, -size.height / 2);
+    }
     canvas.translate(off.dx, off.dy);
     canvas.scale(sc);
 
@@ -250,13 +293,32 @@ class _TrailPainter extends CustomPainter {
       _drawBin(canvas, b, last);
     }
     _line.strokeWidth = TapeStroke.bold / sc;
-    for (var b = 0; b < RouteTrail.bins; b++) {
-      _line.color = RouteTrail.colourOf(b, w.ramp);
-      _drawBin(canvas, b, last);
+    if (replaying) {
+      for (var b = 0; b < RouteTrail.bins; b++) {
+        _line.color = _dimColours[b];
+        _drawBin(canvas, b, last);
+      }
+      for (var b = 0; b < RouteTrail.bins; b++) {
+        _line.color = _colours[b];
+        _drawBin(canvas, b, driven);
+      }
+      // The segment the car is on, up to the car.
+      if (driven < g.length - 1) {
+        final m = (w.metric[driven] + w.metric[driven + 1]) / 2;
+        _line.color = _colours[RouteTrail.binOf(m)];
+        canvas.drawLine(
+          Offset(g.xs[driven], g.ys[driven]),
+          Offset(car.x, car.y),
+          _line,
+        );
+      }
+    } else {
+      for (var b = 0; b < RouteTrail.bins; b++) {
+        _line.color = _colours[b];
+        _drawBin(canvas, b, last);
+      }
     }
     canvas.restore();
-
-    Offset pos(int i) => Offset(g.xs[i] * sc + off.dx, g.ys[i] * sc + off.dy);
 
     if (reveal < 1 && last > 0) {
       // The comet head: a bright dot at the front of the line.
@@ -269,7 +331,7 @@ class _TrailPainter extends CustomPainter {
     if (reveal >= 1) _drawMarkers(canvas, g, pos, size);
 
     final c = w.cursor?.value;
-    if (c != null && c >= 0 && c < g.length) {
+    if (c != null && c >= 0 && c < g.length && !replaying) {
       _fill.color = palette.inkHot;
       canvas.drawCircle(pos(c), 5, _fill);
       _line
@@ -277,6 +339,37 @@ class _TrailPainter extends CustomPainter {
         ..color = palette.accentCore;
       canvas.drawCircle(pos(c), 8, _line..style = PaintingStyle.stroke);
     }
+
+    if (replaying) _drawCar(canvas, screen(car.x, car.y), car.heading + turn);
+  }
+
+  // The car: an arrow with a notch in its tail, pointing up at rest.
+  static final Path _carShape = Path()
+    ..moveTo(0, -1)
+    ..lineTo(0.75, 0.8)
+    ..lineTo(0, 0.4)
+    ..lineTo(-0.75, 0.8)
+    ..close();
+
+  /// The car at [at] on the panel, facing [heading] (radians on the screen, 0 to
+  /// the right): a glow, then the arrow.
+  void _drawCar(Canvas canvas, Offset at, double heading) {
+    const r = TapeReplay.carSize;
+    _fill.color = palette.accentCore.withValues(alpha: 0.25);
+    canvas.drawCircle(at, r * 1.9, _fill);
+    canvas.save();
+    canvas.translate(at.dx, at.dy);
+    canvas.rotate(heading + math.pi / 2);
+    canvas.scale(r);
+    _fill.color = palette.inkHot;
+    canvas.drawPath(_carShape, _fill);
+    _line
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = TapeStroke.regular / r
+      ..strokeJoin = StrokeJoin.miter
+      ..color = palette.accentCore;
+    canvas.drawPath(_carShape, _line);
+    canvas.restore();
   }
 
   /// Draws the segments of [bin] whose first point is at or before [last].

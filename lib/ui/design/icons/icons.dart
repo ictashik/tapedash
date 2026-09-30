@@ -103,7 +103,12 @@ enum TapeIcon {
   zoomOut('M5 12 L19 12'),
   fit(
     'M4 9 L4 4 L9 4 M15 4 L20 4 L20 9 M20 15 L20 20 L15 20 M9 20 L4 20 L4 15',
-  );
+  ),
+  play('M8 4 L8 20 L16 12 Z'),
+  pause('M8 5 L8 19 M16 5 L16 19'),
+  stop('M6 6 L18 6 L18 18 L6 18 Z'),
+  north('M6 18 L6 6 L18 18 L18 6'),
+  heading('M12 20 L12 5 M6 11 L12 5 L18 11');
 
   const TapeIcon(this.path);
 
