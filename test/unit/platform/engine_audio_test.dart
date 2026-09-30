@@ -68,6 +68,13 @@ PcmSink _reportingFactory(Object? config) =>
 
 PcmSink _refusingFactory(Object? config) => _RefusingSink();
 
+PcmSink _brokenFactory(Object? config) => throw StateError('no sink');
+
+// Never comes back from being made: the isolate is stuck before it answers.
+PcmSink _hangingFactory(Object? config) {
+  while (true) {}
+}
+
 class _RefusingSink extends _ReportingSink {
   _RefusingSink() : super(ReceivePort().sendPort);
 
@@ -312,6 +319,33 @@ void main() {
         );
 
         expect(result, SinkStart.noExternalOutput);
+        expect(host.isRunning, isFalse);
+      },
+    );
+
+    test(
+      'a sink that cannot be made is a failed start, not a dead isolate',
+      () async {
+        final host = IsolateVoiceHost(sinkFactory: _brokenFactory);
+
+        final result = await host.start(EngineProfile.inline4, volume: 1);
+
+        expect(result, SinkStart.failed);
+        expect(host.isRunning, isFalse);
+      },
+    );
+
+    test(
+      'an isolate that never answers is a failed start, not a hang',
+      () async {
+        final host = IsolateVoiceHost(
+          sinkFactory: _hangingFactory,
+          startTimeout: const Duration(milliseconds: 300),
+        );
+
+        final result = await host.start(EngineProfile.inline4, volume: 1);
+
+        expect(result, SinkStart.failed);
         expect(host.isRunning, isFalse);
       },
     );

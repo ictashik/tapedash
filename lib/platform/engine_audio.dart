@@ -170,7 +170,14 @@ PcmSink audioTrackSinkFactory(Object? config) => AudioTrackSink();
 /// In the isolate the platform channel is reached through
 /// `BackgroundIsolateBinaryMessenger`.
 class IsolateVoiceHost implements VoiceHost {
-  IsolateVoiceHost({this.sinkFactory = audioTrackSinkFactory, this.sinkConfig});
+  IsolateVoiceHost({
+    this.sinkFactory = audioTrackSinkFactory,
+    this.sinkConfig,
+    this.startTimeout = const Duration(seconds: 5),
+  });
+
+  /// How long to wait for the isolate to come up and open its output.
+  final Duration startTimeout;
 
   final SinkFactory sinkFactory;
 
@@ -230,12 +237,18 @@ class IsolateVoiceHost implements VoiceHost {
       _cleanUp();
       return SinkStart.failed;
     }
-    final commands = await ready.future;
-    _commands = commands;
-    commands.send(['start', profile.id, volume, requireExternalOutput]);
-    final result = await _starting!.future;
-    if (result != SinkStart.started) _cleanUp();
-    return result;
+    try {
+      final commands = await ready.future.timeout(startTimeout);
+      _commands = commands;
+      commands.send(['start', profile.id, volume, requireExternalOutput]);
+      final result = await _starting!.future.timeout(startTimeout);
+      if (result != SinkStart.started) _cleanUp();
+      return result;
+    } on TimeoutException {
+      // The isolate never answered (it died making its sink, say).
+      _cleanUp();
+      return SinkStart.failed;
+    }
   }
 
   @override
@@ -297,34 +310,42 @@ Future<void> _voiceEntry(_VoiceInit init) async {
   if (token != null) BackgroundIsolateBinaryMessenger.ensureInitialized(token);
   final commands = ReceivePort();
   init.replies.send(commands.sendPort);
-  final host = SynthVoiceHost(
-    sink: init.sinkFactory(init.sinkConfig),
-    scheduler: const SystemScheduler(),
-    clock: const SystemClock(),
-  );
-  host.events.listen((e) => init.replies.send(['event', e]));
+  // A sink that cannot be made is a start that fails, not an isolate that dies.
+  SynthVoiceHost? host;
+  try {
+    host = SynthVoiceHost(
+      sink: init.sinkFactory(init.sinkConfig),
+      scheduler: const SystemScheduler(),
+      clock: const SystemClock(),
+    );
+    host.events.listen((e) => init.replies.send(['event', e]));
+  } on Object {
+    host = null;
+  }
   await for (final message in commands) {
     if (message is! List || message.isEmpty) continue;
     switch (message[0]) {
       case 'start':
-        final result = await host.start(
-          EngineProfile.byId(message[1] as String),
-          volume: message[2] as double,
-          requireExternalOutput: message[3] as bool,
-        );
+        final result =
+            await host?.start(
+              EngineProfile.byId(message[1] as String),
+              volume: message[2] as double,
+              requireExternalOutput: message[3] as bool,
+            ) ??
+            SinkStart.failed;
         init.replies.send(['started', result.index]);
       case 'profile':
-        host.setProfile(EngineProfile.byId(message[1] as String));
+        host?.setProfile(EngineProfile.byId(message[1] as String));
       case 'volume':
-        host.setVolume(message[1] as double);
+        host?.setVolume(message[1] as double);
       case 'controls':
-        host.setControls(
+        host?.setControls(
           rpm: message[1] as double,
           load: message[2] as double,
           active: message[3] as bool,
         );
       case 'stop':
-        await host.stop();
+        await host?.stop();
         init.replies.send(['stopped']);
         commands.close();
     }
