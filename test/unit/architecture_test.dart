@@ -8,7 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Directories that must run under plain `dart`, since tool/sim_server.dart and
 /// tool/record_sim.dart import them. CLAUDE.md 6 lists sim, obd, vehicle, fuel,
-/// money, coach and trips; core and location are added because the simulator
+/// money, coach and trips; sound is pure too, since its synth is tested headlessly
+/// and rendered to files by tool/render_engine.dart; core and location are added because the simulator
 /// depends on them and so they have to be Flutter-free too.
 const _pureDirs = [
   'core',
@@ -20,6 +21,7 @@ const _pureDirs = [
   'money',
   'coach',
   'trips',
+  'sound',
 ];
 
 /// The only files that may touch real time: the real implementations of the

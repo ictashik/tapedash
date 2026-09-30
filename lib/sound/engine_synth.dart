@@ -263,11 +263,23 @@ class EngineSynth {
     while (done < count) {
       final piece = math.min(buffer.length, count - done);
       renderFloat(buffer, piece);
-      for (var i = 0; i < piece; i++) {
-        final v = (buffer[i] * 32767).round();
-        out[done + i] = v > 32767 ? 32767 : (v < -32768 ? -32768 : v);
-      }
+      toPcm16(buffer, piece, out, done);
       done += piece;
+    }
+  }
+
+  /// [count] samples of [input] as 16-bit PCM in [out] from [at], times [volume].
+  static void toPcm16(
+    Float64List input,
+    int count,
+    Int16List out,
+    int at, {
+    double volume = 1,
+  }) {
+    final scale = 32767 * volume;
+    for (var i = 0; i < count; i++) {
+      final v = (input[i] * scale).round();
+      out[at + i] = v > 32767 ? 32767 : (v < -32768 ? -32768 : v);
     }
   }
 
