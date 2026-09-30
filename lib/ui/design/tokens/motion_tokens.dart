@@ -266,3 +266,44 @@ abstract final class TapeDebrief {
 
   static const Duration length = Duration(milliseconds: 4500);
 }
+
+/// The trip replay on Review (DESIGN.md 6.12): how fast it can run, and how the
+/// chase camera frames the car.
+abstract final class TapeReplay {
+  /// The speeds of a replay, as multiples of real time: a tap on the speed button
+  /// goes to the next, and round again.
+  static const List<double> rates = [1, 2, 3];
+
+  /// A marker's text stays up for this many seconds of the replay after the moment
+  /// it marks (multiplied by the rate, so it is as long to the eye at 3 times).
+  static const double eventHoldSeconds = 2.5;
+
+  /// The camera shows the ground the car will cover in this many seconds, across the
+  /// panel's width, so that it zooms out as the car speeds up and in as it slows.
+  static const double chaseSeconds = 22;
+
+  /// The least ground, in metres, the panel's width shows (a car at a standstill),
+  /// and the most.
+  static const double chaseMinMetres = 140;
+  static const double chaseMaxMetres = 1600;
+
+  /// The chase camera can go further in than a pinch can: a long route's whole
+  /// view is a hundred times wider than the ground the camera wants.
+  static const double chaseMaxScale = 400;
+
+  /// How quickly the camera follows the car, and the way the map is turned, in
+  /// radians per second of natural frequency (a critically damped follow).
+  static const double chaseFollowOmega = 7;
+  static const double chaseTurnOmega = 3.2;
+  static const double chaseZoomOmega = 2.4;
+
+  /// The car's mark, in logical pixels: its half-length.
+  static const double carSize = 9;
+
+  /// How far ahead on the route the heading looks, in metres: a corner turns the
+  /// map over this distance and GPS scatter does not jerk it.
+  static const double headingLookMetres = 35;
+
+  /// More points than the still view, for a zoomed-in camera to follow.
+  static const int routePoints = 3000;
+}
