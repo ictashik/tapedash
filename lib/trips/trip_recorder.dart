@@ -89,6 +89,7 @@ class TripRecorder {
     this.rules = const TripRules(),
   }) {
     vehicle.engineRunning.addListener(_evaluate);
+    vehicle.mode.addListener(_evaluate);
     vehicle.reading(Sensor.voltage).addListener(_evaluate);
     connection.addListener(_evaluate);
     hardEvents.onEvent(_onHardEvent);
@@ -139,6 +140,11 @@ class TripRecorder {
   Duration? _offSince;
   DateTime? _endedAt;
 
+  /// The trip was ended by hand ([endNow]) with the engine still running: no new
+  /// one starts while the car stands, only once it moves off or the engine has
+  /// been off and on again.
+  bool _endedByHand = false;
+
   /// Where the recorder is.
   Observable<TripPhase> get phase => _phase;
 
@@ -182,7 +188,12 @@ class TripRecorder {
     final status = connection.value;
     switch (_phase.value) {
       case TripPhase.none:
-        if (_engineOn && status == ConnectionStatus.connected) _startNew();
+        if (!_engineOn) _endedByHand = false;
+        if (_engineOn && status == ConnectionStatus.connected) {
+          final standing = vehicle.mode.value != DrivingMode.motion;
+          if (_endedByHand && standing) return;
+          _startNew();
+        }
       case TripPhase.ended:
         if (_engineOn && status == ConnectionStatus.connected) _resume();
       case TripPhase.running:
@@ -209,8 +220,10 @@ class TripRecorder {
   }
 
   /// Ends the trip now, for good: the next engine start is a new trip, not a
-  /// resumed one. The demo drive starting over is one such moment, and Garage's
-  /// END TRIP another. Nothing if no trip is going.
+  /// resumed one. The demo drive starting over is one such moment, the parked
+  /// dock's END TRIP (a stop with the engine still running) another. With the
+  /// engine still running, the next trip begins when the car moves off, not
+  /// straight away. Nothing if no trip is going.
   void endNow() {
     if (_phase.value != TripPhase.running && _phase.value != TripPhase.ending) {
       return;
@@ -222,12 +235,14 @@ class TripRecorder {
     // The resume window is for an engine that was switched off; this was ended.
     _resumeTask?.cancel();
     _resumeTask = null;
+    _endedByHand = _engineOn;
     _phase.value = TripPhase.none;
   }
 
   // ------------------------------------------------------------ lifecycle
 
   void _startNew() {
+    _endedByHand = false;
     computer.reset();
     coach?.reset();
     _engineSeconds = 0;
@@ -405,6 +420,7 @@ class TripRecorder {
     _resumeTask?.cancel();
     _lostTask?.cancel();
     vehicle.engineRunning.removeListener(_evaluate);
+    vehicle.mode.removeListener(_evaluate);
     vehicle.reading(Sensor.voltage).removeListener(_evaluate);
     connection.removeListener(_evaluate);
     await _fixes?.cancel();

@@ -39,7 +39,17 @@ class ParkedDock extends StatefulWidget {
     this.onPitStop,
     this.onGarage,
     this.onDiagnostics,
+    this.onEndTrip,
+    this.endTripAvailable,
   });
+
+  /// Called by the End trip button: the trip is over, the engine may still be
+  /// running (a stop at the destination). Null, or [endTripAvailable] false,
+  /// leaves the button out.
+  final VoidCallback? onEndTrip;
+
+  /// Whether a trip is being recorded, so that there is one to end.
+  final ValueListenable<bool>? endTripAvailable;
 
   /// Called by the Garage button (DESIGN.md 7.8). Null leaves it disabled.
   final VoidCallback? onGarage;
@@ -79,8 +89,11 @@ class ParkedDockState extends State<ParkedDock> {
       initial: 0,
     );
     widget.mode.addListener(_onMode);
+    widget.endTripAvailable?.addListener(_onEndTrip);
     _onMode();
   }
+
+  void _onEndTrip() => setState(() {});
 
   @override
   void didUpdateWidget(ParkedDock oldWidget) {
@@ -103,6 +116,7 @@ class ParkedDockState extends State<ParkedDock> {
 
   @override
   void dispose() {
+    widget.endTripAvailable?.removeListener(_onEndTrip);
     _rise.dispose();
     super.dispose();
   }
@@ -132,9 +146,12 @@ class ParkedDockState extends State<ParkedDock> {
       (TapeIcon.pitStop, 'Pit Stop', widget.onPitStop),
       (TapeIcon.checkEngine, 'Diagnostics', widget.onDiagnostics),
       (TapeIcon.hud, 'HUD', widget.onHud),
+      if (widget.onEndTrip != null && widget.endTripAvailable?.value == true)
+        (TapeIcon.endTrip, 'End trip', widget.onEndTrip),
     ];
 
     final margin = TapeSpace.margin(widget.height);
+    final dense = widget.width < 900;
     final riseHeight = TapeShape.buttonHeight + TapeSpace.s1;
     // The dock's own floor: the tape's own 8 lp plus its own gap, so the
     // dock rises INTO the floor zone rather than under its own tape.
@@ -155,22 +172,30 @@ class ParkedDockState extends State<ParkedDock> {
               // The pages' own margin: a button's chamfered edge sat on the
               // screen's edge, and was cut off, on the first real phone.
               left: margin,
-              right: 0,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (var i = 0; i < buttons.length; i++) ...[
-                    if (i > 0) const SizedBox(width: TapeSpace.s3),
-                    _StaggeredDockButton(
-                      index: i,
-                      rise: _rise,
-                      icon: buttons[i].$1,
-                      label: buttons[i].$2,
-                      palette: palette,
-                      onPressed: buttons[i].$3,
-                    ),
+              right: margin,
+              // Five buttons are 783 lp of compact ones: on a small screen they are
+              // dense, and if they still do not fit the row is scaled down to.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var i = 0; i < buttons.length; i++) ...[
+                      if (i > 0)
+                        SizedBox(width: dense ? TapeSpace.s2 : TapeSpace.s3),
+                      _StaggeredDockButton(
+                        index: i,
+                        rise: _rise,
+                        icon: buttons[i].$1,
+                        label: buttons[i].$2,
+                        palette: palette,
+                        dense: dense,
+                        onPressed: buttons[i].$3,
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ],
@@ -191,8 +216,10 @@ class _StaggeredDockButton extends StatelessWidget {
     required this.label,
     required this.palette,
     required this.onPressed,
+    this.dense = false,
   });
 
+  final bool dense;
   final VoidCallback? onPressed;
   final int index;
   final ValueListenable<double> rise;
@@ -212,7 +239,8 @@ class _StaggeredDockButton extends StatelessWidget {
             label: label,
             icon: icon,
             onPressed: onPressed,
-            compact: true,
+            compact: !dense,
+            dense: dense,
           ),
         );
       },

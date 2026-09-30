@@ -45,7 +45,13 @@ class TapeButton extends StatelessWidget {
     this.primary = false,
     this.tone = ButtonTone.accent,
     this.compact = false,
+    this.dense = false,
   });
+
+  /// Tighter still than [compact], for a row of five on the narrowest screens
+  /// (the parked dock at 640 lp): a 12 lp label, a 16 lp glyph, 6 lp of padding.
+  /// It keeps the 56 lp height.
+  final bool dense;
 
   /// A tighter button for a row of several that must fit a narrow screen (the
   /// parked dock): less padding, a smaller label and glyph. It keeps the 56 lp
@@ -95,7 +101,11 @@ class TapeButton extends StatelessWidget {
           ),
           child: Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: compact ? TapeSpace.s2 : TapeSpace.s6,
+              horizontal: dense
+                  ? 6
+                  : compact
+                  ? TapeSpace.s2
+                  : TapeSpace.s6,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -104,15 +114,25 @@ class TapeButton extends StatelessWidget {
                 if (icon != null) ...[
                   TapeIconView(
                     icon!,
-                    size: compact ? 18 : 20,
+                    size: dense
+                        ? 16
+                        : compact
+                        ? 18
+                        : 20,
                     color: labelColor,
                   ),
-                  SizedBox(width: compact ? TapeSpace.s1 : TapeSpace.s2),
+                  SizedBox(
+                    width: compact || dense ? TapeSpace.s1 : TapeSpace.s2,
+                  ),
                 ],
                 Text(
                   label.toUpperCase(),
                   style: TapeType.button(
-                    size: compact ? 14 : 16,
+                    size: dense
+                        ? 12
+                        : compact
+                        ? 14
+                        : 16,
                     color: labelColor,
                   ),
                   maxLines: 1,

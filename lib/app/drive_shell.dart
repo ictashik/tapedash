@@ -144,6 +144,9 @@ class _DriveShellState extends State<DriveShell> {
   LocationStatus? _gps;
   ObservableListenable<bool>? _gpsListenable;
   DriveServices? _services;
+
+  /// Whether a trip is being recorded, for the dock's End trip button.
+  final ValueNotifier<bool> _tripRunning = ValueNotifier(false);
   MoneySignals? _money;
   DriveSignals? _signals;
   _Form _form = _Form.none;
@@ -184,6 +187,8 @@ class _DriveShellState extends State<DriveShell> {
         thresholds: _app.settings.thresholds,
       );
       _services = services;
+      services.recorder.phase.addListener(_syncTrip);
+      _syncTrip();
       _money = MoneySignals(
         trip: services.computer,
         settings: _driveApp.money,
@@ -275,6 +280,9 @@ class _DriveShellState extends State<DriveShell> {
     _library.refresh();
   }
 
+  void _syncTrip() =>
+      _tripRunning.value = _services?.recorder.recording ?? false;
+
   void _onDemoLoop() => _services?.recorder.endNow();
 
   /// Starts the GPS. A phone that will not give it (no permission, no receiver, a
@@ -323,7 +331,9 @@ class _DriveShellState extends State<DriveShell> {
     }
     _signals?.dispose();
     _money?.dispose();
+    _services?.recorder.phase.removeListener(_syncTrip);
     _services?.close();
+    _tripRunning.dispose();
     _gpsListenable?.dispose();
     _gps?.dispose();
     final location = _location;
@@ -528,6 +538,8 @@ class _DriveShellState extends State<DriveShell> {
             onPitStop: () => _open(_Form.pitStop),
             onGarage: () => _open(_Form.garage),
             onDiagnostics: () => _open(_Form.diagnostics),
+            onEndTrip: () => _services?.recorder.endNow(),
+            endTripAvailable: _tripRunning,
           ),
           if (_form != _Form.none)
             Positioned.fill(

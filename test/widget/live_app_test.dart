@@ -102,6 +102,32 @@ Future<void> main() async {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'stopped with the engine running: END TRIP is in the dock, and ends the trip',
+    (tester) async {
+      await boot(tester);
+      // Idle from cold: the engine is on and the car is standing, so it is
+      // parked, the dock is up, and a trip is being recorded.
+      await run(tester, 45000);
+      final end = find.widgetWithText(TapeButton, 'END TRIP');
+      expect(end, findsOneWidget);
+      expect((await app.trips.all()).where((t) => !t.isOpen), isEmpty);
+
+      await tester.tap(end);
+      await run(tester, 1500);
+
+      final trips = await app.trips.all();
+      expect(trips.length, 1);
+      expect(trips.single.isOpen, isFalse, reason: 'the trip is over');
+      // The engine is still running and the car still standing: no new trip, and
+      // the button is gone, since there is nothing to end.
+      await run(tester, 20000);
+      expect((await app.trips.all()).length, 1);
+      expect(find.widgetWithText(TapeButton, 'END TRIP'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('the demo does not run behind a real drive', (tester) async {
     await boot(tester);
     await run(tester, 30000);

@@ -94,6 +94,88 @@ void main() {
     expect(first.left, closeTo(margin, 0.5));
   });
 
+  group('End trip', () {
+    late ValueNotifier<bool> running;
+    var ended = 0;
+
+    setUp(() {
+      running = ValueNotifier(false);
+      ended = 0;
+    });
+    tearDown(() => running.dispose());
+
+    Future<void> showAt(WidgetTester tester, Size size) async {
+      setWindow(tester, size);
+      await tester.pumpWidget(
+        tapeHarness(
+          kit: kit,
+          motion: motion,
+          theme: TapeThemeData(livery: Liveries.ion),
+          child: ParkedDock(
+            mode: mode,
+            motion: motion,
+            width: size.width,
+            height: size.height,
+            onGarage: () {},
+            onPitStop: () {},
+            onDiagnostics: () {},
+            onHud: () {},
+            onEndTrip: () => ended++,
+            endTripAvailable: running,
+          ),
+        ),
+      );
+      run(const Duration(milliseconds: 800));
+      await tester.pump();
+    }
+
+    testWidgets('is there while a trip is recorded, and calls back', (
+      tester,
+    ) async {
+      running.value = true;
+      await showAt(tester, const Size(720, 360));
+
+      expect(find.text('END TRIP'), findsOneWidget);
+      await tester.tap(find.text('END TRIP'));
+      expect(ended, 1);
+    });
+
+    testWidgets('is not there with no trip to end, and comes when one starts', (
+      tester,
+    ) async {
+      await showAt(tester, const Size(720, 360));
+      expect(find.text('END TRIP'), findsNothing);
+      expect(find.byType(TapeButton), findsNWidgets(4));
+
+      running.value = true;
+      run(const Duration(milliseconds: 800));
+      await tester.pump();
+      expect(find.text('END TRIP'), findsOneWidget);
+
+      running.value = false;
+      await tester.pump();
+      expect(find.text('END TRIP'), findsNothing);
+    });
+
+    for (final size in const [Size(640, 360), Size(720, 360), Size(800, 360)]) {
+      testWidgets(
+        'all five buttons are on the screen at ${size.width.toInt()}x360',
+        (tester) async {
+          running.value = true;
+          await showAt(tester, size);
+
+          expect(tester.takeException(), isNull, reason: 'no overflow');
+          for (final b in find.byType(TapeButton).evaluate()) {
+            final r = tester.getRect(find.byWidget(b.widget));
+            expect(r.left, greaterThanOrEqualTo(0));
+            expect(r.right, lessThanOrEqualTo(size.width));
+          }
+          expect(find.byType(TapeButton), findsNWidgets(5));
+        },
+      );
+    }
+  });
+
   testWidgets('the dock falls inside the motion return when moving', (
     tester,
   ) async {

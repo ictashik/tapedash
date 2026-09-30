@@ -209,7 +209,7 @@ Parked UI uses fixed sizes and honours system font scale up to 1.3×: headline 3
 
 ### 4.8 Iconography
 - Custom glyphs drawn in code on a 24-unit grid: stroke 1.75, square caps, 45° chamfers, no free curves except circles. One file, `icons.dart`. No icon fonts and no Material icons.
-- Required set: adapter, bluetooth, wifi, gps, check-engine, coolant, voltage, fuel pump, clock, lock, back, close, chevron, garage, history, coach, review, rupee, idle (hollow square with a dot), hard accel (double chevron up), hard brake (double bar), speed, phone hot, demo, HUD (windshield), flip, pit stop.
+- Required set: adapter, bluetooth, wifi, gps, check-engine, coolant, voltage, fuel pump, clock, lock, back, close, chevron, garage, history, coach, review, rupee, idle (hollow square with a dot), hard accel (double chevron up), hard brake (double bar), speed, phone hot, demo, HUD (windshield), flip, pit stop, end trip (a flag).
 
 ### 4.9 Light and glow
 - Every luminous element has a crisp **core** (L2) and an optional **halo** (L3). A halo is a pre-rendered blurred sprite composited with `BlendMode.plus`. **Never blur at runtime.**

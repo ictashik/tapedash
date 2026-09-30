@@ -97,7 +97,8 @@ enum TapeIcon {
   flip(
     'M4 12 L20 12 M8 8 L4 12 L8 16 M16 8 L20 12 L16 16 M12 3 L12 6 M12 18 L12 21',
   ),
-  pitStop('M12 3 L19 10 L19 15 L14 20 L10 20 L5 15 L5 10 Z M9 15 L9 13');
+  pitStop('M12 3 L19 10 L19 15 L14 20 L10 20 L5 15 L5 10 Z M9 15 L9 13'),
+  endTrip('M6 21 L6 3 M6 4 L19 4 L15 8 L19 12 L6 12');
 
   const TapeIcon(this.path);
 

@@ -608,6 +608,48 @@ void main() {
       },
     );
 
+    test(
+      'ended by hand at a stop, with the engine running: no new trip while it stands',
+      () async {
+        // The parked dock's END TRIP: the car is stopped, the engine is on.
+        final rig = TripRig(DriveScenarios.coldStartIdle)..rig.run(40);
+        addTearDown(rig.close);
+        expect(rig.recorder.phase.value, TripPhase.running);
+
+        rig.recorder.endNow();
+        await rig.recorder.idle;
+        expect(rig.recorder.phase.value, TripPhase.none);
+
+        // Minutes of standing with the engine on, the voltage and rpm still
+        // arriving: it stays ended.
+        rig.rig.run(150);
+        await rig.recorder.idle;
+        expect(rig.recorder.phase.value, TripPhase.none);
+        expect((await rig.trips.all()).length, 1);
+      },
+    );
+
+    test('...and the next trip begins when the car moves off', () async {
+      // The engine is on from about 5 s, and the car moves off from about 7 s.
+      final rig = TripRig(simpleTrip())..rig.run(5);
+      addTearDown(rig.close);
+      expect(rig.recorder.phase.value, TripPhase.running);
+
+      rig.recorder.endNow();
+      await rig.recorder.idle;
+      rig.rig.run(1);
+      expect(
+        rig.recorder.phase.value,
+        TripPhase.none,
+        reason: 'still standing',
+      );
+
+      rig.rig.run(30);
+      await rig.recorder.idle;
+      expect(rig.recorder.phase.value, TripPhase.running);
+      expect((await rig.trips.all()).length, 2);
+    });
+
     test('endNow with no trip going does nothing', () async {
       final rig = TripRig(DriveScenarios.cityStopGo);
       addTearDown(rig.close);
