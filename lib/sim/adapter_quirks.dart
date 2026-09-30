@@ -48,6 +48,17 @@ class AdapterQuirks {
     ignoreAdaptiveTiming: true,
   );
 
+  /// A cheap BLE adapter as met on the first real drive: about 1.3 poll cycles a
+  /// second. The BLE hop and the adapter's own pace make each command 150 to 250
+  /// ms, and it does not take a request for several PIDs, so every PID is a
+  /// round trip of its own.
+  static const AdapterQuirks slowBle = AdapterQuirks(
+    latency: Duration(milliseconds: 160),
+    jitter: Duration(milliseconds: 60),
+    ignoreAdaptiveTiming: true,
+    noMultiPid: true,
+  );
+
   /// A flaky one: slow, forgetful, and sometimes silent or noisy.
   static const AdapterQuirks flaky = AdapterQuirks(
     latency: Duration(milliseconds: 80),
@@ -63,6 +74,7 @@ class AdapterQuirks {
   static const Map<String, AdapterQuirks> presets = {
     'none': none,
     'bluetooth_clone': bluetoothClone,
+    'slow_ble': slowBle,
     'flaky': flaky,
   };
 

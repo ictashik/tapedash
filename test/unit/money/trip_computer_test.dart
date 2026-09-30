@@ -175,6 +175,20 @@ void main() {
       },
     );
 
+    test(
+      'a stop sampled once a second: the two edges are half an interval each',
+      () {
+        // 10 s at 30, 30 s at 0, 10 s at 30, a sample a second. Counting only the
+        // intervals with the car standing at both ends gives 29 s; the two
+        // intervals at the edges are half idle each, which makes the 30.
+        make().drive(10, speed: (_) => 30);
+        rig.drive(30, speed: (_) => 0, rpm: 800, throttle: (_) => 10);
+        rig.drive(10, speed: (_) => 30);
+
+        expect(rig.trip.idleSeconds.value, closeTo(30, 0.6));
+      },
+    );
+
     test('driving is not idling', () {
       make().drive(30, speed: (_) => 40);
       expect(rig.trip.idleSeconds.value, 0);

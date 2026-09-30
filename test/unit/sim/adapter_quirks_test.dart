@@ -40,8 +40,14 @@ void main() {
   });
 
   group('presets by name', () {
-    test('are the three presets', () {
-      expect(AdapterQuirks.presets.keys, ['none', 'bluetooth_clone', 'flaky']);
+    test('are the four presets', () {
+      expect(AdapterQuirks.presets.keys, [
+        'none',
+        'bluetooth_clone',
+        'slow_ble',
+        'flaky',
+      ]);
+      expect(AdapterQuirks.presets['slow_ble'], AdapterQuirks.slowBle);
       expect(AdapterQuirks.presets['none'], AdapterQuirks.none);
       expect(
         AdapterQuirks.presets['bluetooth_clone'],

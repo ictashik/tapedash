@@ -96,6 +96,64 @@ void main() {
     });
   });
 
+  group('accuracy behind a slow BLE adapter (1.3 polls a second)', () {
+    // The first real drive: an adapter that gives about 1.3 cycles a second. The
+    // pass criteria of CLAUDE.md 10 do not depend on the adapter, so they hold
+    // here too: distance 2%, fuel 5% (MAF) or 10% (speed-density), idle time 5%
+    // and idle cost 7%.
+    for (final (profile, fuelTolerance) in [
+      (VehicleProfiles.petrolCvtMaf, 0.05),
+      (VehicleProfiles.petrolCvtMap, 0.10),
+    ]) {
+      for (final scenario in [
+        DriveScenarios.cityStopGo,
+        DriveScenarios.aggressiveCity,
+      ]) {
+        test('${profile.name}, ${scenario.name}', () async {
+          final rig = TripRig(
+            scenario,
+            profile: profile,
+            price: price,
+            quirks: AdapterQuirks.slowBle,
+          )..runToEnd();
+          addTearDown(rig.close);
+          await rig.recorder.idle;
+          final truth = rig.rig.car.truth;
+          final c = rig.computer;
+
+          expect(
+            rig.rig.session.pollRate.value,
+            inInclusiveRange(0.8, 2.0),
+            reason: 'the preset is the slow adapter it says it is',
+          );
+          expect(
+            relError(c.distanceKm.value, truth.distanceKm).abs(),
+            lessThan(0.02),
+            reason: 'distance',
+          );
+          expect(
+            relError(c.litres.value, truth.fuelLitres).abs(),
+            lessThan(fuelTolerance),
+            reason: 'fuel: ${c.litres.value} against ${truth.fuelLitres}',
+          );
+          expect(
+            relError(c.idleSeconds.value, truth.idleSeconds).abs(),
+            lessThan(0.05),
+            reason:
+                'idle time: ${c.idleSeconds.value} against ${truth.idleSeconds}',
+          );
+          final idleCost = c.bucketLitres[SpendBucket.idling]! * price;
+          expect(
+            relError(idleCost, truth.idleFuelLitres * price).abs(),
+            lessThan(0.07),
+            reason:
+                'idle cost: $idleCost against ${truth.idleFuelLitres * price}',
+          );
+        });
+      }
+    }
+  });
+
   group('the fuel source', () {
     for (final (profile, expected) in [
       (VehicleProfiles.petrolCvtFuelRate, FuelSource.fuelRate),

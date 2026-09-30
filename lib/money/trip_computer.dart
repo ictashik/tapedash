@@ -256,10 +256,14 @@ class TripComputer {
     if (dt <= Duration.zero || dt > speedGap) return;
     final seconds = dt.inMicroseconds / 1e6;
     _distanceKm += (last.kmh + r.value) / 2 * seconds / 3600;
-    if (vehicle.engineRunning.value &&
-        last.kmh < idleBelowKmh &&
-        r.value < idleBelowKmh) {
-      _idleS += seconds;
+    if (vehicle.engineRunning.value) {
+      // An interval with the car standing at both ends is idle; one that ends
+      // or starts with the car moving is half. Counting only the first loses, at
+      // each stop, up to one interval at each end, which is over 6% of the idle
+      // time when the adapter gives a sample every 0.8 s; the halves cancel.
+      final still =
+          (last.kmh < idleBelowKmh ? 1 : 0) + (r.value < idleBelowKmh ? 1 : 0);
+      _idleS += seconds * still / 2;
     }
     _distance.value = _distanceKm;
     _idleSeconds.value = _idleS;
