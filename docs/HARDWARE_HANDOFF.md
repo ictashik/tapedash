@@ -119,6 +119,8 @@ The next session adds your recordings to `recordings/real/` with replay tests, t
 
 ## Known gaps to keep in mind while testing
 
+- **A cheap BLE adapter gives about 1.3 poll cycles a second** (the first real drive). The screens are smoothed for it (DESIGN.md 5.2); the poll rate on Diagnostics and in the debug overlay is the honest number, and it is not a fault. Compatibility mode has not been tried on such an adapter: say whether it helps.
+
 These are in `docs/STATUS.md`, repeated here so they are not mistaken for bugs:
 
 - Garage has no currency or units choice (the money is ₹, km and litres), no shift-light settings, no CSV export, and no licences screen.

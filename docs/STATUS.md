@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-09-30, at the end of phase 6: **the app is ready for real-hardware testing** (CLAUDE.md 11). Phases 0 to 6 are built, tested and committed, on the simulator. The app opens on a cold open and a choice: **TRY A DEMO DRIVE** (a simulated car, no hardware) or **CONNECT MY CAR** (a WiFi, Bluetooth or BLE ELM327), and then drives, records trips, works out where the money goes, coaches, and shows Review, Coach, History, Garage and Diagnostics. **Nothing here has met a real phone, adapter or car.** The next step is yours: `docs/HARDWARE_HANDOFF.md`.
+Updated 2026-09-30, after the first real drive (see "First real drive" below). Before it, at the end of phase 6, **the app was ready for real-hardware testing** (CLAUDE.md 11). Phases 0 to 6 are built, tested and committed, on the simulator. The app opens on a cold open and a choice: **TRY A DEMO DRIVE** (a simulated car, no hardware) or **CONNECT MY CAR** (a WiFi, Bluetooth or BLE ELM327), and then drives, records trips, works out where the money goes, coaches, and shows Review, Coach, History, Garage and Diagnostics. **Nothing here has met a real phone, adapter or car.** The next step is yours: `docs/HARDWARE_HANDOFF.md`.
 
 ## Where we are
 
@@ -14,7 +14,7 @@ Updated 2026-09-30, at the end of phase 6: **the app is ready for real-hardware 
 | 4. Trips, fuel and money (tag `v0.4.0-sim`) | **Done** (simulator only) |
 | 5. Coach and review (tag `v0.5.0-sim`) | **Done** (simulator only) |
 | 6. Real transports (tag `v0.6.0-handoff`) | **Done, unverified on hardware**; stopped for the handoff |
-| 7. After hardware | Not started |
+| 7. After hardware | **Started**: the first real drive is in; recordings, tuning and the fixes below are next |
 
 **Suggested tags, none created** (placing them is your call; nothing has been pushed, and there is no remote): `v0.1.0-sim` on `d5016d6`, `v0.2.0-design` on `62fb1bb`, `v0.3.0-sim` on `57cd4e2`, `v0.4.0-sim` on `f0105e3`, `v0.5.0-sim` on `2db202f`, `v0.6.0-handoff` on the commit that adds `docs/HARDWARE_HANDOFF.md`.
 
@@ -201,6 +201,27 @@ Numbers as of this section: **2,188 tests** (2,179 before), `49915fa` at HEAD fo
 - **The connect flow's last step lists the layouts by name;** DESIGN.md asks for live previews.
 - Not yet in Garage: currency and units, shift-light settings, CSV export, the licences screen and its QR code (see phase 5).
 - The design review package is waived for phases 4 to 6; I looked at renders of the connect flow at 720 wide in ION only.
+
+## First real drive (2026-09-30)
+
+**What ran:** a release build on the human's own phone (a 120 Hz flagship, not the old device the app is for) and a BLE ELM327 that calls itself `OBDBLE`, in a real car, for one drive of about 10 minutes with a stop at a signal (engine on). What is known comes from two screenshots (Review and the Apex cluster with the debug overlay) and the human's account. **No recording was taken or read, no logs, no fill-up, no comparison with a trip meter.** The rest of the handoff script (WiFi, Bluetooth Classic, ignition off and on, unplugging, the HUD, night, heat) has not been done.
+
+**Verified on hardware, by the screenshots:**
+- BLE connects on a real adapter and reaches `LINK connected`; the serial-service lookup worked for this adapter.
+- The fuel source came out as **MAF**; the money screens ran (Drive: 8.9 km/L, ₹21.3/km; Review: ≈₹28, 1.3 km, 8 min, 5.2 km/L).
+- The light sensor (391 lux), the battery temperature (34.7 C) and the frame timing (121 fps, p90 3.4 ms, tier FULL, "detected") reach the overlay.
+- The page dots lock while the car moves.
+
+**Found:**
+- **Poll rate 1.3 cycles a second** (CLAUDE.md wants at least 3 for the fast tier; the simulated Bluetooth clone gives 9). The human's decision is to accept it as what a cheap adapter gives and to smooth it in software. **Done in the simulator, not yet seen on the phone:** a tracking filter between the samples and the spring (DESIGN.md 5.2, DECISIONS.md), and a stale limit that follows the signal's rhythm. In the simulator's model of a slow adapter the tach's error falls from 740 to 540 rpm and the speedometer's from 4.8 to 3.1 km/h. Compatibility mode has not been tried on this adapter, and neither has the poller's batching been checked (`Poller.isBatching` is not on the overlay).
+- **One drive became two trips.** The human never turned the engine off, only stopped at a signal, and saw Review (8 min, ₹28) and, a minute later, a fresh trip on Drive (1:49, ₹8, 0.4 km). A trip ends when the engine has looked off for 10 s, and "the ECU stopped answering" counts; the poller called the ECU silent after three misses in a row, which is 2 s at this adapter's rate. **The poller now needs three misses *and* four seconds without an answer** (`PollConfig.silentFor`, with tests). **This is a hypothesis: nothing shows why the trip ended,** and a trip that ends and resumes would not have reset the figures on Drive as they were seen to reset. The next drive should have **Record what the adapter says** on, so that the log can say.
+- **The "where it went" figures do not add up on screen.** Normal 25 plus idling 4 is 29 against a headline of ≈₹28: each is rounded alone. **Not fixed.** The fix is to round the parts so that they sum to the rounded total.
+- **The idling cost looks high:** ₹4 for "1 min" is at least ₹2.7 a minute, about 1.4 L/h at the ₹115 a litre the figures imply. An uncalibrated MAF reading at idle is a candidate. **Not looked into.** Whether ₹115 is the price entered is for the human to say.
+- **The dock's left and bottom edges are clipped on Review** (GARAGE's border is cut by the screen edge): the safe-area inset is not applied there. **Not fixed.**
+- **Small:** the debug overlay is translucent and the coolant readout shows through it; its DESIGN LAB button can be pressed while the car moves (CLAUDE.md 9 specifies the overlay as a long-press, and does not say whether it is allowed at speed).
+- Review showed no coach tip and no scrubber handle on this trip; that may be right for a short trip, and is unchecked.
+
+**What this changes in "what has not been verified":** BLE is now verified to connect on one adapter; everything else on the list stands, and the tracker's tuning (`TapeTracking`) is a guess until a real recording can be replayed through it.
 
 ## Phase 3b: the review package, and where the phase stands
 
