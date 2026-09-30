@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../app/app_services.dart';
 import '../../../app/app_settings.dart';
+import '../../../core/observable.dart';
 import '../../../fuel/fuel_constants.dart';
 import '../../../money/calibration.dart';
 import '../../../obd/adapter_config.dart';
@@ -19,6 +20,7 @@ import '../../design/fidelity/fidelity_tier.dart';
 import '../../design/icons/icons.dart';
 import '../../design/motion/ignition_sequence.dart';
 import '../../design/motion/observable_listenable.dart';
+import '../../design/theme/mode_controller.dart' show ModeSetting;
 import '../../design/theme/palette.dart' show DriverSide;
 import '../../design/theme/tape_theme.dart';
 import '../../design/tokens/colors.dart' show HudColor;
@@ -49,6 +51,7 @@ class GaragePage extends StatefulWidget {
     this.onSetPrice,
     this.adapters,
     this.onChangeAdapter,
+    this.phoneTemperature,
     this.demo,
     this.onEndTrip,
     this.onAlignment,
@@ -73,6 +76,9 @@ class GaragePage extends StatefulWidget {
 
   /// Opens the connect flow, to choose or change the adapter.
   final VoidCallback? onChangeAdapter;
+
+  /// The battery temperature, for the suggestion when the phone is hot.
+  final Observable<double?>? phoneTemperature;
 
   /// The demo's controls, when there is one.
   final DemoControl? demo;
@@ -123,6 +129,8 @@ class GaragePageState extends State<GaragePage> {
       ObservableListenable(widget.services.setup),
       ObservableListenable(widget.services.money.price),
       ObservableListenable(widget.services.ledger.confidence),
+      if (widget.phoneTemperature != null)
+        ObservableListenable(widget.phoneTemperature!),
       if (widget.adapters != null) ...[
         ObservableListenable(widget.adapters!.adapter),
         ObservableListenable(widget.adapters!.useAdapter),
@@ -434,6 +442,23 @@ class GaragePageState extends State<GaragePage> {
           ),
         ]),
         _Group('Display', [
+          _Field(
+            'Brightness mode',
+            TapeSegmented<ModeSetting>(
+              height: 40,
+              value: s.modeSetting.value,
+              onChanged: (v) => s.modeSetting.value = v,
+              segments: [
+                for (final m in ModeSetting.values) TapeSegment(m, m.label),
+              ],
+            ),
+          ),
+          if ((widget.phoneTemperature?.value ?? 0) > 45)
+            _Info(
+              'The phone is hot (${widget.phoneTemperature!.value!.round()}°C)',
+              'Unplug the charger and move it out of the sun. Above 50°C the screen '
+                  'dims and the display eases off by itself.',
+            ),
           _Toggle(
             'Reduce motion',
             s.reduceMotion.value,

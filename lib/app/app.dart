@@ -6,14 +6,16 @@ import '../core/clock.dart';
 import '../core/scheduler.dart';
 import '../obd/adapter_config.dart';
 import '../obd/transport/session_sink.dart';
-import '../platform/device_channel.dart';
+import '../platform/device_features.dart';
+import '../platform/fake_device_features.dart';
 import '../platform/file_session_sink.dart';
 import '../ui/design/components/backdrop.dart';
 import '../ui/design/components/controls/tape_button.dart';
-import '../ui/design/fidelity/fidelity_tier.dart';
 import '../ui/design/fidelity/tier_detector.dart';
 import '../ui/design/icons/icons.dart';
+import '../ui/design/motion/motion_clock.dart';
 import '../ui/design/motion/motion_scope.dart';
+import '../ui/design/motion/observable_listenable.dart';
 import '../ui/design/render/render_kit.dart';
 import '../ui/design/theme/tape_theme.dart';
 import '../ui/design/tokens/colors.dart';
@@ -27,6 +29,7 @@ import 'app_info.dart';
 import 'app_services.dart';
 import 'app_settings.dart';
 import 'demo_drive.dart';
+import 'display_controller.dart';
 import 'drive_shell.dart';
 import 'live_drive.dart';
 import 'radio_transport_factory.dart';
@@ -51,7 +54,12 @@ class TapeDashApp extends StatelessWidget {
     this.scenario,
     this.transports,
     this.sessionSink,
+    this.device,
   });
+
+  /// The phone's own features (light sensor, brightness, battery). Null is a phone
+  /// with none, as in a test: the display then stays as it is.
+  final DeviceFeatures? device;
 
   /// Makes the transport for the adapter the user chose. Null uses the real
   /// ones (a test gives a factory for a simulated adapter).
@@ -92,6 +100,7 @@ class TapeDashApp extends StatelessWidget {
         scenario: scenario,
         transports: transports,
         sessionSink: sessionSink,
+        device: device,
       ),
     );
   }
@@ -107,8 +116,10 @@ class _Shell extends StatefulWidget {
     required this.scenario,
     required this.transports,
     required this.sessionSink,
+    required this.device,
   });
 
+  final DeviceFeatures? device;
   final RadioTransportFactory? transports;
   final SessionSink? sessionSink;
   final String? scenario;
@@ -133,26 +144,36 @@ class _ShellState extends State<_Shell> {
     _settings.livery,
     _settings.driverSide,
     _settings.reduceMotion,
-    _settings.tierPin,
+    ObservableListenable(_display.mode),
+    ObservableListenable(_display.tier),
   ]);
 
   // The choice at first launch is asked once: a later launch goes straight in.
   late bool _onboarded = !widget.onboarding || _settings.onboarded.value;
 
-  /// The fidelity tier the cold open's frame timings chose (DESIGN.md 9.2).
-  FidelityTier _tier = FidelityTier.balanced;
+  /// The light, the brightness, the heat and the fidelity tier (DESIGN.md 4.4, 9.2).
+  late final DisplayController _display = DisplayController(
+    device: widget.device ?? FakeDeviceFeatures(),
+    clock: widget.clock,
+    scheduler: widget.scheduler,
+    settings: _settings,
+    // Frame timings are only the phone's to give when there is a phone.
+    watchFrames: widget.device != null,
+  );
+
+  late final ObservableListenable<bool> _phoneHot = ObservableListenable(
+    _display.phoneHot,
+  );
 
   void _onBenchmark(List<double> frames) {
-    final decision = const TierDetector().decide(frameMilliseconds: frames);
-    if (decision.tier != _tier && mounted) {
-      setState(() => _tier = decision.tier);
-    }
+    _display.onDetected(const TierDetector().decide(frameMilliseconds: frames));
   }
 
   late final RadioTransportFactory _transports =
       widget.transports ?? RadioTransportFactory();
   late final SessionSink _sink =
-      widget.sessionSink ?? FileSessionSink(DeviceChannel());
+      widget.sessionSink ??
+      FileSessionSink(widget.device ?? FakeDeviceFeatures());
   late final AppServices _services = widget.services ?? AppServices.inMemory();
 
   /// The demo drive, started at launch so that it is already connected when
@@ -177,6 +198,7 @@ class _ShellState extends State<_Shell> {
     _adapters.compatibilityMode.addListener(_syncDrive);
     _adapters.recordSessions.addListener(_syncDrive);
     _syncDrive();
+    unawaited(_display.start());
     if (DevMode.launchScreen == 'lab') _labOpen = true;
   }
 
@@ -229,6 +251,8 @@ class _ShellState extends State<_Shell> {
     _adapters.recordSessions.removeListener(_syncDrive);
     _demo?.dispose();
     unawaited(_live?.dispose());
+    _phoneHot.dispose();
+    unawaited(_display.dispose());
     _kit.dispose();
     super.dispose();
   }
@@ -268,6 +292,8 @@ class _ShellState extends State<_Shell> {
         clock: widget.clock,
         scheduler: widget.scheduler,
         onChangeAdapter: _openConnect,
+        phoneHot: _phoneHot,
+        phoneTemperature: _display.temperature,
       );
     }
     return LayoutBuilder(
@@ -299,33 +325,78 @@ class _ShellState extends State<_Shell> {
           builder: (context, _) => TapeTheme(
             data: TapeThemeData(
               livery: Liveries.byId(_settings.livery.value),
-              tier: _settings.tierPin.value ?? _tier,
+              mode: _display.mode.value,
+              tier: _display.tier.value.tier,
               driverSide: _settings.driverSide.value,
               reduceMotion: _settings.reduceMotion.value,
             ),
-            child: _labOpen
-                ? DesignLab(onClose: () => setState(() => _labOpen = false))
-                : ColoredBox(
-                    color: TapeColors.voidColor,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(child: _screen()),
-                        if (DevMode.buttonVisible)
-                          Positioned(
-                            right: TapeSpace.s4,
-                            bottom: TapeSpace.s4,
-                            child: TapeButton(
-                              label: 'Design Lab',
-                              icon: TapeIcon.hud,
-                              onPressed: () => setState(() => _labOpen = true),
+            child: _TierBinder(
+              display: _display,
+              child: _labOpen
+                  ? DesignLab(onClose: () => setState(() => _labOpen = false))
+                  : ColoredBox(
+                      color: TapeColors.voidColor,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(child: _screen()),
+                          if (DevMode.buttonVisible)
+                            Positioned(
+                              right: TapeSpace.s4,
+                              bottom: TapeSpace.s4,
+                              child: TapeButton(
+                                label: 'Design Lab',
+                                icon: TapeIcon.hud,
+                                onPressed: () =>
+                                    setState(() => _labOpen = true),
+                              ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+/// Holds the motion clock to the frame rate the fidelity governor asks for: 30 fps
+/// for a hot phone or one that cannot keep up (DESIGN.md 9.1, 9.2).
+class _TierBinder extends StatefulWidget {
+  const _TierBinder({required this.display, required this.child});
+
+  final DisplayController display;
+  final Widget child;
+
+  @override
+  State<_TierBinder> createState() => _TierBinderState();
+}
+
+class _TierBinderState extends State<_TierBinder> {
+  MotionClock? _clock;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.display.tier.addListener(_apply);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _clock = MotionScope.of(context);
+    _apply();
+  }
+
+  @override
+  void dispose() {
+    widget.display.tier.removeListener(_apply);
+    super.dispose();
+  }
+
+  void _apply() => _clock?.maxFps = widget.display.tier.value.fpsCap;
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

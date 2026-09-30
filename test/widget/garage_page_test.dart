@@ -7,6 +7,7 @@ import 'package:tapedash/app/app_services.dart';
 import 'package:tapedash/app/app_settings.dart';
 import 'package:tapedash/app/demo_drive.dart';
 import 'package:tapedash/core/fake_clock.dart';
+import 'package:tapedash/core/observable.dart';
 import 'package:tapedash/fuel/fuel_constants.dart';
 import 'package:tapedash/trips/trip.dart';
 import 'package:tapedash/trips/trip_library.dart';
@@ -14,6 +15,7 @@ import 'package:tapedash/ui/design/components/controls/slide_to_confirm.dart';
 import 'package:tapedash/ui/design/components/controls/tape_slider.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
+import 'package:tapedash/ui/design/theme/mode_controller.dart' show ModeSetting;
 import 'package:tapedash/ui/design/theme/palette.dart' show DriverSide;
 import 'package:tapedash/ui/design/tokens/colors.dart' show HudColor;
 import 'package:tapedash/ui/design/tokens/livery.dart';
@@ -219,13 +221,56 @@ void main() {
     await tester.tap(find.text('LITE'));
     await tester.pump();
     expect(settings.tierPin.value?.label, 'LITE');
-    await tester.tap(find.text('AUTO'));
+    // Two selectors have an AUTO: the brightness mode's, then the fidelity's.
+    await tester.tap(find.text('AUTO').last);
     await tester.pump();
     expect(settings.tierPin.value, isNull);
 
     await tester.tap(find.text('SUBTLE'));
     await tester.pump();
     expect(settings.ignition.value.name, 'subtle');
+  });
+
+  testWidgets('the brightness mode is held from Garage', (tester) async {
+    await show(tester);
+    expect(settings.modeSetting.value, ModeSetting.auto);
+    await visible(tester, find.text('DAYLIGHT'));
+    await tester.tap(find.text('DAYLIGHT'));
+    await tester.pump();
+    expect(settings.modeSetting.value, ModeSetting.daylight);
+    await tester.tap(find.text('NIGHT'));
+    await tester.pump();
+    expect(settings.modeSetting.value, ModeSetting.night);
+  });
+
+  testWidgets('a hot phone is said, with what to do; a cool one is not', (
+    tester,
+  ) async {
+    final temperature = ObservableValue<double?>(38);
+    setWindow(tester, const Size(720, 360));
+    await tester.pumpWidget(
+      tapeHarness(
+        kit: kit,
+        motion: motion,
+        child: GaragePage(
+          settings: settings,
+          services: app,
+          library: library,
+          mode: mode,
+          width: 720,
+          height: 360,
+          onClose: () {},
+          phoneTemperature: temperature,
+        ),
+      ),
+    );
+    await tester.pump();
+    await visible(tester, find.text('BRIGHTNESS MODE'));
+    expect(find.textContaining('The phone is hot'), findsNothing);
+    temperature.value = 48;
+    await tester.pump();
+    expect(find.text('The phone is hot (48°C)'), findsOneWidget);
+    expect(find.textContaining('Unplug the charger'), findsOneWidget);
   });
 
   testWidgets('the HUD: colour from a list, the flips, position and size', (

@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 
 import '../core/clock.dart';
+import '../core/observable.dart';
 import '../core/scheduler.dart';
 import '../location/location_source.dart';
 import '../location/location_status.dart';
@@ -66,6 +68,8 @@ class DriveShell extends StatefulWidget {
     this.live,
     this.app,
     this.onChangeAdapter,
+    this.phoneHot,
+    this.phoneTemperature,
   });
 
   final Clock clock;
@@ -88,6 +92,12 @@ class DriveShell extends StatefulWidget {
 
   /// Garage's request to choose an adapter (the connect flow is the app's).
   final VoidCallback? onChangeAdapter;
+
+  /// Whether the phone is hot, for the status strip's glyph.
+  final ValueListenable<bool>? phoneHot;
+
+  /// The battery temperature, for Garage to say so when it is high.
+  final Observable<double?>? phoneTemperature;
 
   @override
   State<DriveShell> createState() => _DriveShellState();
@@ -174,6 +184,7 @@ class _DriveShellState extends State<DriveShell> {
         demoMode: _feed.isDemo,
         money: _money,
         gpsHasFix: _gpsListenable,
+        phoneHot: widget.phoneHot,
         ignitionMode: _app.settings.ignition.value,
         reduceMotion: _app.settings.reduceMotion.value,
       );
@@ -313,6 +324,7 @@ class _DriveShellState extends State<DriveShell> {
           demo: _demo,
           adapters: _app.adapters,
           onChangeAdapter: widget.onChangeAdapter,
+          phoneTemperature: widget.phoneTemperature,
           onEndTrip: () => _services?.recorder.endNow(),
           onAlignment: () => _hud.showAlignment = true,
           version: appVersion,

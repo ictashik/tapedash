@@ -45,7 +45,9 @@ class DriveSignals {
     this.demoMode = false,
     this.money,
     ValueListenable<bool>? gpsHasFix,
+    ValueListenable<bool>? phoneHot,
   }) : gpsHasFix = gpsHasFix ?? ValueNotifier(false),
+       phoneHot = phoneHot ?? ValueNotifier(false),
        wallClock = WallClockTicker(clock: clock, scheduler: scheduler),
        rpm = SmoothedSignal(
          motion: motion,
@@ -268,7 +270,9 @@ class DriveSignals {
   /// Likewise: phone-temperature polling (CLAUDE.md 9) is cross-cutting app
   /// shell work, not yet wired to any page. A plain "not hot" rather than
   /// inventing one.
-  final ValueListenable<bool> phoneHot = ValueNotifier(false);
+  /// Whether the phone is hot (DESIGN.md 6.9): a glyph in the status strip. It is
+  /// the display controller's, when there is one.
+  final ValueListenable<bool> phoneHot;
 
   void _onMotion() {
     final sample = vehicle.motion.value;

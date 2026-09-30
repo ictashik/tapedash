@@ -4,6 +4,7 @@ import '../coach/coach_thresholds.dart';
 import '../core/key_value_store.dart';
 import '../ui/design/fidelity/fidelity_tier.dart';
 import '../ui/design/motion/ignition_sequence.dart';
+import '../ui/design/theme/mode_controller.dart' show ModeSetting;
 import '../ui/design/theme/palette.dart' show DriverSide;
 import '../ui/design/tokens/colors.dart' show HudColor;
 import '../ui/design/tokens/livery.dart';
@@ -40,6 +41,7 @@ class AppSettings {
   static const _ignitionKey = 'display_ignition';
   static const _reduceKey = 'display_reduce_motion';
   static const _tierKey = 'display_fidelity';
+  static const _modeKey = 'display_mode';
   static const _clusterKey = 'display_cluster';
   static const _presetKey = 'coach_preset';
   static const _limitKey = 'coach_speed_limit';
@@ -63,6 +65,12 @@ class AppSettings {
   final ValueNotifier<DriverSide> driverSide = ValueNotifier(DriverSide.right);
   final ValueNotifier<IgnitionMode> ignition = ValueNotifier(IgnitionMode.full);
   final ValueNotifier<bool> reduceMotion = ValueNotifier(false);
+
+  /// Follow the light sensor for Daylight and Night, or hold one mode (DESIGN.md
+  /// 4.4).
+  final ValueNotifier<ModeSetting> modeSetting = ValueNotifier(
+    ModeSetting.auto,
+  );
 
   /// The fidelity tier held by hand, or null for automatic (DESIGN.md 9.2).
   final ValueNotifier<FidelityTier?> tierPin = ValueNotifier(null);
@@ -103,6 +111,11 @@ class AppSettings {
       IgnitionMode.full,
     );
     reduceMotion.value = await _store.getBool(_reduceKey) ?? false;
+    modeSetting.value = pick(
+      ModeSetting.values,
+      await _store.getString(_modeKey),
+      ModeSetting.auto,
+    );
     final tier = await _store.getString(_tierKey);
     tierPin.value = FidelityTier.values
         .where((t) => t.name == tier)
@@ -155,6 +168,9 @@ class AppSettings {
     );
     reduceMotion.addListener(
       () => _store.setBool(_reduceKey, reduceMotion.value),
+    );
+    modeSetting.addListener(
+      () => _store.setString(_modeKey, modeSetting.value.name),
     );
     tierPin.addListener(() {
       final t = tierPin.value;

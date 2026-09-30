@@ -127,6 +127,19 @@ class TierGovernor {
     }
   }
 
+  /// The tier the cold open's frame timings chose (DESIGN.md 9.2), once they are
+  /// in. A tier the user holds, or a hot phone, is left as it is.
+  void onDetected(TierDecision decision) {
+    if (_hot || _pinned != null) return;
+    _overSince = null;
+    _frames.clear();
+    _state.value = TierState(
+      tier: decision.tier,
+      fpsCap: decision.fpsCap,
+      reason: TierReason.detected,
+    );
+  }
+
   /// Says whether the phone is hot. Above 50 C the tier is Lite at 30 fps; and
   /// it stays there, since the tier never steps up during a trip.
   void onBatteryTemperature(double? celsius) {

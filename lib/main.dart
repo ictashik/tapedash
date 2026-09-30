@@ -8,7 +8,8 @@ import 'ui/design/render/tape_fonts.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await configureWindow(DeviceChannel());
+  final device = DeviceChannel();
+  await configureWindow(device);
   // Awaited before the first frame, so the cold open never shows in a fallback
   // face (DESIGN.md 4.5). A failure here is not a reason to show nothing: the
   // bootstrap log already covers that pattern for the window setup, and the
@@ -28,5 +29,5 @@ Future<void> main() async {
   } on Object catch (error) {
     debugPrint('Could not open the trip log and settings: $error');
   }
-  runApp(TapeDashApp(services: services));
+  runApp(TapeDashApp(services: services, device: device));
 }
