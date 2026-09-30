@@ -1,0 +1,197 @@
+import 'dart:convert';
+
+import '../core/key_value_store.dart';
+import '../core/observable.dart';
+import 'obd_session.dart' show AdapterMemory;
+
+/// How an adapter is reached.
+enum AdapterKind {
+  bluetoothClassic('Bluetooth'),
+  ble('Bluetooth LE'),
+  wifi('WiFi');
+
+  const AdapterKind(this.label);
+
+  final String label;
+}
+
+/// The adapter the user chose (DESIGN.md 7.11): what to open a link to, and what
+/// to call it.
+class AdapterConfig {
+  const AdapterConfig({
+    required this.kind,
+    required this.address,
+    this.name = '',
+    this.port,
+  });
+
+  final AdapterKind kind;
+
+  /// The Bluetooth address (`AA:BB:CC:DD:EE:FF`), or the WiFi adapter's IP
+  /// address.
+  final String address;
+
+  /// What the adapter calls itself, if it says.
+  final String name;
+
+  /// The TCP port, for WiFi.
+  final int? port;
+
+  /// What to call it on screen.
+  String get displayName => name.isEmpty ? address : name;
+
+  /// A key that is the same for the same adapter, for what is remembered about
+  /// it (the protocol it found).
+  String get id => switch (kind) {
+    AdapterKind.wifi => 'wifi:$address:${port ?? 35000}',
+    _ => '${kind.name}:$address',
+  };
+
+  Map<String, Object?> toJson() => {
+    'kind': kind.name,
+    'address': address,
+    'name': name,
+    if (port != null) 'port': port,
+  };
+
+  /// The config in [json], or null if it is not one.
+  static AdapterConfig? fromJson(Object? json) {
+    if (json is! Map) return null;
+    final kind = AdapterKind.values
+        .where((k) => k.name == json['kind'])
+        .firstOrNull;
+    final address = json['address'];
+    if (kind == null || address is! String || address.isEmpty) return null;
+    final port = json['port'];
+    return AdapterConfig(
+      kind: kind,
+      address: address,
+      name: json['name'] is String ? json['name'] as String : '',
+      port: port is int ? port : null,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is AdapterConfig &&
+      other.kind == kind &&
+      other.address == address &&
+      other.port == port &&
+      other.name == name;
+
+  @override
+  int get hashCode => Object.hash(kind, address, port, name);
+
+  @override
+  String toString() => 'AdapterConfig(${kind.name} $address)';
+}
+
+/// The adapter the app uses, and how it is used, kept on the phone (CLAUDE.md 5).
+class AdapterStore {
+  AdapterStore(this._store);
+
+  static const _adapterKey = 'adapter_config';
+  static const _liveKey = 'adapter_use_live';
+  static const _compatKey = 'adapter_compatibility';
+  static const _recordKey = 'adapter_record_sessions';
+  static const _protocolPrefix = 'adapter_protocol_';
+
+  final KeyValueStore _store;
+
+  final ObservableValue<AdapterConfig?> _adapter = ObservableValue(null);
+  final ObservableValue<bool> _live = ObservableValue(false);
+  final ObservableValue<bool> _compat = ObservableValue(false);
+  final ObservableValue<bool> _record = ObservableValue(false);
+
+  /// The adapter last chosen, or null if none has been.
+  Observable<AdapterConfig?> get adapter => _adapter;
+
+  /// Whether the app drives from the adapter (true) or from Demo Mode (false).
+  Observable<bool> get useAdapter => _live;
+
+  /// Compatibility mode forced on (CLAUDE.md 8.1): no batching and a slower pace,
+  /// for an adapter that cannot keep up.
+  Observable<bool> get compatibilityMode => _compat;
+
+  /// Whether each drive's raw adapter traffic is written to a file, for the
+  /// hardware handoff (CLAUDE.md 11).
+  Observable<bool> get recordSessions => _record;
+
+  Future<void> load() async {
+    final raw = await _store.getString(_adapterKey);
+    if (raw != null) {
+      try {
+        _adapter.value = AdapterConfig.fromJson(jsonDecode(raw));
+      } on FormatException {
+        _adapter.value = null;
+      }
+    }
+    _live.value = await _store.getBool(_liveKey) ?? false;
+    _compat.value = await _store.getBool(_compatKey) ?? false;
+    _record.value = await _store.getBool(_recordKey) ?? false;
+  }
+
+  /// Remembers [config] as the adapter, and switches to driving from it.
+  Future<void> choose(AdapterConfig config) async {
+    _adapter.value = config;
+    _live.value = true;
+    await _store.setString(_adapterKey, jsonEncode(config.toJson()));
+    await _store.setBool(_liveKey, true);
+  }
+
+  /// Forgets the adapter, and goes back to Demo Mode.
+  Future<void> forget() async {
+    final was = _adapter.value;
+    _adapter.value = null;
+    _live.value = false;
+    await _store.remove(_adapterKey);
+    await _store.setBool(_liveKey, false);
+    if (was != null) await _store.remove('$_protocolPrefix${was.id}');
+  }
+
+  /// Drives from Demo Mode or from the adapter, without forgetting it.
+  Future<void> setUseAdapter(bool use) async {
+    _live.value = use && _adapter.value != null;
+    await _store.setBool(_liveKey, _live.value);
+  }
+
+  Future<void> setCompatibilityMode(bool on) async {
+    _compat.value = on;
+    await _store.setBool(_compatKey, on);
+  }
+
+  Future<void> setRecordSessions(bool on) async {
+    _record.value = on;
+    await _store.setBool(_recordKey, on);
+  }
+
+  /// What is remembered about [config]: the protocol it found last time, so that
+  /// it is set directly next time (CLAUDE.md 8.1).
+  Future<AdapterMemory> memoryFor(AdapterConfig config) async {
+    final key = '$_protocolPrefix${config.id}';
+    return _StoredMemory(_store, key, await _store.getString(key));
+  }
+}
+
+class _StoredMemory implements AdapterMemory {
+  _StoredMemory(this._store, this._key, this._protocol);
+
+  final KeyValueStore _store;
+  final String _key;
+  String? _protocol;
+
+  @override
+  String? get protocol => _protocol;
+
+  @override
+  set protocol(String? value) {
+    _protocol = value;
+    // The session cannot wait for the phone's storage; a failed write only means
+    // the search is done again next time.
+    if (value == null) {
+      _store.remove(_key);
+    } else {
+      _store.setString(_key, value);
+    }
+  }
+}

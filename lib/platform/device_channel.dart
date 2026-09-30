@@ -61,6 +61,10 @@ class DeviceChannel implements DeviceFeatures {
   }
 
   @override
+  Future<String?> externalFilesDirectory() =>
+      _methods.invokeMethod<String>('externalFilesDirectory');
+
+  @override
   Future<SensorSupport> sensorSupport() async {
     final support = await _methods.invokeMapMethod<String, Object?>(
       'sensorSupport',

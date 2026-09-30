@@ -24,6 +24,11 @@ abstract interface class DeviceFeatures {
   /// report one. It is the best stand-in for how hot the phone is (CLAUDE.md 9).
   Future<double?> batteryTemperatureCelsius();
 
+  /// The folder the app may write files to that its user can reach over USB
+  /// (`Android/data/<package>/files`), or null if the phone has none. Session
+  /// recordings go here (CLAUDE.md 11).
+  Future<String?> externalFilesDirectory();
+
   /// Which of the sensors below this phone has. Without an ambient light sensor
   /// the app falls back to sunrise and sunset (DESIGN.md 4.4).
   Future<SensorSupport> sensorSupport();

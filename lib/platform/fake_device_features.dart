@@ -9,6 +9,9 @@ class FakeDeviceFeatures implements DeviceFeatures {
   bool keepScreenOn = false;
   bool immersive = false;
 
+  /// What [externalFilesDirectory] returns: null, as on a phone with none.
+  String? filesDirectory;
+
   /// The last brightness set, or null for the phone's own setting.
   double? brightness;
 
@@ -32,6 +35,9 @@ class FakeDeviceFeatures implements DeviceFeatures {
 
   /// Closes the sensor streams.
   Future<void> dispose() => Future.wait([_lux.close(), _acceleration.close()]);
+
+  @override
+  Future<String?> externalFilesDirectory() async => filesDirectory;
 
   @override
   Stream<double> get ambientLux => _lux.stream;

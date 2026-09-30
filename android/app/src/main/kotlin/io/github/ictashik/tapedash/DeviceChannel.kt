@@ -111,6 +111,9 @@ class DeviceChannel(
 
             "batteryTemperature" -> result.success(batteryTemperatureCelsius())
 
+            // Where session recordings go: reachable over USB without a permission.
+            "externalFilesDirectory" -> result.success(activity.getExternalFilesDir(null)?.absolutePath)
+
             "sensorSupport" -> result.success(
                 mapOf(
                     "ambientLight" to (sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT) != null),

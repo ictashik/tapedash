@@ -143,6 +143,24 @@ void main() {
     });
   });
 
+  group('externalFilesDirectory', () {
+    test('is the folder the platform reports', () async {
+      reply = (_) => '/storage/emulated/0/Android/data/x/files';
+
+      expect(
+        await DeviceChannel().externalFilesDirectory(),
+        '/storage/emulated/0/Android/data/x/files',
+      );
+      expect(calls.single.method, 'externalFilesDirectory');
+    });
+
+    test('is null when the phone has none', () async {
+      reply = (_) => null;
+
+      expect(await DeviceChannel().externalFilesDirectory(), isNull);
+    });
+  });
+
   group('sensorSupport', () {
     test('reads both flags', () async {
       reply = (_) => {'ambientLight': true, 'accelerometer': false};
