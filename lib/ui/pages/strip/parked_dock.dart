@@ -134,6 +134,7 @@ class ParkedDockState extends State<ParkedDock> {
       (TapeIcon.hud, 'HUD', widget.onHud),
     ];
 
+    final margin = TapeSpace.margin(widget.height);
     final riseHeight = TapeShape.buttonHeight + TapeSpace.s1;
     // The dock's own floor: the tape's own 8 lp plus its own gap, so the
     // dock rises INTO the floor zone rather than under its own tape.
@@ -151,7 +152,9 @@ class ParkedDockState extends State<ParkedDock> {
           children: [
             Positioned(
               bottom: floor + riseHeight * (_rise.value - 1),
-              left: 0,
+              // The pages' own margin: a button's chamfered edge sat on the
+              // screen's edge, and was cut off, on the first real phone.
+              left: margin,
               right: 0,
               child: Row(
                 mainAxisSize: MainAxisSize.min,

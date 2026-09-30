@@ -5,6 +5,7 @@ import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
 import 'package:tapedash/ui/design/theme/tape_theme.dart';
 import 'package:tapedash/ui/design/tokens/livery.dart';
+import 'package:tapedash/ui/design/tokens/spacing.dart';
 import 'package:tapedash/ui/pages/strip/parked_dock.dart';
 import 'package:tapedash/vehicle/vehicle_state.dart' show DrivingMode;
 
@@ -75,6 +76,22 @@ void main() {
       // Risen into the floor zone: above the page tape and its gap.
       expect(r.bottom, closeTo(400 - 12, 0.5));
     }
+  });
+
+  testWidgets('the buttons keep the pages\' margin from the screen edge', (
+    tester,
+  ) async {
+    // The first real phone cut off the left chamfer of the first button: the
+    // row started at 0, where every page starts at the margin.
+    await show(tester);
+    run(const Duration(milliseconds: 800));
+    await tester.pump();
+
+    final margin = TapeSpace.margin(400);
+    final buttons = find.byType(TapeButton);
+    final first = tester.getRect(buttons.first);
+
+    expect(first.left, closeTo(margin, 0.5));
   });
 
   testWidgets('the dock falls inside the motion return when moving', (
