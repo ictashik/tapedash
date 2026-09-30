@@ -13,6 +13,11 @@ one line to an entry, and can be read and diffed.
 3.730 < \r>
 ```
 
+A line's marker is `>` (sent), `<` (received), `!` (a link event) or `@` (a note
+the app wrote about itself: its setup, connection status, engine, mode and trip,
+and a `vitals` line every 5 s; replay ignores them). Only a recording of a real
+drive has notes.
+
 ## `sim/`: made by the simulator
 
 `dart run tool/record_sim.dart --scenario city_stop_go` records one drive, and

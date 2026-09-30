@@ -1,3 +1,5 @@
+import '../core/fuel_blend.dart';
+
 /// The fuel a car burns.
 enum FuelType {
   petrol('Petrol'),
@@ -38,10 +40,20 @@ class FuelConstants {
     volumetricEfficiencyShape: [],
   );
 
-  static FuelConstants forType(FuelType type) => switch (type) {
-    FuelType.petrol => petrol,
-    FuelType.diesel => diesel,
-  };
+  static FuelConstants forType(FuelType type, [PetrolBlend? blend]) =>
+      switch (type) {
+        FuelType.petrol => blend == null ? petrol : forBlend(blend),
+        FuelType.diesel => diesel,
+      };
+
+  /// Petrol with [blend] ethanol: its air-fuel ratio and its density (see
+  /// [PetrolBlend]). E0 is exactly [petrol].
+  static FuelConstants forBlend(PetrolBlend blend) => blend == PetrolBlend.e0
+      ? petrol
+      : FuelConstants(
+          airFuelRatio: blend.airFuelRatio,
+          densityGramsPerLitre: blend.densityGramsPerLitre,
+        );
 
   /// Air mass over fuel mass.
   final double airFuelRatio;
@@ -109,6 +121,7 @@ class VehicleSetup {
     this.fuelType = FuelType.petrol,
     this.displacementLitres = 1.5,
     this.tankLitres = 40,
+    this.blend = PetrolBlend.e0,
     FuelConstants? constants,
   }) : _constants = constants; // ignore: prefer_initializing_formals
 
@@ -120,9 +133,15 @@ class VehicleSetup {
   /// The tank's capacity, in litres, to turn the fuel level into litres.
   final double tankLitres;
 
+  /// The ethanol in the petrol. The class's own default is plain petrol, the
+  /// 14.7 and 740 of CLAUDE.md 8.4; the app's first setup is E20 (see
+  /// `VehicleSetup.indiaDefault`). Ignored for a diesel.
+  final PetrolBlend blend;
+
   final FuelConstants? _constants;
 
-  FuelConstants get constants => _constants ?? FuelConstants.forType(fuelType);
+  FuelConstants get constants =>
+      _constants ?? FuelConstants.forType(fuelType, blend);
 
   bool get isDiesel => fuelType == FuelType.diesel;
 
@@ -130,11 +149,17 @@ class VehicleSetup {
     FuelType? fuelType,
     double? displacementLitres,
     double? tankLitres,
+    PetrolBlend? blend,
     FuelConstants? constants,
   }) => VehicleSetup(
     fuelType: fuelType ?? this.fuelType,
     displacementLitres: displacementLitres ?? this.displacementLitres,
     tankLitres: tankLitres ?? this.tankLitres,
+    blend: blend ?? this.blend,
     constants: constants ?? _constants,
   );
+
+  /// What a new install starts with: E20, which is the petrol at most Indian
+  /// pumps now. Plain petrol and E10 are one tap away in Garage.
+  static const VehicleSetup indiaDefault = VehicleSetup(blend: PetrolBlend.e20);
 }

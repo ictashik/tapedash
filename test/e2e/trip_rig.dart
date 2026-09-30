@@ -1,5 +1,6 @@
 import 'package:tapedash/coach/coach_monitor.dart';
 import 'package:tapedash/coach/hard_event_detector.dart';
+import 'package:tapedash/core/fuel_blend.dart';
 import 'package:tapedash/core/key_value_store.dart';
 import 'package:tapedash/core/observable.dart';
 import 'package:tapedash/fuel/fuel_constants.dart';
@@ -34,12 +35,14 @@ class TripRig {
     FuelLedger? sharedLedger,
     MemoryTripRepository? trips,
     bool isDemo = false,
+    PetrolBlend blend = PetrolBlend.e0,
   }) : rig = E2eRig(scenario, profile: profile, quirks: quirks, seed: seed) {
     final p = profile ?? scenario.profile;
     setup = VehicleSetup(
       fuelType: p.isDiesel ? FuelType.diesel : FuelType.petrol,
       displacementLitres: p.engine.displacementLitres,
       tankLitres: p.tankLitres,
+      blend: blend,
     );
     this.trips = trips ?? MemoryTripRepository();
     fills = MemoryFillUpRepository();

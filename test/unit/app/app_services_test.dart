@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/app/app_services.dart';
+import 'package:tapedash/core/fuel_blend.dart';
 import 'package:tapedash/fuel/fuel_constants.dart';
 import 'package:tapedash/money/calibration.dart';
 import 'package:tapedash/trips/trip.dart';
@@ -53,6 +54,24 @@ void main() {
     expect(app.setup.value.displacementLitres, 2.2);
     expect(app.setup.value.tankLitres, 55);
   });
+
+  test(
+    'the blend is kept, and a setup saved before it existed reads as E20',
+    () async {
+      final app = await AppServices.memory();
+      expect(app.setup.value.blend, PetrolBlend.e20, reason: 'a new install');
+
+      await app.setVehicleSetup(
+        app.setup.value.copyWith(blend: PetrolBlend.e10),
+      );
+      await app.load();
+      expect(app.setup.value.blend, PetrolBlend.e10);
+
+      await app.store.setString('vehicle_petrol_blend', 'not-a-blend');
+      await app.load();
+      expect(app.setup.value.blend, PetrolBlend.e20);
+    },
+  );
 
   test(
     'a demo has its own price and calibration, and shares only the trips',

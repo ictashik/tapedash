@@ -3,6 +3,7 @@
 // the trip's start and end, calibration and the Money Tape.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/coach/hard_event_detector.dart';
+import 'package:tapedash/core/fuel_blend.dart';
 import 'package:tapedash/core/key_value_store.dart';
 import 'package:tapedash/fuel/fuel_constants.dart';
 import 'package:tapedash/fuel/fuel_estimator.dart';
@@ -152,6 +153,125 @@ void main() {
         });
       }
     }
+  });
+
+  group('E20 petrol (ethanol in the petrol)', () {
+    // The simulator's car burns a blend when its profile says so: the same air
+    // is more litres of fuel (about 7.5% for E20), and the truth follows. The
+    // estimate has to be told, by the setting, or it reads low.
+    for (final (profile, tolerance) in [
+      (VehicleProfiles.petrolCvtMaf, 0.05),
+      (VehicleProfiles.petrolCvtMap, 0.10),
+    ]) {
+      test('${profile.name}: told it is E20, it is within tolerance', () async {
+        final e20 = profile.withBlend(PetrolBlend.e20);
+        final rig = TripRig(
+          DriveScenarios.cityStopGo,
+          profile: e20,
+          blend: PetrolBlend.e20,
+        )..runToEnd();
+        addTearDown(rig.close);
+        expect(
+          relError(
+            rig.computer.litres.value,
+            rig.rig.car.truth.fuelLitres,
+          ).abs(),
+          lessThan(tolerance),
+        );
+      });
+    }
+
+    test('petrol_cvt_maf: not told, it reads about 7% low', () async {
+      final e20 = VehicleProfiles.petrolCvtMaf.withBlend(PetrolBlend.e20);
+      final rig = TripRig(DriveScenarios.cityStopGo, profile: e20)..runToEnd();
+      addTearDown(rig.close);
+      final error = relError(
+        rig.computer.litres.value,
+        rig.rig.car.truth.fuelLitres,
+      );
+      // 1 / 1.075 = 0.930: the estimate is 7% under, on top of its own noise.
+      expect(error, inInclusiveRange(-0.11, -0.04));
+    });
+
+    test('the same drive on E20 burns more litres than on E0', () async {
+      final e0 = TripRig(
+        DriveScenarios.cityStopGo,
+        profile: VehicleProfiles.petrolCvtMaf,
+      )..runToEnd();
+      final e20 = TripRig(
+        DriveScenarios.cityStopGo,
+        profile: VehicleProfiles.petrolCvtMaf.withBlend(PetrolBlend.e20),
+      )..runToEnd();
+      addTearDown(e0.close);
+      addTearDown(e20.close);
+      // The same road, and the same power asked for; the fuel's litres for it.
+      final ratio = e20.rig.car.truth.fuelLitres / e0.rig.car.truth.fuelLitres;
+      expect(ratio, inInclusiveRange(1.05, 1.12));
+    });
+
+    test(
+      'PID 5E is the ECU\'s own: right on E20 whatever the setting',
+      () async {
+        final e20 = VehicleProfiles.petrolCvtFuelRate.withBlend(
+          PetrolBlend.e20,
+        );
+        final rig = TripRig(DriveScenarios.cityStopGo, profile: e20)
+          ..runToEnd();
+        addTearDown(rig.close);
+        expect(
+          relError(
+            rig.computer.litres.value,
+            rig.rig.car.truth.fuelLitres,
+          ).abs(),
+          lessThan(0.05),
+        );
+      },
+    );
+
+    test('two full tanks put right an estimate that was not told', () async {
+      final e20 = VehicleProfiles.petrolCvtMaf.withBlend(PetrolBlend.e20);
+      final fills = MemoryFillUpRepository();
+      final ledger = FuelLedger(fills: fills, store: MemoryKeyValueStore());
+      await ledger.recordFillUp(
+        at: DateTime(2026, 1, 1),
+        litres: 30,
+        amount: 3000,
+        fullTank: true,
+      );
+      var burnt = 0.0;
+      for (final scenario in [
+        DriveScenarios.highwayCruise,
+        DriveScenarios.cityStopGo,
+      ]) {
+        final rig = TripRig(scenario, profile: e20, sharedLedger: ledger)
+          ..runToEnd();
+        burnt += rig.rig.car.truth.fuelLitres;
+        await rig.close();
+      }
+      await ledger.recordFillUp(
+        at: DateTime(2026, 1, 4),
+        litres: burnt,
+        amount: burnt * price,
+        fullTank: true,
+      );
+      // The factor is the 7.5% the setting would have made.
+      expect(ledger.calibration.factor, inInclusiveRange(1.03, 1.12));
+
+      final next = TripRig(
+        DriveScenarios.aggressiveCity,
+        profile: e20,
+        sharedLedger: ledger,
+        seed: 7,
+      )..runToEnd();
+      addTearDown(next.close);
+      expect(
+        relError(
+          next.computer.litres.value,
+          next.rig.car.truth.fuelLitres,
+        ).abs(),
+        lessThan(0.03),
+      );
+    });
   });
 
   group('the fuel source', () {

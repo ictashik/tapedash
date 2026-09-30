@@ -1,6 +1,7 @@
 // Picking the fuel source and the estimate each gives (CLAUDE.md 8.4).
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/core/fake_clock.dart';
+import 'package:tapedash/core/fuel_blend.dart';
 import 'package:tapedash/fuel/fuel_constants.dart';
 import 'package:tapedash/fuel/fuel_estimator.dart';
 import 'package:tapedash/vehicle/sensor.dart';
@@ -53,6 +54,27 @@ void main() {
     expect(e.source.value, FuelSource.airFlow);
     // 10 * 3600 / (14.7 * 740) = 3.3094
     expect(e.flow.value!.litresPerHour, closeTo(3.3094, 1e-3));
+  });
+
+  test('MAF on E20: 3 g/s is 1.067 L/h, 7.5% more than the same air on E0', () {
+    // 3 * 3600 / (13.50 * 749.8) = 10800 / 10122 = 1.0670; on E0 it is 0.9928.
+    final e20 = make(setup: const VehicleSetup(blend: PetrolBlend.e20));
+    feed(Sensor.airFlow, 3);
+    expect(e20.flow.value!.litresPerHour, closeTo(1.0670, 2e-3));
+
+    final e0 = make();
+    feed(Sensor.airFlow, 3);
+    expect(e0.flow.value!.litresPerHour, closeTo(0.9928, 1e-3));
+    expect(
+      e20.flow.value!.litresPerHour / e0.flow.value!.litresPerHour,
+      closeTo(1.075, 3e-3),
+    );
+  });
+
+  test('PID 5E is the ECU\'s own figure: the blend does not touch it', () {
+    final e = make(setup: const VehicleSetup(blend: PetrolBlend.e20));
+    feed(Sensor.fuelRate, 3.4);
+    expect(e.flow.value!.litresPerHour, 3.4);
   });
 
   test('speed-density needs the manifold, the intake air and the revs', () {

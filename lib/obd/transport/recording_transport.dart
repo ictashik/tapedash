@@ -41,6 +41,10 @@ class RecordingTransport implements Transport {
   SessionLog get log =>
       SessionLog(header: _header, entries: List.unmodifiable(_entries));
 
+  /// Writes a line about the app itself into the log, at this moment (see
+  /// [SessionDirection.note]).
+  void note(String text) => _add(SessionDirection.note, text);
+
   void _add(SessionDirection direction, String text) {
     _entries.add(SessionEntry(_clock.monotonic() - _start, direction, text));
   }

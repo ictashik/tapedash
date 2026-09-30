@@ -145,6 +145,24 @@ void main() {
       expect(again.recordSessions.value, isTrue);
     });
 
+    test(
+      'a debug build records until told not to, and the choice wins',
+      () async {
+        final debug = AdapterStore(store, recordByDefault: true);
+        await debug.load();
+        expect(debug.recordSessions.value, isTrue);
+
+        await debug.setRecordSessions(false);
+        final again = AdapterStore(store, recordByDefault: true);
+        await again.load();
+        expect(
+          again.recordSessions.value,
+          isFalse,
+          reason: 'chosen off in Garage',
+        );
+      },
+    );
+
     test('a damaged setting is no adapter, not a crash', () async {
       await store.setString('adapter_config', '{not json');
       await adapters.load();

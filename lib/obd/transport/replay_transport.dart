@@ -101,6 +101,9 @@ class ReplayTransport implements Transport {
           _exchanges.putIfAbsent(_key(command), () => []).add(current);
         case SessionDirection.received:
           current?.chunks.add((entry.at - current.at, entry.text));
+        case SessionDirection.note:
+          // The app talking to itself: not part of the conversation.
+          break;
         case SessionDirection.event:
           current = null;
           final text = entry.text;

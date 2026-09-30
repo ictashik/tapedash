@@ -88,7 +88,12 @@ class AdapterConfig {
 
 /// The adapter the app uses, and how it is used, kept on the phone (CLAUDE.md 5).
 class AdapterStore {
-  AdapterStore(this._store);
+  AdapterStore(this._store, {this.recordByDefault = false});
+
+  /// Whether sessions are recorded until the user says otherwise: on for a debug
+  /// build, which is a build for finding things out, and off for a release one.
+  /// What the user has chosen in Garage is kept either way.
+  final bool recordByDefault;
 
   static const _adapterKey = 'adapter_config';
   static const _liveKey = 'adapter_use_live';
@@ -128,7 +133,7 @@ class AdapterStore {
     }
     _live.value = await _store.getBool(_liveKey) ?? false;
     _compat.value = await _store.getBool(_compatKey) ?? false;
-    _record.value = await _store.getBool(_recordKey) ?? false;
+    _record.value = await _store.getBool(_recordKey) ?? recordByDefault;
   }
 
   /// Remembers [config] as the adapter, and switches to driving from it.

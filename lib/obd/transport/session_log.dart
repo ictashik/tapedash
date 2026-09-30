@@ -8,6 +8,11 @@ enum SessionDirection {
 
   /// The link changed state: `connecting`, `connected`, `disconnected`...
   event,
+
+  /// A line the app wrote about itself, not traffic: its connection status, a
+  /// trip starting or ending, the fuel figures once in a while. Replay ignores
+  /// these; they are there for whoever reads the log.
+  note,
 }
 
 /// One line of a session log.
@@ -52,7 +57,8 @@ class SessionEntry {
 /// ```
 ///
 /// The `#` lines at the top say what was recorded. Each entry is the time in
-/// seconds, a marker (`>` sent, `<` received, `!` an event) and the text. The
+/// seconds, a marker (`>` sent, `<` received, `!` a link event, `@` a note the
+/// app wrote about itself) and the text. The
 /// text is escaped so that it stays on one line and can be read back exactly:
 /// `\r`, `\n` and `\\` as written, any other character outside the printable
 /// ASCII range as `\xHH` or `\uHHHH`. A trailing space is part of the text.
@@ -78,6 +84,7 @@ class SessionLog {
           SessionDirection.sent => ' > ',
           SessionDirection.received => ' < ',
           SessionDirection.event => ' ! ',
+          SessionDirection.note => ' @ ',
         })
         ..write(escape(e.text))
         ..write('\n');
@@ -129,7 +136,7 @@ class SessionLog {
     FormatException bad(String why) =>
         FormatException('line $number: $why: $line');
 
-    final match = RegExp(r'^(\d+)\.(\d{3}) ([><!]) ?(.*)$').firstMatch(line);
+    final match = RegExp(r'^(\d+)\.(\d{3}) ([><!@]) ?(.*)$').firstMatch(line);
     if (match == null) throw bad('expected "<seconds> <marker> <text>"');
     final at = Duration(
       milliseconds:
@@ -138,6 +145,7 @@ class SessionLog {
     final direction = switch (match.group(3)!) {
       '>' => SessionDirection.sent,
       '<' => SessionDirection.received,
+      '@' => SessionDirection.note,
       _ => SessionDirection.event,
     };
     try {

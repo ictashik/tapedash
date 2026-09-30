@@ -180,6 +180,30 @@ void main() {
     expect(SessionLog.parse(text).format(), text);
   });
 
+  test('a note is a line about the app, in the log at its own time', () async {
+    final rig = _Rig();
+    addTearDown(rig.close);
+    final connected = rig.recorder.connect();
+    rig.advance(1000);
+    await connected;
+
+    rig.recorder.note('trip ending');
+    rig.advance(2500);
+    rig.recorder.note('status waitingForIgnition');
+
+    final notes = rig.recorder.log.entries
+        .where((e) => e.direction == SessionDirection.note)
+        .toList();
+    expect(notes.map((e) => e.text), [
+      'trip ending',
+      'status waitingForIgnition',
+    ]);
+    expect(notes[1].at - notes[0].at, const Duration(milliseconds: 2500));
+    final text = rig.recorder.log.format();
+    expect(text, contains(' @ trip ending\n'));
+    expect(SessionLog.parse(text).entries, rig.recorder.log.entries);
+  });
+
   test('after dispose it records nothing more', () async {
     final rig = _Rig();
     addTearDown(rig.close);

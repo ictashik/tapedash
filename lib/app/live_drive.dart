@@ -95,6 +95,10 @@ class LiveDrive implements DriveFeed {
   /// The name the recording is saved under, once one has begun.
   String? get recordingName => _recordingName;
 
+  /// Writes a line about the app into the recording, if there is one: what it
+  /// made of the car, and when (see `SessionDirection.note`). Nothing otherwise.
+  void note(String text) => _recorder?.note(text);
+
   @override
   void start() {
     if (_started) return;

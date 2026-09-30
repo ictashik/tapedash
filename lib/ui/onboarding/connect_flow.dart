@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 
 import '../../app/app_services.dart';
+import '../../core/fuel_blend.dart';
 import '../../fuel/fuel_constants.dart';
 import '../../money/pit_stop_form.dart';
 import '../../obd/adapter_checker.dart';
@@ -664,18 +665,23 @@ class ConnectFlowState extends State<ConnectFlow> {
       TapeSegmented<FuelType>(
         height: 40,
         value: _setup.fuelType,
-        onChanged: (t) => setState(
-          () => _setup = VehicleSetup(
-            fuelType: t,
-            displacementLitres: _setup.displacementLitres,
-            tankLitres: _setup.tankLitres,
-          ),
-        ),
+        onChanged: (t) => setState(() => _setup = _setup.copyWith(fuelType: t)),
         segments: const [
           TapeSegment(FuelType.petrol, 'Petrol'),
           TapeSegment(FuelType.diesel, 'Diesel'),
         ],
       ),
+      if (_setup.fuelType == FuelType.petrol) ...[
+        const SizedBox(height: TapeSpace.s2),
+        TapeSegmented<PetrolBlend>(
+          height: 40,
+          value: _setup.blend,
+          onChanged: (b) => setState(() => _setup = _setup.copyWith(blend: b)),
+          segments: [
+            for (final b in PetrolBlend.values) TapeSegment(b, b.label),
+          ],
+        ),
+      ],
       const SizedBox(height: TapeSpace.s2),
       TapeSlider(
         label: 'Engine size',
@@ -684,10 +690,8 @@ class ConnectFlowState extends State<ConnectFlow> {
         max: 6,
         format: (v) => '${v.toStringAsFixed(1)} L',
         onChanged: (v) => setState(
-          () => _setup = VehicleSetup(
-            fuelType: _setup.fuelType,
+          () => _setup = _setup.copyWith(
             displacementLitres: (v * 10).round() / 10,
-            tankLitres: _setup.tankLitres,
           ),
         ),
       ),
@@ -698,11 +702,7 @@ class ConnectFlowState extends State<ConnectFlow> {
         max: 120,
         format: (v) => '${v.round()} L',
         onChanged: (v) => setState(
-          () => _setup = VehicleSetup(
-            fuelType: _setup.fuelType,
-            displacementLitres: _setup.displacementLitres,
-            tankLitres: v.roundToDouble(),
-          ),
+          () => _setup = _setup.copyWith(tankLitres: v.roundToDouble()),
         ),
       ),
     ],

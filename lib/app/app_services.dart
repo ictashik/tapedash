@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:sqflite/sqflite.dart';
 
+import '../core/fuel_blend.dart';
 import '../core/key_value_store.dart';
 import '../core/observable.dart';
 import '../fuel/fuel_constants.dart';
@@ -27,11 +29,17 @@ class AppServices {
     required this.money,
     required this.ledger,
     VehicleSetup setup = const VehicleSetup(),
+    this.recordByDefault = false,
   }) : _setup = ObservableValue(setup);
+
+  /// Whether adapter sessions are recorded until Garage says otherwise (see
+  /// `AdapterStore.recordByDefault`).
+  final bool recordByDefault;
 
   static const _fuelTypeKey = 'vehicle_fuel_type';
   static const _displacementKey = 'vehicle_displacement_l';
   static const _tankKey = 'vehicle_tank_l';
+  static const _blendKey = 'vehicle_petrol_blend';
 
   final KeyValueStore store;
   final TripRepository trips;
@@ -46,7 +54,10 @@ class AppServices {
   late final AppSettings settings = AppSettings(store);
 
   /// The adapter the user chose, and how it is used (`AdapterStore`).
-  late final AdapterStore adapters = AdapterStore(store);
+  late final AdapterStore adapters = AdapterStore(
+    store,
+    recordByDefault: recordByDefault,
+  );
 
   /// The car's fuel type, displacement and tank (CLAUDE.md 8.4).
   Observable<VehicleSetup> get setup => _setup;
@@ -56,6 +67,7 @@ class AppServices {
     await store.setString(_fuelTypeKey, setup.fuelType.name);
     await store.setDouble(_displacementKey, setup.displacementLitres);
     await store.setDouble(_tankKey, setup.tankLitres);
+    await store.setString(_blendKey, setup.blend.name);
   }
 
   /// Logs a fill-up, works out a calibration factor from it if it can, and makes
@@ -93,6 +105,7 @@ class AppServices {
     await money.load();
     await ledger.load();
     final type = await store.getString(_fuelTypeKey);
+    final blend = await store.getString(_blendKey);
     _setup.value = VehicleSetup(
       fuelType: FuelType.values.firstWhere(
         (t) => t.name == type,
@@ -100,6 +113,12 @@ class AppServices {
       ),
       displacementLitres: await store.getDouble(_displacementKey) ?? 1.5,
       tankLitres: await store.getDouble(_tankKey) ?? 40,
+      // No blend saved (a new install, or one from before the setting): E20,
+      // which is what the pumps sell.
+      blend: PetrolBlend.values.firstWhere(
+        (b) => b.name == blend,
+        orElse: () => VehicleSetup.indiaDefault.blend,
+      ),
     );
   }
 
@@ -115,6 +134,8 @@ class AppServices {
       fills: fills,
       money: MoneySettings(store),
       ledger: FuelLedger(fills: fills, store: store),
+      // A debug or profile build is for finding things out: record the drives.
+      recordByDefault: !kReleaseMode,
     );
     await services.load();
     return services;

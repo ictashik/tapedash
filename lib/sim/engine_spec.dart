@@ -1,3 +1,5 @@
+import '../core/fuel_blend.dart';
+
 /// What a fuel is made of, for the parts of the simulator that turn air into
 /// fuel and fuel into torque.
 class FuelProperties {
@@ -20,6 +22,18 @@ class FuelProperties {
     lowerHeatingValueJoulesPerGram: 44000,
     stoichiometricAirFuelRatio: 14.7,
   );
+
+  /// Petrol with ethanol in it, worked out from the two fuels
+  /// ([PetrolBlend]). E0 is exactly [petrol].
+  static FuelProperties petrolBlend(PetrolBlend blend) =>
+      blend == PetrolBlend.e0
+      ? petrol
+      : FuelProperties(
+          name: 'petrol ${blend.label}',
+          densityGramsPerLitre: blend.densityGramsPerLitre,
+          lowerHeatingValueJoulesPerGram: blend.lowerHeatingValueJoulesPerGram,
+          stoichiometricAirFuelRatio: blend.airFuelRatio,
+        );
 
   static const FuelProperties diesel = FuelProperties(
     name: 'diesel',
@@ -130,7 +144,27 @@ class PetrolSpec extends EngineSpec {
     this.partLoadEfficiencyFloor = 0.32,
     this.partLoadEfficiencyExponent = 0.6,
     this.minimumManifoldKpa = 17,
-  }) : super(fuel: FuelProperties.petrol);
+    super.fuel = FuelProperties.petrol,
+  });
+
+  /// The same engine on another fuel.
+  PetrolSpec withFuel(FuelProperties fuel) => PetrolSpec(
+    displacementLitres: displacementLitres,
+    volumetricEfficiency: volumetricEfficiency,
+    indicatedEfficiency: indicatedEfficiency,
+    frictionBaseKpa: frictionBaseKpa,
+    frictionPerKrpmKpa: frictionPerKrpmKpa,
+    frictionPerKrpm2Kpa: frictionPerKrpm2Kpa,
+    accessoryTorqueNm: accessoryTorqueNm,
+    throttleLeakArea: throttleLeakArea,
+    throttleWideOpenArea: throttleWideOpenArea,
+    throttleExponent: throttleExponent,
+    intakeDemandPerRpm: intakeDemandPerRpm,
+    partLoadEfficiencyFloor: partLoadEfficiencyFloor,
+    partLoadEfficiencyExponent: partLoadEfficiencyExponent,
+    minimumManifoldKpa: minimumManifoldKpa,
+    fuel: fuel,
+  );
 
   /// The throttle is modelled as an orifice: with area A and an engine that
   /// demands b * rpm of air, the manifold sits at atmosphere * A / (A + b*rpm).

@@ -7,6 +7,7 @@ import 'package:tapedash/app/app_services.dart';
 import 'package:tapedash/app/app_settings.dart';
 import 'package:tapedash/app/demo_drive.dart';
 import 'package:tapedash/core/fake_clock.dart';
+import 'package:tapedash/core/fuel_blend.dart';
 import 'package:tapedash/core/observable.dart';
 import 'package:tapedash/fuel/fuel_constants.dart';
 import 'package:tapedash/trips/trip.dart';
@@ -133,10 +134,47 @@ void main() {
     expect(app.setup.value.tankLitres, closeTo(20, 1));
   });
 
+  testWidgets('the ethanol in the petrol: E20 to begin with, set from Garage', (
+    tester,
+  ) async {
+    await show(tester);
+    expect(find.text('ETHANOL IN THE PETROL'), findsOneWidget);
+    expect(app.setup.value.blend, PetrolBlend.e20);
+
+    await tester.tap(find.text('E10'));
+    await tester.pump();
+    expect(app.setup.value.blend, PetrolBlend.e10);
+    expect(app.setup.value.fuelType, FuelType.petrol, reason: 'the rest holds');
+
+    await tester.tap(find.text('E0'));
+    await tester.pump();
+    expect(app.setup.value.blend, PetrolBlend.e0);
+  });
+
+  testWidgets('a diesel has no ethanol to set, and keeps the blend for later', (
+    tester,
+  ) async {
+    await show(tester);
+    await tester.tap(find.text('E10'));
+    await tester.pump();
+
+    await tester.tap(find.text('DIESEL'));
+    await tester.pump();
+    expect(find.text('ETHANOL IN THE PETROL'), findsNothing);
+    expect(app.setup.value.blend, PetrolBlend.e10);
+
+    await tester.tap(find.text('PETROL'));
+    await tester.pump();
+    expect(find.text('ETHANOL IN THE PETROL'), findsOneWidget);
+    expect(app.setup.value.blend, PetrolBlend.e10);
+  });
+
   testWidgets('the fuel price row says what is set, and opens the form', (
     tester,
   ) async {
     await show(tester);
+    // The car group has a row more (the ethanol), so the price is further down.
+    await visible(tester, find.text('Not set'));
     expect(find.text('Not set'), findsOneWidget);
     await tester.tap(find.text('Price a litre'));
     expect(priceAsked, 1);

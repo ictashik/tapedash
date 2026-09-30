@@ -120,6 +120,12 @@ Future<void> main() async {
     await tester.tap(find.widgetWithText(TapeButton, 'GARAGE'));
     await run(tester, 400);
     expect(find.byType(GaragePage), findsOneWidget);
+    // The list builds what is on screen; the adapter is a little way down.
+    await tester.scrollUntilVisible(
+      find.text('OBDII  ·  Bluetooth'),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('OBDII  ·  Bluetooth'), findsOneWidget);
 
     await tester.ensureVisible(find.text('Drive from this adapter'));

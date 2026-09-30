@@ -143,6 +143,7 @@ void main() {
           case SessionDirection.received:
             if (entry.text.endsWith('>')) waiting = false;
           case SessionDirection.event:
+          case SessionDirection.note:
             break;
         }
       }

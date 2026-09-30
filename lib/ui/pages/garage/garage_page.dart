@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../app/app_services.dart';
 import '../../../app/app_settings.dart';
+import '../../../core/fuel_blend.dart';
 import '../../../core/observable.dart';
 import '../../../fuel/fuel_constants.dart';
 import '../../../money/calibration.dart';
@@ -267,19 +268,26 @@ class GaragePageState extends State<GaragePage> {
             TapeSegmented<FuelType>(
               height: 40,
               value: setup.fuelType,
-              onChanged: (t) => app.setVehicleSetup(
-                VehicleSetup(
-                  fuelType: t,
-                  displacementLitres: setup.displacementLitres,
-                  tankLitres: setup.tankLitres,
-                ),
-              ),
+              onChanged: (t) =>
+                  app.setVehicleSetup(setup.copyWith(fuelType: t)),
               segments: const [
                 TapeSegment(FuelType.petrol, 'Petrol'),
                 TapeSegment(FuelType.diesel, 'Diesel'),
               ],
             ),
           ),
+          if (setup.fuelType == FuelType.petrol)
+            _Field(
+              'Ethanol in the petrol',
+              TapeSegmented<PetrolBlend>(
+                height: 40,
+                value: setup.blend,
+                onChanged: (b) => app.setVehicleSetup(setup.copyWith(blend: b)),
+                segments: [
+                  for (final b in PetrolBlend.values) TapeSegment(b, b.label),
+                ],
+              ),
+            ),
           TapeSlider(
             label: 'Engine size',
             value: setup.displacementLitres,
@@ -287,11 +295,7 @@ class GaragePageState extends State<GaragePage> {
             max: 6,
             format: (v) => '${v.toStringAsFixed(1)} L',
             onChanged: (v) => app.setVehicleSetup(
-              VehicleSetup(
-                fuelType: setup.fuelType,
-                displacementLitres: (v * 10).round() / 10,
-                tankLitres: setup.tankLitres,
-              ),
+              setup.copyWith(displacementLitres: (v * 10).round() / 10),
             ),
           ),
           TapeSlider(
@@ -301,11 +305,7 @@ class GaragePageState extends State<GaragePage> {
             max: 120,
             format: (v) => '${v.round()} L',
             onChanged: (v) => app.setVehicleSetup(
-              VehicleSetup(
-                fuelType: setup.fuelType,
-                displacementLitres: setup.displacementLitres,
-                tankLitres: v.roundToDouble(),
-              ),
+              setup.copyWith(tankLitres: v.roundToDouble()),
             ),
           ),
           _Info('Fuel figures', switch (confidence) {

@@ -1,3 +1,4 @@
+import '../core/fuel_blend.dart';
 import 'engine_spec.dart';
 
 /// How the engine is connected to the wheels.
@@ -135,6 +136,30 @@ class VehicleProfile {
   /// The Mode 01 PIDs the ECU answers, apart from PID 01 (the MIL and code
   /// count), which every OBD-II ECU has and the simulator always adds.
   final Set<int> supportedPids;
+
+  /// The same car running on petrol with [blend] ethanol in it: the air makes
+  /// more litres of fuel and less energy per litre, and the ground truth follows.
+  /// Only a petrol car has a blend.
+  VehicleProfile withBlend(PetrolBlend blend) {
+    final e = engine;
+    if (e is! PetrolSpec) throw StateError('$name is not a petrol car');
+    return VehicleProfile(
+      name: '${name}_${blend.name}',
+      description: '$description, on ${blend.label}',
+      engine: e.withFuel(FuelProperties.petrolBlend(blend)),
+      transmission: transmission,
+      massKg: massKg,
+      tankLitres: tankLitres,
+      idleRpm: idleRpm,
+      redlineRpm: redlineRpm,
+      tachMaxRpm: tachMaxRpm,
+      supportedPids: supportedPids,
+      dragAreaM2: dragAreaM2,
+      rollingResistance: rollingResistance,
+      maxBrakeDecelMs2: maxBrakeDecelMs2,
+      tractionLimitG: tractionLimitG,
+    );
+  }
 
   bool get isDiesel => engine is DieselSpec;
   FuelProperties get fuel => engine.fuel;

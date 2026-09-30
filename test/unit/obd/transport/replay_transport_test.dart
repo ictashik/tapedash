@@ -22,6 +22,8 @@ SessionEntry got(int at, String text) =>
     SessionEntry(ms(at), SessionDirection.received, text);
 SessionEntry event(int at, String text) =>
     SessionEntry(ms(at), SessionDirection.event, text);
+SessionEntry note(int at, String text) =>
+    SessionEntry(ms(at), SessionDirection.note, text);
 
 /// A replay of [entries] on a fake clock, connected, with what it delivers.
 class _Rig {
@@ -79,6 +81,23 @@ void main() {
 
       expect(rig.text, 'ELM327 v1.5\r\n\r\n>');
       expect(rig.received.single.$1 - t0, ms(40));
+    });
+
+    test('a note in between is not part of the conversation', () async {
+      // The app writes about itself in the middle of an exchange; the reply is
+      // still the command's.
+      final rig = _Rig([
+        sent(1000, 'ATI\r'),
+        note(1010, 'trip running'),
+        got(1040, 'ELM327 v1.5\r\n\r\n>'),
+      ]);
+      addTearDown(rig.close);
+      await rig.connect();
+
+      await rig.transport.write('ATI\r');
+      rig.advance(40);
+
+      expect(rig.text, 'ELM327 v1.5\r\n\r\n>');
     });
 
     test('in every piece, each at its own offset', () async {

@@ -180,6 +180,7 @@ class _DriveShellState extends State<DriveShell> {
         sessions: _feed.sessions,
         isDemo: _feed.isDemo,
         location: location,
+        note: _feed is LiveDrive ? _feed.note : null,
         thresholds: _app.settings.thresholds,
       );
       _services = services;
