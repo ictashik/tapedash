@@ -270,7 +270,7 @@ Garage → Demo mode, and the "Try a demo drive" onboarding path (DESIGN.md §7.
 ### 8.4 Fuel-flow estimation (`fuel/`)
 Pick the best available source automatically and show which one is in use on the Diagnostics page:
 1. **PID 5E** (fuel rate): use it directly.
-2. **MAF** (PID 10): L/h = MAF × 3600 / (AFR × ρ), with AFR 14.7 and ρ = 740 g/L for petrol.
+2. **MAF** (PID 10): L/h = MAF × 3600 / (AFR × ρ), with AFR 14.7 and ρ = 740 g/L for plain petrol (E0). **Ethanol changes both:** the vehicle setup has a petrol blend (E0, E10 or E20; E20 is what a new install starts with, since it is the petrol at Indian pumps), and the blend sets AFR and ρ from the two fuels (E20: 13.5 and 750 g/L, so about 7.5% more litres for the same air; E10: 14.1 and 745 g/L, about 3.6% more). PID 5E is the ECU's own figure and is never adjusted for the blend.
 3. **Speed-density** (MAP, IAT, RPM plus vehicle profile):
    `MAF (g/s) = 1000 × MAP_kPa × displacement_L × (RPM / 120) × VE / (287.05 × IAT_K)`, then as in method 2.
    Displacement comes from the vehicle setup (e.g. 1.5 L). VE defaults to 0.85 and is adjusted by calibration.

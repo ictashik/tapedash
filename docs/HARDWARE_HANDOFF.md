@@ -78,7 +78,7 @@ Drive normally (a real trip, not a parking lot). Afterwards, in Drive and Money 
 
 ## 4. Session recording
 
-Turn it on **before** a drive: Garage -> Adapter -> **Record what the adapter says**. (There has to be an adapter chosen.) Each drive from that adapter writes one file, saved every 20 seconds and at the end, so a drive that ends with the phone dying still leaves a log.
+**A debug build records by itself** (a release build does not, until you switch it on): Garage -> Adapter -> **Record what the adapter says** shows which. There has to be an adapter chosen. Each drive from that adapter writes one file, saved every 20 seconds and at the end, so a drive that ends with the phone dying still leaves a log.
 
 The files are in the app's own folder on the phone, reachable over USB (no storage permission needed):
 
@@ -86,7 +86,7 @@ The files are in the app's own folder on the phone, reachable over USB (no stora
 adb pull /sdcard/Android/data/io.github.ictashik.tapedash/files/recordings/ ./real-recordings
 ```
 
-They are named `session-<date>-<time>-<kind>.log` (`bluetoothClassic`, `ble` or `wifi`). A log is plain text (see `recordings/README.md`): the header has the adapter, the address and the app version, and the body has every command sent, every piece received and every link event, with the time of each. **A log contains your adapter's address and where you drove only if you turn GPS on (it does not include GPS); it is safe to send, but check it before you do.** Put the ones you want kept in `recordings/real/`. Recordings from someone else's car are never committed.
+They are named `session-<date>-<time>-<kind>.log` (`bluetoothClassic`, `ble` or `wifi`). A log is plain text (see `recordings/README.md`): the header has the adapter, the address and the app version, and the body has every command sent, every piece received and every link event, with the time of each, and the app's own notes (`@` lines: the car's setup, each change of the connection, the engine on and off, the trip starting and ending, and a `vitals` line every 5 s). **A log contains your adapter's address and where you drove only if you turn GPS on (it does not include GPS); it is safe to send, but check it before you do.** Put the ones you want kept in `recordings/real/`. Recordings from someone else's car are never committed.
 
 Compatibility mode (Garage -> Adapter) forces a slower pace and no batching. If a cheap clone drops requests or the poll rate is very low, try it, and say whether it helped.
 
@@ -119,6 +119,7 @@ The next session adds your recordings to `recordings/real/` with replay tests, t
 
 ## Known gaps to keep in mind while testing
 
+- **The petrol blend** is set in Garage (E0, E10, E20; E20 to begin with). It changes the fuel figures by up to 7.5%; check the app's litres against the pump's after a full tank.
 - **A cheap BLE adapter gives about 1.3 poll cycles a second** (the first real drive). The screens are smoothed for it (DESIGN.md 5.2); the poll rate on Diagnostics and in the debug overlay is the honest number, and it is not a fault. Compatibility mode has not been tried on such an adapter: say whether it helps.
 
 These are in `docs/STATUS.md`, repeated here so they are not mistaken for bugs:
