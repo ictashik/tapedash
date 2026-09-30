@@ -157,6 +157,41 @@ void tripContract(String name, Future<TripRepository> Function() make) {
       expect(samples[2].speedKmh, 20);
     });
 
+    test(
+      'samples keep the load, the coolant and the voltage when there are some',
+      () async {
+        final saved = await repo.create(sample());
+        await repo.addSamples(saved.id!, [
+          const TripSample(
+            seconds: 0,
+            speedKmh: 30,
+            rpm: 1800,
+            throttle: 20,
+            litresPerHour: 1.5,
+            load: 42.5,
+            coolantC: 88,
+            voltage: 14.1,
+          ),
+          const TripSample(
+            seconds: 1,
+            speedKmh: 31,
+            rpm: 1850,
+            throttle: 21,
+            litresPerHour: 1.6,
+          ),
+        ]);
+
+        final samples = await repo.samples(saved.id!);
+
+        expect(samples[0].load, 42.5);
+        expect(samples[0].coolantC, 88);
+        expect(samples[0].voltage, 14.1);
+        expect(samples[1].load, isNull, reason: 'a car that does not say');
+        expect(samples[1].coolantC, isNull);
+        expect(samples[1].voltage, isNull);
+      },
+    );
+
     test('delete removes the trip and its samples', () async {
       final saved = await repo.create(sample());
       await repo.addSamples(saved.id!, [
@@ -312,6 +347,14 @@ void main() {
       'distance_km': 42.0,
       'hard_accelerations': 3,
     });
+    await old.insert('trip_samples', {
+      'trip_id': 1,
+      'seconds': 0.0,
+      'speed_kmh': 20.0,
+      'rpm': 1500.0,
+      'throttle': 12.0,
+      'litres_per_hour': 1.1,
+    });
     await old.close();
 
     final db = await TapeDatabase.open(path, factory: databaseFactoryFfi);
@@ -324,5 +367,26 @@ void main() {
     // And it takes the new columns.
     await SqfliteTripRepository(db).update(trips.single.copyWith(longIdles: 4));
     expect((await SqfliteTripRepository(db).all()).single.longIdles, 4);
+
+    // The sample from before the channels: still there, with none of them, and
+    // new samples take them.
+    final repo = SqfliteTripRepository(db);
+    final before = await repo.samples(1);
+    expect(before.single.speedKmh, 20);
+    expect(before.single.load, isNull);
+    await repo.addSamples(1, [
+      const TripSample(
+        seconds: 1,
+        speedKmh: 22,
+        rpm: 1600,
+        throttle: 14,
+        litresPerHour: 1.2,
+        load: 33,
+        coolantC: 70,
+        voltage: 13.9,
+      ),
+    ]);
+    final after = await repo.samples(1);
+    expect(after.last.coolantC, 70);
   });
 }

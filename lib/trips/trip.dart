@@ -144,6 +144,9 @@ class TripSample {
     required this.litresPerHour,
     this.latitude,
     this.longitude,
+    this.load,
+    this.coolantC,
+    this.voltage,
   });
 
   /// Seconds since the trip started.
@@ -156,6 +159,14 @@ class TripSample {
   final double litresPerHour;
   final double? latitude;
   final double? longitude;
+
+  /// Calculated engine load in percent, the coolant in degrees C and the module
+  /// voltage: what the Telemetry cluster shows, kept with the trip so Review can
+  /// colour the route by them. Null for a trip recorded before they were kept, and
+  /// for a car that does not report one.
+  final double? load;
+  final double? coolantC;
+  final double? voltage;
 }
 
 /// The trip log. It has an in-memory implementation for tests and a sqflite one

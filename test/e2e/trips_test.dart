@@ -581,6 +581,57 @@ void main() {
     });
 
     test(
+      'a trip keeps the load, the coolant and the voltage as the car gives them',
+      () async {
+        final rig = TripRig(
+          DriveScenarios.cityStopGo,
+          profile: VehicleProfiles.petrolCvtMaf,
+        )..rig.run(240);
+        addTearDown(rig.close);
+        await rig.recorder.close();
+
+        final trips = await rig.trips.all();
+        final samples = await rig.trips.samples(trips.single.id!);
+        expect(samples.length, greaterThan(200));
+        // Slow-tier values arrive a few seconds in; from then on every sample has them.
+        final settled = samples.where((s) => s.seconds > 10).toList();
+        for (final s in settled) {
+          expect(s.load, isNotNull, reason: 'load at ${s.seconds}');
+          expect(s.coolantC, isNotNull);
+          expect(s.voltage, isNotNull);
+        }
+        expect(settled.last.coolantC, inInclusiveRange(20, 120));
+        expect(settled.last.voltage, inInclusiveRange(11, 15));
+        expect(
+          settled.map((s) => s.load!).reduce((a, b) => a > b ? a : b),
+          greaterThan(20),
+        );
+      },
+    );
+
+    test('a car with no load PID leaves it null, not zero', () async {
+      final rig = TripRig(
+        DriveScenarios.cityStopGo,
+        profile: VehicleProfiles.minimalOldCar,
+      )..rig.run(120);
+      addTearDown(rig.close);
+      await rig.recorder.close();
+
+      final trips = await rig.trips.all();
+      final samples = await rig.trips.samples(trips.single.id!);
+      expect(samples, isNotEmpty);
+      expect(
+        samples.every((s) => s.voltage == null),
+        isTrue,
+        reason: 'no PID 42',
+      );
+      expect(
+        samples.every((s) => s.coolantC != null || s.seconds < 10),
+        isTrue,
+      );
+    });
+
+    test(
       'endNow ends the trip for good: the engine coming back starts a new one',
       () async {
         final rig = TripRig(DriveScenarios.cityStopGo)..rig.run(120);

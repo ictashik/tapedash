@@ -23,7 +23,11 @@ class TelemetryScrubber extends StatefulWidget {
     required this.samples,
     required this.cursor,
     this.events = const [],
+    this.lower,
   });
+
+  /// What the lower trace shows: null is the throttle, 0 to 100 %.
+  final ScrubberTrace? lower;
 
   final List<TripSample> samples;
 
@@ -73,11 +77,66 @@ class _TelemetryScrubberState extends State<TelemetryScrubber> {
               events: widget.events,
               cursor: widget.cursor,
               palette: palette,
+              lower: widget.lower,
             ),
           ),
         );
       },
     );
+  }
+}
+
+/// A trace for the scrubber's lower half other than the throttle: [value] of each
+/// sample (null where the car did not say, which carries the last forward),
+/// drawn between [min] and [max].
+class ScrubberTrace {
+  const ScrubberTrace({
+    required this.value,
+    required this.min,
+    required this.max,
+  });
+
+  final double? Function(TripSample) value;
+  final double min;
+  final double max;
+
+  /// The trace of [value] over the range the trip covered, but over at least
+  /// [minSpan] (see `normaliseSpread`).
+  factory ScrubberTrace.spread(
+    List<TripSample> samples,
+    double? Function(TripSample) value, {
+    required double minSpan,
+  }) {
+    double? lo, hi;
+    for (final s in samples) {
+      final v = value(s);
+      if (v == null) continue;
+      lo = lo == null || v < lo ? v : lo;
+      hi = hi == null || v > hi ? v : hi;
+    }
+    lo ??= 0;
+    hi ??= minSpan;
+    if (hi - lo < minSpan) {
+      final mid = (lo + hi) / 2;
+      lo = mid - minSpan / 2;
+      hi = mid + minSpan / 2;
+    }
+    return ScrubberTrace(value: value, min: lo, max: hi);
+  }
+
+  /// The largest value of [value] in [samples], rounded up to a multiple of
+  /// [step] (at least one step).
+  static double roundedMax(
+    List<TripSample> samples,
+    double Function(TripSample) value,
+    double step,
+  ) {
+    var m = step;
+    for (final s in samples) {
+      final v = value(s);
+      if (v > m) m = v;
+    }
+    return (m / step).ceil() * step;
   }
 }
 
@@ -87,7 +146,10 @@ class ScrubberPainter extends CustomPainter {
     required this.events,
     required this.cursor,
     required this.palette,
+    this.lower,
   }) : super(repaint: cursor);
+
+  final ScrubberTrace? lower;
 
   final List<TripSample> samples;
   final List<SampleEvent> events;
@@ -122,6 +184,8 @@ class ScrubberPainter extends CustomPainter {
     final vMax = speedMax(samples);
     final sp = Path();
     final th = Path();
+    final other = this.lower;
+    double? carried;
     // Thinned to about a point a pixel: a long trip's trace needs no more.
     final step = n > size.width ? n / size.width : 1.0;
     for (var k = 0.0, first = true; k < n; k += step, first = false) {
@@ -130,9 +194,16 @@ class ScrubberPainter extends CustomPainter {
       final sy =
           upper.bottom -
           upper.height * (samples[i].speedKmh / vMax).clamp(0.0, 1.0);
-      final ty =
-          lower.bottom -
-          lower.height * (samples[i].throttle / 100).clamp(0.0, 1.0);
+      final double share;
+      if (other == null) {
+        share = samples[i].throttle / 100;
+      } else {
+        carried = other.value(samples[i]) ?? carried;
+        share = carried == null
+            ? 0
+            : (carried - other.min) / (other.max - other.min);
+      }
+      final ty = lower.bottom - lower.height * share.clamp(0.0, 1.0);
       if (first) {
         sp.moveTo(x, sy);
         th.moveTo(x, ty);
@@ -217,6 +288,7 @@ class ScrubberPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(ScrubberPainter old) =>
+      old.lower != lower ||
       !identical(old.samples, samples) ||
       old.palette != palette ||
       !identical(old.events, events);

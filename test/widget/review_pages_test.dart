@@ -8,6 +8,7 @@ import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/money/spend_bucket.dart';
 import 'package:tapedash/trips/trip.dart';
 import 'package:tapedash/trips/trip_library.dart';
+import 'package:tapedash/ui/design/components/controls/tape_scroll_segmented.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
 import 'package:tapedash/ui/pages/coach/coach_page.dart';
@@ -26,6 +27,7 @@ Future<Trip> addTrip(
   bool demo = false,
   bool gps = true,
   double idling = 0.24,
+  bool channels = false,
 }) async {
   final trip = await repo.create(
     Trip(
@@ -58,6 +60,9 @@ Future<Trip> addTrip(
         litresPerHour: 3,
         latitude: gps ? 12.9 + t * 0.0001 : null,
         longitude: gps ? 77.6 + (t % 20) * 0.00005 : null,
+        load: channels ? 30 + 20 * ((t % 30) / 30) : null,
+        coolantC: channels ? 70 + t * 0.2 : null,
+        voltage: channels ? 13.8 + 0.4 * ((t % 10) / 10) : null,
       ),
   ]);
   return trip;
@@ -283,6 +288,104 @@ void main() {
       await tester.tap(find.text('₹/KM').first);
       await tester.pump();
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('Review: the telemetry channels', () {
+    ReviewPage review(Size s) => ReviewPage(
+      library: library,
+      mode: mode,
+      width: s.width,
+      height: s.height,
+    );
+
+    testWidgets('a trip that kept them offers all seven metrics', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await addTrip(repo, channels: true);
+        await library.refresh();
+      });
+      await show(tester, review);
+
+      final state = tester.state<ReviewPageState>(find.byType(ReviewPage));
+      expect(state.availableMetrics, ReviewMetric.values);
+      expect(
+        [for (final m in ReviewMetric.values) m.label],
+        ['Speed', 'RPM', 'Throttle', 'Load', 'Coolant', 'Volts', '₹/km'],
+      );
+    });
+
+    testWidgets('an older trip, with none of them, offers only what it has', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await addTrip(repo);
+        await library.refresh();
+      });
+      await show(tester, review);
+
+      final state = tester.state<ReviewPageState>(find.byType(ReviewPage));
+      expect(state.availableMetrics, [
+        ReviewMetric.speed,
+        ReviewMetric.rpm,
+        ReviewMetric.throttle,
+        ReviewMetric.costPerKm,
+      ]);
+    });
+
+    for (final size in _sizes) {
+      testWidgets(
+        'every metric can be chosen, and lays out, at ${size.width.toInt()}x360',
+        (tester) async {
+          await tester.runAsync(() async {
+            await addTrip(repo, channels: true);
+            await library.refresh();
+          });
+          await show(tester, review, size: size);
+          final state = tester.state<ReviewPageState>(find.byType(ReviewPage));
+
+          for (final m in ReviewMetric.values) {
+            final label = find.descendant(
+              of: find.byType(TapeScrollSegmented<ReviewMetric>),
+              matching: find.text(m.label.toUpperCase()),
+            );
+            // The selector scrolls: bring the cell into view, then tap it.
+            await tester.ensureVisible(label);
+            await tester.pump();
+            await tester.tap(label, warnIfMissed: false);
+            await settle(tester, 300);
+            expect(state.metric, m, reason: m.label);
+            expect(tester.takeException(), isNull, reason: m.label);
+          }
+        },
+      );
+    }
+
+    testWidgets('a channel with a reading at the cursor says it in words', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await addTrip(repo, channels: true);
+        await library.refresh();
+      });
+      await show(tester, review);
+      final label = find.descendant(
+        of: find.byType(TapeScrollSegmented<ReviewMetric>),
+        matching: find.text('COOLANT'),
+      );
+      await tester.ensureVisible(label);
+      await tester.pump();
+      await tester.tap(label, warnIfMissed: false);
+      await settle(tester, 300);
+
+      final state = tester.state<ReviewPageState>(find.byType(ReviewPage));
+      state.debugSetCursor(60);
+      await tester.pump();
+
+      expect(find.textContaining('°C COOLANT'), findsOneWidget);
+      // 70 + 60 * 0.2 = 82.
+      expect(find.text('82 °C COOLANT'), findsOneWidget);
     });
   });
 

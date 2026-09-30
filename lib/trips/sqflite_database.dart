@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 /// The app's database (CLAUDE.md 5): trips, their samples and the fill-up log,
 /// in one SQLite file on the phone. It is never synced or uploaded.
 abstract final class TapeDatabase {
-  static const int version = 2;
+  static const int version = 3;
 
   /// The file name in the app's databases directory.
   static const String fileName = 'tapedash.db';
@@ -19,7 +19,8 @@ abstract final class TapeDatabase {
     return (factory ?? databaseFactory).openDatabase(path, options: options);
   }
 
-  /// Version 2 added the coach's duration counts to a trip.
+  /// Version 2 added the coach's duration counts to a trip; version 3 added the
+  /// load, the coolant and the voltage to each sample (null for the trips before).
   static Future<void> _upgrade(Database db, int from, int to) async {
     if (from < 2) {
       await db.execute(
@@ -34,6 +35,11 @@ abstract final class TapeDatabase {
       await db.execute(
         'ALTER TABLE trips ADD COLUMN speeding_seconds REAL NOT NULL DEFAULT 0',
       );
+    }
+    if (from < 3) {
+      for (final column in ['load', 'coolant_c', 'voltage']) {
+        await db.execute('ALTER TABLE trip_samples ADD COLUMN $column REAL');
+      }
     }
   }
 
@@ -73,7 +79,10 @@ abstract final class TapeDatabase {
         throttle REAL NOT NULL,
         litres_per_hour REAL NOT NULL,
         latitude REAL,
-        longitude REAL
+        longitude REAL,
+        load REAL,
+        coolant_c REAL,
+        voltage REAL
       )
     ''');
     await db.execute(

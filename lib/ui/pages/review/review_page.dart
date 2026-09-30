@@ -9,7 +9,8 @@ import '../../../trips/route_geometry.dart';
 import '../../../trips/trip.dart';
 import '../../../trips/trip_library.dart';
 import '../../../vehicle/vehicle_state.dart' show DrivingMode;
-import '../../design/components/controls/tape_segmented.dart';
+import '../../design/components/controls/tape_scroll_segmented.dart';
+import '../../design/components/controls/tape_segmented.dart' show TapeSegment;
 import '../../design/components/presence.dart';
 import '../../design/components/rolling_numerals.dart';
 import '../../design/components/route_trail.dart';
@@ -54,15 +55,53 @@ class DebriefRequest extends ChangeNotifier {
   void clear() => _pending = false;
 }
 
-/// Which metric colours the route.
+/// Which metric colours the route, and the scrubber's lower trace: what the
+/// trip recorded along the way. The Telemetry cluster's six channels (RPM, speed,
+/// throttle, load, coolant, volts) and the money's ₹/km.
 enum ReviewMetric {
   speed('Speed'),
+  rpm('RPM'),
   throttle('Throttle'),
+  load('Load'),
+  coolant('Coolant'),
+  voltage('Volts'),
   costPerKm('₹/km');
 
   const ReviewMetric(this.label);
 
   final String label;
+
+  /// Whether [samples] have anything to show for this metric: the load, the
+  /// coolant and the voltage are null for a trip recorded before they were kept,
+  /// or from a car that does not report them.
+  bool isIn(List<TripSample> samples) => switch (this) {
+    load => samples.any((s) => s.load != null),
+    coolant => samples.any((s) => s.coolantC != null),
+    voltage => samples.any((s) => s.voltage != null),
+    _ => true,
+  };
+
+  /// The metric at [s], or null where the car did not say.
+  double? valueAt(TripSample s, Trip trip) => switch (this) {
+    speed => s.speedKmh,
+    rpm => s.rpm,
+    throttle => s.throttle,
+    load => s.load,
+    coolant => s.coolantC,
+    voltage => s.voltage,
+    costPerKm =>
+      trip.pricePerLitre == null || s.speedKmh < 5
+          ? 0
+          : s.litresPerHour * trip.pricePerLitre! / s.speedKmh,
+  };
+
+  /// The metric at the cursor, as words: "1850 RPM", "88 °C", "14.1 V".
+  String? readout(TripSample s) => switch (this) {
+    load => s.load == null ? null : '${s.load!.round()} % LOAD',
+    coolant => s.coolantC == null ? null : '${s.coolantC!.round()} °C COOLANT',
+    voltage => s.voltage == null ? null : '${s.voltage!.toStringAsFixed(1)} V',
+    _ => null,
+  };
 }
 
 /// Review (DESIGN.md 7.5): a trip laid out. On the left the route trail, with a
@@ -110,6 +149,7 @@ class ReviewPageState extends State<ReviewPage> {
   List<TripSample> _samples = const [];
   List<SampleEvent> _events = const [];
   ReviewMetric _metric = ReviewMetric.speed;
+  List<ReviewMetric> _metrics = ReviewMetric.values;
   final ValueNotifier<int?> _cursor = ValueNotifier(null);
   final ValueNotifier<double> _seconds = ValueNotifier(double.infinity);
   Timeline? _debrief;
@@ -151,6 +191,17 @@ class ReviewPageState extends State<ReviewPage> {
     super.dispose();
   }
 
+  /// Puts the scrubber's cursor on sample [i], as a drag would.
+  @visibleForTesting
+  void debugSetCursor(int i) => _cursor.value = i;
+
+  /// The metric colouring the route, and the ones this trip offers.
+  @visibleForTesting
+  ReviewMetric get metric => _metric;
+
+  @visibleForTesting
+  List<ReviewMetric> get availableMetrics => _metrics;
+
   /// Whether the Debrief is playing.
   bool get isDebriefing => _debrief != null && !_debrief!.isDone;
 
@@ -172,6 +223,12 @@ class ReviewPageState extends State<ReviewPage> {
         _events = SampleEvents.find(samples);
         _geometry = null;
         _cursor.value = null;
+        // Only what this trip has: an older one has no load, coolant or volts.
+        _metrics = [
+          for (final m in ReviewMetric.values)
+            if (m.isIn(samples)) m,
+        ];
+        if (!_metrics.contains(_metric)) _metric = ReviewMetric.speed;
       });
     });
   }
@@ -301,6 +358,7 @@ class ReviewPageState extends State<ReviewPage> {
                     cursor: _cursor,
                     samples: _samples,
                     price: trip.pricePerLitre,
+                    metric: _metric,
                   ),
                 ],
               ),
@@ -309,13 +367,11 @@ class ReviewPageState extends State<ReviewPage> {
               left: margin,
               top: selectorTop,
               width: leftW,
-              child: TapeSegmented<ReviewMetric>(
+              child: TapeScrollSegmented<ReviewMetric>(
                 height: selectorH,
                 value: _metric,
                 onChanged: (m) => setState(() => _metric = m),
-                segments: [
-                  for (final m in ReviewMetric.values) TapeSegment(m, m.label),
-                ],
+                segments: [for (final m in _metrics) TapeSegment(m, m.label)],
               ),
             ),
             Positioned(
@@ -363,6 +419,7 @@ class ReviewPageState extends State<ReviewPage> {
                       samples: _samples,
                       cursor: _cursor,
                       events: _events,
+                      lower: _lowerTrace(trip),
                     ),
             ),
           ],
@@ -395,13 +452,8 @@ class ReviewPageState extends State<ReviewPage> {
             ),
           );
         }
-        final values = [
-          for (final i in g.sampleIndex) _metricValue(_samples[i], trip),
-        ];
-        final normalised = normalise(
-          values,
-          fixedMax: _metric == ReviewMetric.throttle ? 100 : null,
-        );
+        final values = _metricSeries(g.sampleIndex, trip);
+        final normalised = _normalised(values);
         final markers = <RouteMarker>[
           RouteMarker(null, 0),
           RouteMarker(null, g.length - 1),
@@ -422,13 +474,62 @@ class ReviewPageState extends State<ReviewPage> {
     );
   }
 
-  double _metricValue(TripSample s, Trip trip) => switch (_metric) {
-    ReviewMetric.speed => s.speedKmh,
-    ReviewMetric.throttle => s.throttle,
-    ReviewMetric.costPerKm =>
-      trip.pricePerLitre == null || s.speedKmh < 5
-          ? 0
-          : s.litresPerHour * trip.pricePerLitre! / s.speedKmh,
+  /// The metric at each of [indices], a missing reading (a channel the car gave
+  /// once in a while, or not yet) carrying the last one forward.
+  List<double> _metricSeries(List<int> indices, Trip trip) {
+    final out = <double>[];
+    double? last;
+    for (final i in indices) {
+      last = _metric.valueAt(_samples[i], trip) ?? last;
+      out.add(last ?? 0);
+    }
+    // The first readings may precede the first value: they take it.
+    final first = indices
+        .map((i) => _metric.valueAt(_samples[i], trip))
+        .firstWhere((v) => v != null, orElse: () => null);
+    if (first != null) {
+      for (var k = 0; k < indices.length; k++) {
+        if (_metric.valueAt(_samples[indices[k]], trip) != null) break;
+        out[k] = first;
+      }
+    }
+    return out;
+  }
+
+  /// [values] on the 0 to 1 of the route's ramp: percentages on their own scale,
+  /// the coolant and the voltage over the range the trip covered (a coolant that
+  /// sat at 90 would otherwise look the same as one at 0), the rest by their 95th
+  /// percentile.
+  List<double> _normalised(List<double> values) => switch (_metric) {
+    ReviewMetric.throttle ||
+    ReviewMetric.load => normalise(values, fixedMax: 100),
+    ReviewMetric.coolant => normaliseSpread(values, minSpan: 10),
+    ReviewMetric.voltage => normaliseSpread(values, minSpan: 1),
+    _ => normalise(values),
+  };
+
+  /// The scrubber's lower trace: the throttle, or the metric chosen, where that
+  /// is one of the channels.
+  ScrubberTrace? _lowerTrace(Trip trip) => switch (_metric) {
+    ReviewMetric.speed ||
+    ReviewMetric.throttle ||
+    ReviewMetric.costPerKm => null,
+    ReviewMetric.rpm => ScrubberTrace(
+      value: (s) => s.rpm,
+      min: 0,
+      max: ScrubberTrace.roundedMax(_samples, (s) => s.rpm, 1000),
+    ),
+    ReviewMetric.load => ScrubberTrace(value: (s) => s.load, min: 0, max: 100),
+    ReviewMetric.coolant => ScrubberTrace.spread(
+      _samples,
+      (s) => s.coolantC,
+      minSpan: 10,
+    ),
+    ReviewMetric.voltage => ScrubberTrace.spread(
+      _samples,
+      (s) => s.voltage,
+      minSpan: 1,
+    ),
   };
 
   List<Color> _ramp(TapePalette p) => switch (_metric) {
@@ -465,7 +566,12 @@ class _CursorReadout extends StatelessWidget {
     required this.cursor,
     required this.samples,
     required this.price,
+    required this.metric,
   });
+
+  /// The metric chosen: the load, the coolant and the voltage have a readout of
+  /// their own, since the three above are always speed, revs and throttle.
+  final ReviewMetric metric;
 
   final ValueListenable<int?> cursor;
   final List<TripSample> samples;
@@ -480,16 +586,30 @@ class _CursorReadout extends StatelessWidget {
         if (c == null || samples.isEmpty) return const SizedBox.shrink();
         final r = ScrubReadout.at(samples, c, price);
         final style = TapeType.label(size: 12, color: palette.inkBright);
+        final s = samples[c.clamp(0, samples.length - 1)];
+        // On SPEED: speed, revs, throttle and ₹/km. On any other metric: speed,
+        // and that metric alone, so the row never grows past its width.
+        final items = <String>[
+          '${r.speedKmh.round()} KM/H',
+          ...switch (metric) {
+            ReviewMetric.speed => [
+              '${r.rpm.round()} RPM',
+              '${r.throttle.round()} % THROTTLE',
+              if (r.costPerKm != null) '₹${r.costPerKm!.toStringAsFixed(1)}/KM',
+            ],
+            ReviewMetric.rpm => ['${r.rpm.round()} RPM'],
+            ReviewMetric.throttle => ['${r.throttle.round()} % THROTTLE'],
+            ReviewMetric.costPerKm => [
+              if (r.costPerKm != null) '₹${r.costPerKm!.toStringAsFixed(1)}/KM',
+            ],
+            _ => [?metric.readout(s)],
+          },
+        ];
         return Row(
           children: [
-            Text('${r.speedKmh.round()} KM/H', style: style),
-            const SizedBox(width: TapeSpace.s4),
-            Text('${r.rpm.round()} RPM', style: style),
-            const SizedBox(width: TapeSpace.s4),
-            Text('${r.throttle.round()} % THROTTLE', style: style),
-            if (r.costPerKm != null) ...[
-              const SizedBox(width: TapeSpace.s4),
-              Text('₹${r.costPerKm!.toStringAsFixed(1)}/KM', style: style),
+            for (var i = 0; i < items.length; i++) ...[
+              if (i > 0) const SizedBox(width: TapeSpace.s4),
+              Text(items[i], style: style),
             ],
           ],
         );

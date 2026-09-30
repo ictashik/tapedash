@@ -12,9 +12,11 @@ import '../../design/motion/ignition_sequence.dart';
 import '../../design/motion/motion_clock.dart';
 import '../../design/motion/observable_listenable.dart';
 import '../../design/motion/parked_share.dart';
+import '../../design/motion/signal_history.dart';
 import '../../design/motion/smoothing_pipeline.dart';
 import '../../design/motion/wall_clock.dart';
 import '../../design/tokens/motion_tokens.dart';
+import '../../design/tokens/telemetry_tile.dart';
 import '../money/money_figure.dart' show MappedShare;
 import '../money/money_signals.dart';
 
@@ -48,6 +50,7 @@ class DriveSignals {
     ValueListenable<bool>? phoneHot,
   }) : gpsHasFix = gpsHasFix ?? ValueNotifier(false),
        phoneHot = phoneHot ?? ValueNotifier(false),
+       _scheduler = scheduler,
        wallClock = WallClockTicker(clock: clock, scheduler: scheduler),
        rpm = SmoothedSignal(
          motion: motion,
@@ -102,6 +105,19 @@ class DriveSignals {
     load.bind(vehicle.load);
     voltage.bind(vehicle.voltage);
     vehicle.motion.addListener(_onMotion);
+    // The telemetry tiles' history is the drive's, sampled from the start, so that
+    // a tile opened late still has the last minute.
+    for (final signal in [rpm, speed, throttle, load, coolant, voltage]) {
+      _histories[signal] = SignalHistory(
+        signal,
+        capacity: TapeTelemetryTile.sparklinePoints,
+      );
+    }
+    _historyTask = _scheduler.runEvery(TapeTelemetryTile.sampleInterval, () {
+      for (final h in _histories.values) {
+        h.sample();
+      }
+    });
     _parkedFlag = _MappedListenable<DrivingMode, bool>(
       _mode,
       (m) => m == DrivingMode.parked,
@@ -128,6 +144,15 @@ class DriveSignals {
     _connection.addListener(_onConnection);
     _maybeIgnite();
   }
+
+  final Scheduler _scheduler;
+  final Map<SmoothedSignal, SignalHistory> _histories = {};
+  ScheduledTask? _historyTask;
+
+  /// The last minute of [signal] (one of rpm, speed, throttle, load, coolant and
+  /// voltage), or null for any other. Sampled from the moment the drive began,
+  /// whatever is on screen.
+  SignalHistory? historyOf(SmoothedSignal signal) => _histories[signal];
 
   /// The connection states' shares (DESIGN.md 7.12), read by the page's
   /// [ConnectionLayer].
@@ -300,6 +325,8 @@ class DriveSignals {
       };
 
   void dispose() {
+    _historyTask?.cancel();
+    _histories.clear();
     vehicle.rpm.removeListener(_maybeIgnite);
     _connection.removeListener(_maybeIgnite);
     _connection.removeListener(_onConnection);

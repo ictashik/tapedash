@@ -40,6 +40,9 @@ class SqfliteTripRepository implements TripRepository {
         'litres_per_hour': s.litresPerHour,
         'latitude': s.latitude,
         'longitude': s.longitude,
+        'load': s.load,
+        'coolant_c': s.coolantC,
+        'voltage': s.voltage,
       });
     }
     await batch.commit(noResult: true);
@@ -79,6 +82,9 @@ class SqfliteTripRepository implements TripRepository {
           litresPerHour: (r['litres_per_hour']! as num).toDouble(),
           latitude: (r['latitude'] as num?)?.toDouble(),
           longitude: (r['longitude'] as num?)?.toDouble(),
+          load: (r['load'] as num?)?.toDouble(),
+          coolantC: (r['coolant_c'] as num?)?.toDouble(),
+          voltage: (r['voltage'] as num?)?.toDouble(),
         ),
     ];
   }

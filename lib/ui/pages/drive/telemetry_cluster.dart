@@ -52,6 +52,7 @@ class TelemetryCluster extends StatelessWidget {
           format: format,
           width: tileWidth,
           height: tileHeight,
+          history: signals.historyOf(signal),
         );
 
     Widget row(List<Widget> tiles) => Row(

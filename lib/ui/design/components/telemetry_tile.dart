@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import '../motion/motion_clock.dart';
 import '../motion/motion_scope.dart';
+import '../motion/signal_history.dart';
 import '../motion/smoothing_pipeline.dart';
 import '../render/chamfer.dart';
 import '../theme/palette.dart';
@@ -32,7 +33,13 @@ class TelemetryTile extends StatefulWidget {
     this.criticalAbove,
     this.width = 160,
     this.height = 100,
+    this.history,
   });
+
+  /// The signal's history, kept by whoever owns the signal whether or not this
+  /// tile is on screen (`DriveSignals.historyOf`). Without it the tile keeps its
+  /// own, from the moment it is mounted (the Design Lab).
+  final SignalHistory? history;
 
   final String label;
 
@@ -96,7 +103,8 @@ class TelemetryTileState extends State<TelemetryTile> implements MotionDriven {
   @override
   bool advance(double dt, Duration time) {
     final last = _lastSample;
-    if (last == null || time - last >= TapeTelemetryTile.sampleInterval) {
+    if (widget.history == null &&
+        (last == null || time - last >= TapeTelemetryTile.sampleInterval)) {
       _lastSample = time;
       _samples[_head] = widget.value.value;
       _head = (_head + 1) % _samples.length;
@@ -107,10 +115,14 @@ class TelemetryTileState extends State<TelemetryTile> implements MotionDriven {
   }
 
   /// The samples oldest-first, for tests and the painter.
-  List<double> samplesOldestFirst() => [
-    for (var i = 0; i < _filled; i++)
-      _samples[(_head - _filled + i + _samples.length) % _samples.length],
-  ];
+  List<double> samplesOldestFirst() {
+    final history = widget.history;
+    if (history != null) return history.oldestFirst;
+    return [
+      for (var i = 0; i < _filled; i++)
+        _samples[(_head - _filled + i + _samples.length) % _samples.length],
+    ];
+  }
 
   /// Where [v] currently stands: below/above a caution or critical threshold,
   /// or normal. Read fresh by the painter on every repaint (DESIGN.md 9.3:

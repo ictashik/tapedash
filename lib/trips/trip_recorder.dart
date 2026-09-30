@@ -352,6 +352,9 @@ class TripRecorder {
         litresPerHour: (flow?.litresPerHour ?? 0) * calibrationFactor(),
         latitude: fix?.latitude,
         longitude: fix?.longitude,
+        load: vehicle.load.value?.value,
+        coolantC: vehicle.coolant.value?.value,
+        voltage: vehicle.voltage.value?.value,
       ),
     );
   }

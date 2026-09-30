@@ -314,3 +314,22 @@ List<double> normalise(List<double> values, {double? fixedMax}) {
   if (max <= 0) return List.filled(values.length, 0);
   return [for (final v in values) (v / max).clamp(0.0, 1.0)];
 }
+
+/// Normalises [values] to 0 to 1 over the range they cover, but over at least
+/// [minSpan]: a coolant that stayed within a degree of 90 sits mid-ramp, not at
+/// one end of it, since a wide scale is what makes a change look like a change.
+List<double> normaliseSpread(List<double> values, {required double minSpan}) {
+  if (values.isEmpty) return const [];
+  var lo = values.first, hi = values.first;
+  for (final v in values) {
+    if (v < lo) lo = v;
+    if (v > hi) hi = v;
+  }
+  if (hi - lo < minSpan) {
+    final mid = (lo + hi) / 2;
+    lo = mid - minSpan / 2;
+    hi = mid + minSpan / 2;
+  }
+  final span = hi - lo;
+  return [for (final v in values) ((v - lo) / span).clamp(0.0, 1.0)];
+}

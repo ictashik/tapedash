@@ -91,6 +91,63 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'a tile opened late has the minute before it: the drive keeps the history',
+    (tester) async {
+      // Two minutes of driving with the Telemetry cluster never on screen: the
+      // revs climb 1000 to 3000, and the voltage stays 14.1.
+      for (var i = 0; i < 240; i++) {
+        ingest(Sensor.rpm, 1000 + i * (2000 / 240));
+        ingest(Sensor.voltage, 14.1);
+        run(const Duration(milliseconds: 500));
+      }
+      expect(
+        signals.historyOf(signals.rpm)!.length,
+        120,
+        reason: 'a full minute',
+      );
+
+      // Now open it.
+      await show(tester);
+      await tester.pump();
+      final rpm = tester.state<TelemetryTileState>(
+        find.byType(TelemetryTile).first,
+      );
+      final line = rpm.samplesOldestFirst();
+
+      expect(line.length, 120);
+      expect(line.first, closeTo(2000, 60), reason: 'a minute ago, not now');
+      expect(line.last, closeTo(3000, 60));
+      for (var i = 1; i < line.length; i++) {
+        expect(line[i], greaterThanOrEqualTo(line[i - 1] - 1));
+      }
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  test('every tile channel has a history, and no other signal does', () {
+    for (final s in [
+      signals.rpm,
+      signals.speed,
+      signals.throttle,
+      signals.load,
+      signals.coolant,
+      signals.voltage,
+    ]) {
+      expect(signals.historyOf(s), isNotNull);
+    }
+    expect(signals.historyOf(signals.longitudinalAcceleration), isNull);
+  });
+
+  test('nothing is kept until the signal has a value', () {
+    run(const Duration(seconds: 5));
+
+    expect(signals.historyOf(signals.rpm)!.length, 0);
+    ingest(Sensor.rpm, 900);
+    run(const Duration(seconds: 3));
+    expect(signals.historyOf(signals.rpm)!.length, greaterThan(3));
+  });
+
   testWidgets('renders with no reading at all yet, with no exception', (
     tester,
   ) async {
