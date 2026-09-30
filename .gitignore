@@ -1,6 +1,8 @@
 # Miscellaneous
 *.class
 *.log
+# Recordings of the user's own car are kept (recordings/README.md).
+!recordings/real/*.log
 *.pyc
 *.swp
 .DS_Store

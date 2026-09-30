@@ -1,0 +1,15 @@
+# tapedash-session v1
+# app: tapedash 0.5.0-sim
+# adapter: OBDBLE
+# kind: ble
+# address: 81:23:45:67:89:BA
+# started: 2026-09-30T08:22:57.775551Z
+# compatibility: false
+0.004 @ status searching
+0.008 ! connecting
+4.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+9.969 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+14.969 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+15.507 ! disconnected (unreachable)
+16.519 ! connecting
+19.969 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000

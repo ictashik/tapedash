@@ -44,7 +44,12 @@ gets none in the replay.
 
 ## `real/`: made in a real car (after the hardware handoff)
 
-Logs recorded from the user's own car by the app's session recording. Each one
+Logs recorded from the user's own car by the app's session recording:
+`session-20260930-071002-ble.log` and `session-20260930-092503-ble.log` are two
+long drives (72 and 62 minutes) behind a cheap BLE ELM327 that gives about 1.3
+samples a second, with the app's own notes in them; `...082257-ble.log` is a
+connection that never came. A 300 s cut of the first is the fixture of
+`test/design/real_drive_smoothing_test.dart`. Each one
 becomes a regression test: replayed through `ReplayTransport`, the app has to
 read it the way it did on the day. Recordings from someone else's car are never
 committed (CLAUDE.md 2).
