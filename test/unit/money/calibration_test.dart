@@ -35,6 +35,14 @@ void main() {
       expect(Calibration([0.7]).factor, 0.7);
     });
 
+    test('clear forgets every factor', () {
+      final c = Calibration([0.9, 1.1]);
+      c.clear();
+      expect(c.factors, isEmpty);
+      expect(c.factor, 1);
+      expect(c.confidence, CalibrationConfidence.uncalibrated);
+    });
+
     test('nonsense factors are ignored', () {
       final c = Calibration([double.nan, -1, 0, double.infinity]);
       expect(c.factors, isEmpty);

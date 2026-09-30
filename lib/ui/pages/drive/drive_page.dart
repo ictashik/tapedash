@@ -31,7 +31,15 @@ class DrivePage extends StatefulWidget {
     required this.motion,
     required this.width,
     required this.height,
+    this.initialCluster = 0,
+    this.onClusterSettled,
   });
+
+  /// The cluster the reel starts on: the one the user left it on last time.
+  final int initialCluster;
+
+  /// Called with the cluster the reel has come to rest on, after a swipe.
+  final ValueChanged<int>? onClusterSettled;
 
   final DriveSignals signals;
 
@@ -51,10 +59,13 @@ class DrivePageState extends State<DrivePage> {
   late final List<Widget> _clusters;
 
   /// The window key the mounted slots were last built for.
-  int _windowAt = 0;
+  late int _windowAt = _windowKey(widget.initialCluster.toDouble());
 
   /// The raw drag position the spring chases, in clusters.
-  double _raw = 0;
+  late double _raw = widget.initialCluster.toDouble();
+
+  /// The cluster last reported as settled on.
+  late int _reported = widget.initialCluster;
 
   @override
   void initState() {
@@ -62,7 +73,7 @@ class DrivePageState extends State<DrivePage> {
     _reel = SpringValue(
       clock: widget.motion,
       spec: TapeSprings.page,
-      initial: 0,
+      initial: widget.initialCluster.toDouble(),
     )..addListener(_onReel);
     _nearestFlags = List.generate(5, (i) => _NearestFlag(this, i));
     _clusters = _buildClusters();
@@ -94,6 +105,13 @@ class DrivePageState extends State<DrivePage> {
 
   /// Where the reel is now, in clusters.
   double get reel => _reel.value;
+
+  /// Moves the reel to [cluster] (Garage's layout choice).
+  void showCluster(int cluster) {
+    _reel.setSpec(TapeSprings.page);
+    _raw = cluster.toDouble();
+    _reel.retarget(_raw.clamp(0.0, 4.0));
+  }
 
   /// The five clusters, in the order DESIGN.md 7.3 names them, built once.
   List<Widget> _buildClusters() => [
@@ -144,6 +162,11 @@ class DrivePageState extends State<DrivePage> {
     final key = _windowKey(_reel.value);
     if (key != _windowAt) {
       setState(() => _windowAt = key);
+    }
+    // At rest on a cluster: remember it (Garage's default layout follows).
+    if (_reel.isSettled && _reel.value.round() != _reported) {
+      _reported = _reel.value.round();
+      widget.onClusterSettled?.call(_reported);
     }
   }
 

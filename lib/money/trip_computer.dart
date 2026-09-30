@@ -96,7 +96,7 @@ class TripComputer {
   final Observable<double?> price;
 
   VehicleSetup setup;
-  final CoachThresholds thresholds;
+  CoachThresholds thresholds;
   final LocationSource? location;
 
   /// Told the raw litres of each stretch, for the fill-up ledger.

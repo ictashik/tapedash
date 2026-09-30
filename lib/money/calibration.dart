@@ -27,6 +27,9 @@ class Calibration {
     if (_factors.length > keep) _factors.removeAt(0);
   }
 
+  /// Forgets every factor.
+  void clear() => _factors.clear();
+
   /// What to multiply every fuel estimate by: 1 with nothing to go on.
   double get factor {
     if (_factors.isEmpty) return 1;

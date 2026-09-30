@@ -54,6 +54,19 @@ class FuelLedger {
     _confidence.value = calibration.confidence;
   }
 
+  /// Forgets everything it holds: the fill-ups, the calibration and the count
+  /// (Garage → Data → delete all).
+  Future<void> clear() async {
+    for (final f in await fills.all()) {
+      if (f.id != null) await fills.delete(f.id!);
+    }
+    calibration.clear();
+    _confidence.value = calibration.confidence;
+    _estimatedSinceFull = 0;
+    _unsaved = 0;
+    await store.setDouble(_estimateKey, 0);
+  }
+
   /// Counts [litres] of raw estimate.
   void addEstimate(double litres) {
     _estimatedSinceFull += litres;

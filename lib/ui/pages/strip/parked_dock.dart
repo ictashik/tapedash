@@ -37,7 +37,15 @@ class ParkedDock extends StatefulWidget {
     required this.height,
     this.onHud,
     this.onPitStop,
+    this.onGarage,
+    this.onDiagnostics,
   });
+
+  /// Called by the Garage button (DESIGN.md 7.8). Null leaves it disabled.
+  final VoidCallback? onGarage;
+
+  /// Called by the Diagnostics button (DESIGN.md 7.10). Null leaves it disabled.
+  final VoidCallback? onDiagnostics;
 
   /// Called by the Pit Stop button (DESIGN.md 7.9). Null leaves it disabled.
   final VoidCallback? onPitStop;
@@ -120,9 +128,9 @@ class ParkedDockState extends State<ParkedDock> {
     final theme = TapeTheme.of(context);
     final palette = theme.palette;
     final buttons = <(TapeIcon, String, VoidCallback?)>[
-      (TapeIcon.garage, 'Garage', null),
+      (TapeIcon.garage, 'Garage', widget.onGarage),
       (TapeIcon.pitStop, 'Pit Stop', widget.onPitStop),
-      (TapeIcon.checkEngine, 'Diagnostics', null),
+      (TapeIcon.checkEngine, 'Diagnostics', widget.onDiagnostics),
       (TapeIcon.hud, 'HUD', widget.onHud),
     ];
 

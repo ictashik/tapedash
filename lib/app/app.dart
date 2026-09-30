@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../core/clock.dart';
+import '../core/key_value_store.dart';
 import '../core/scheduler.dart';
 import '../ui/design/components/backdrop.dart';
 import '../ui/design/components/controls/tape_button.dart';
@@ -17,6 +18,7 @@ import '../ui/dev/dev_settings.dart';
 import '../ui/lab/design_lab.dart';
 import '../ui/onboarding/onboarding_screen.dart';
 import 'app_services.dart';
+import 'app_settings.dart';
 import 'demo_drive.dart';
 import 'drive_shell.dart';
 
@@ -36,7 +38,11 @@ class TapeDashApp extends StatelessWidget {
     this.onboarding = true,
     this.skipColdOpen = DevMode.skipColdOpen,
     this.services,
+    this.scenario,
   });
+
+  /// The demo drive to run, if not the one chosen in Garage (tests).
+  final String? scenario;
 
   /// The app's settings and trip log. Null uses empty in-memory ones (tests).
   final AppServices? services;
@@ -64,6 +70,7 @@ class TapeDashApp extends StatelessWidget {
         onboarding: onboarding,
         skipColdOpen: skipColdOpen,
         services: services,
+        scenario: scenario,
       ),
     );
   }
@@ -76,8 +83,10 @@ class _Shell extends StatefulWidget {
     required this.onboarding,
     required this.skipColdOpen,
     required this.services,
+    required this.scenario,
   });
 
+  final String? scenario;
   final Clock clock;
   final Scheduler scheduler;
   final bool onboarding;
@@ -91,7 +100,20 @@ class _Shell extends StatefulWidget {
 class _ShellState extends State<_Shell> {
   late final TapeRenderKit _kit = TapeRenderKit();
   bool _labOpen = false;
-  late bool _onboarded = !widget.onboarding;
+
+  /// What the user has set: the services' when there are any (saved on the
+  /// phone), otherwise in memory (tests).
+  late final AppSettings _settings =
+      widget.services?.settings ?? AppSettings(MemoryKeyValueStore());
+  late final Listenable _themeChanges = Listenable.merge([
+    _settings.livery,
+    _settings.driverSide,
+    _settings.reduceMotion,
+    _settings.tierPin,
+  ]);
+
+  // The choice at first launch is asked once: a later launch goes straight in.
+  late bool _onboarded = !widget.onboarding || _settings.onboarded.value;
 
   /// The fidelity tier the cold open's frame timings chose (DESIGN.md 9.2).
   FidelityTier _tier = FidelityTier.balanced;
@@ -104,23 +126,26 @@ class _ShellState extends State<_Shell> {
   }
 
   /// The demo drive, started at launch so that it is already connected when
-  /// the user chooses it (DESIGN.md 7.11: the ignition within a second). Not
-  /// started when onboarding is off: the drive shell then starts its own.
-  DemoDrive? _demo;
+  /// the user chooses it (DESIGN.md 7.11: the ignition within a second).
+  late final DemoDrive _demo;
 
   @override
   void initState() {
     super.initState();
-    if (widget.onboarding) {
-      _demo = DemoDrive(clock: widget.clock, scheduler: widget.scheduler)
-        ..start();
-    }
+    // Started at launch, so it is already connected when the user chooses it
+    // (DESIGN.md 7.11); with no choice to make the shell finds it running.
+    _demo = DemoDrive(
+      clock: widget.clock,
+      scheduler: widget.scheduler,
+      scenario: widget.scenario ?? _settings.demoScenario.value,
+      profile: _settings.demoProfile.value,
+    )..start();
     if (DevMode.launchScreen == 'lab') _labOpen = true;
   }
 
   @override
   void dispose() {
-    _demo?.dispose();
+    _demo.dispose();
     _kit.dispose();
     super.dispose();
   }
@@ -130,48 +155,60 @@ class _ShellState extends State<_Shell> {
     return MotionScope(
       child: TapeRenderScope(
         kit: _kit,
-        child: TapeTheme(
-          data: TapeThemeData(livery: Liveries.ion, tier: _tier),
-          child: _labOpen
-              ? DesignLab(onClose: () => setState(() => _labOpen = false))
-              : ColoredBox(
-                  color: TapeColors.voidColor,
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: _onboarded
-                            ? DriveShell(
-                                demo: _demo,
-                                app: widget.services,
-                                clock: widget.clock,
-                                scheduler: widget.scheduler,
-                              )
-                            : LayoutBuilder(
-                                builder: (context, box) => TapeBackdrop(
-                                  child: OnboardingScreen(
-                                    width: box.maxWidth,
-                                    height: box.maxHeight,
-                                    skipColdOpen: widget.skipColdOpen,
-                                    onBenchmark: _onBenchmark,
-                                    onDemo: () =>
-                                        setState(() => _onboarded = true),
+        // The look follows Garage: livery, driver side, reduce motion and a held
+        // fidelity tier (Auto is the one the cold open's frame timings chose).
+        child: AnimatedBuilder(
+          animation: _themeChanges,
+          builder: (context, _) => TapeTheme(
+            data: TapeThemeData(
+              livery: Liveries.byId(_settings.livery.value),
+              tier: _settings.tierPin.value ?? _tier,
+              driverSide: _settings.driverSide.value,
+              reduceMotion: _settings.reduceMotion.value,
+            ),
+            child: _labOpen
+                ? DesignLab(onClose: () => setState(() => _labOpen = false))
+                : ColoredBox(
+                    color: TapeColors.voidColor,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: _onboarded
+                              ? DriveShell(
+                                  demo: _demo,
+                                  app: widget.services,
+                                  clock: widget.clock,
+                                  scheduler: widget.scheduler,
+                                )
+                              : LayoutBuilder(
+                                  builder: (context, box) => TapeBackdrop(
+                                    child: OnboardingScreen(
+                                      width: box.maxWidth,
+                                      height: box.maxHeight,
+                                      skipColdOpen: widget.skipColdOpen,
+                                      onBenchmark: _onBenchmark,
+                                      onDemo: () {
+                                        _settings.onboarded.value = true;
+                                        setState(() => _onboarded = true);
+                                      },
+                                    ),
                                   ),
                                 ),
-                              ),
-                      ),
-                      if (DevMode.buttonVisible)
-                        Positioned(
-                          right: TapeSpace.s4,
-                          bottom: TapeSpace.s4,
-                          child: TapeButton(
-                            label: 'Design Lab',
-                            icon: TapeIcon.hud,
-                            onPressed: () => setState(() => _labOpen = true),
-                          ),
                         ),
-                    ],
+                        if (DevMode.buttonVisible)
+                          Positioned(
+                            right: TapeSpace.s4,
+                            bottom: TapeSpace.s4,
+                            child: TapeButton(
+                              label: 'Design Lab',
+                              icon: TapeIcon.hud,
+                              onPressed: () => setState(() => _labOpen = true),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
+          ),
         ),
       ),
     );

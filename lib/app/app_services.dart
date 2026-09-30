@@ -11,6 +11,7 @@ import '../trips/sqflite_database.dart';
 import '../trips/sqflite_fill_up_repository.dart';
 import '../trips/sqflite_trip_repository.dart';
 import '../trips/trip.dart';
+import 'app_settings.dart';
 
 /// What lives as long as the app: the settings, the trip log, the fill-up log and
 /// the calibration (CLAUDE.md 6), all on the phone and nowhere else.
@@ -38,6 +39,10 @@ class AppServices {
   final FuelLedger ledger;
 
   final ObservableValue<VehicleSetup> _setup;
+
+  /// The look, the HUD, the coach and the demo: what the user sets in Garage
+  /// (`AppSettings`), saved to [store] as it changes.
+  late final AppSettings settings = AppSettings(store);
 
   /// The car's fuel type, displacement and tank (CLAUDE.md 8.4).
   Observable<VehicleSetup> get setup => _setup;
@@ -67,7 +72,19 @@ class AppServices {
     return fill;
   }
 
+  /// Deletes what the app has recorded (Garage → Data): every trip, demo ones
+  /// included, every fill-up and the calibration, and the fuel price. The car's
+  /// setup and the settings stay.
+  Future<void> deleteAllData() async {
+    for (final t in await trips.all(includeDemo: true)) {
+      await trips.delete(t.id!);
+    }
+    await ledger.clear();
+    await money.setPrice(null);
+  }
+
   Future<void> load() async {
+    await settings.load();
     await money.load();
     await ledger.load();
     final type = await store.getString(_fuelTypeKey);

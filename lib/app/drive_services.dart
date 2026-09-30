@@ -97,6 +97,14 @@ class DriveServices {
   }
 
   /// Saves what there is and lets go of everything.
+  /// Applies new coach thresholds to everything that reads them, from the next
+  /// sample on (Garage: the preset, the speed threshold).
+  void setThresholds(CoachThresholds thresholds) {
+    hardEvents.thresholds = thresholds;
+    coach.thresholds = thresholds;
+    computer.thresholds = thresholds;
+  }
+
   Future<void> close() async {
     app.setup.removeListener(_onSetup);
     demand?.dispose();

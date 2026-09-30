@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/app/app_services.dart';
 import 'package:tapedash/fuel/fuel_constants.dart';
 import 'package:tapedash/money/calibration.dart';
+import 'package:tapedash/trips/trip.dart';
 
 void main() {
   test('a fill-up sets the price to the amount over the litres', () async {
@@ -68,6 +69,51 @@ void main() {
       );
       expect(real.money.price.value, 100);
       expect(await real.fills.all(), isEmpty);
+    },
+  );
+
+  test(
+    'deleting all data clears trips, fill-ups, calibration and the price',
+    () async {
+      final app = await AppServices.memory(price: 100);
+      await app.trips.create(Trip(startedAt: DateTime(2026, 3, 1)));
+      await app.trips.create(
+        Trip(startedAt: DateTime(2026, 3, 2), isDemo: true),
+      );
+      for (final day in [1, 8]) {
+        app.ledger.addEstimate(30);
+        await app.saveFillUp(
+          at: DateTime(2026, 3, day),
+          litres: 30,
+          amount: 3000,
+          fullTank: true,
+        );
+      }
+      expect(
+        app.ledger.calibration.confidence,
+        CalibrationConfidence.calibrating,
+      );
+      await app.setVehicleSetup(
+        const VehicleSetup(displacementLitres: 1.2, tankLitres: 35),
+      );
+
+      await app.deleteAllData();
+
+      expect(await app.trips.all(includeDemo: true), isEmpty);
+      expect(await app.fills.all(), isEmpty);
+      expect(app.money.price.value, isNull);
+      expect(
+        app.ledger.calibration.confidence,
+        CalibrationConfidence.uncalibrated,
+      );
+      expect(app.ledger.confidence.value, CalibrationConfidence.uncalibrated);
+      expect(app.ledger.estimatedSinceFull, 0);
+      // The car and the settings stay.
+      expect(app.setup.value.displacementLitres, 1.2);
+      // And it is gone after a restart too.
+      await app.load();
+      expect(app.money.price.value, isNull);
+      expect(app.ledger.estimatedSinceFull, 0);
     },
   );
 }
