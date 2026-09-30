@@ -31,3 +31,4 @@ flutter:
   # fallback face), and gives the app and the tests one code path.
   assets:
     - assets/fonts/
+    - assets/dtc/dtc.json
