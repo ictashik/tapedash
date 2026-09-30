@@ -6,11 +6,19 @@ import io.flutter.embedding.engine.FlutterEngine
 class MainActivity : FlutterActivity() {
     private var device: DeviceChannel? = null
     private var gps: GpsChannel? = null
+    private var bluetoothPermissions: BluetoothPermissions? = null
+    private var btClassic: BtClassicChannel? = null
+    private var ble: BleChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        device = DeviceChannel(this, flutterEngine.dartExecutor.binaryMessenger)
-        gps = GpsChannel(this, flutterEngine.dartExecutor.binaryMessenger)
+        val messenger = flutterEngine.dartExecutor.binaryMessenger
+        device = DeviceChannel(this, messenger)
+        gps = GpsChannel(this, messenger)
+        val permissions = BluetoothPermissions(this)
+        bluetoothPermissions = permissions
+        btClassic = BtClassicChannel(this, messenger, permissions)
+        ble = BleChannel(this, messenger, permissions)
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
@@ -18,6 +26,12 @@ class MainActivity : FlutterActivity() {
         device = null
         gps?.dispose()
         gps = null
+        btClassic?.dispose()
+        btClassic = null
+        ble?.dispose()
+        ble = null
+        bluetoothPermissions?.dispose()
+        bluetoothPermissions = null
         super.cleanUpFlutterEngine(flutterEngine)
     }
 
@@ -33,5 +47,6 @@ class MainActivity : FlutterActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         gps?.onRequestPermissionsResult(requestCode, grantResults)
+        bluetoothPermissions?.onRequestPermissionsResult(requestCode, grantResults)
     }
 }

@@ -5,6 +5,23 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- A phone without GPS can still run everything else. -->
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <!-- Bluetooth, for an ELM327 adapter (CLAUDE.md 4). Android 12 and later ask for
+         the two new permissions at run time; before that, the old ones are granted
+         at install time. Scanning never needs the location permission on Android 12+
+         (neverForLocation), and before it the GPS permission above serves. -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+    <!-- A phone without Bluetooth can still run the demo and a WiFi adapter. -->
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+    <!-- Android requires this for any socket, including one to a WiFi ELM327 on a
+         private network. The network guard in lib/obd/transport/wifi_transport.dart
+         refuses every other address (CLAUDE.md 4). -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- allowBackup is off because Android Auto Backup uploads app data to the
          user's Google account, and TapeDash is strictly offline. -->
     <application
