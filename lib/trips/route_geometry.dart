@@ -14,6 +14,7 @@ class RouteGeometry {
     required this.ys,
     required this.sampleIndex,
     required this.lengthMetres,
+    required this.unitsPerMetre,
   });
 
   /// The points, in the panel's coordinates, and which sample each came from.
@@ -23,6 +24,10 @@ class RouteGeometry {
 
   /// The whole route's length, in metres, as drawn.
   final double lengthMetres;
+
+  /// How many of the panel's units a metre of the route is at the whole-route view:
+  /// what turns a distance on the ground into one on the panel.
+  final double unitsPerMetre;
 
   int get length => xs.length;
 
@@ -117,6 +122,7 @@ class RouteGeometry {
       ys: [for (final y in py) offY + (maxY - y) * scale],
       sampleIndex: kept,
       lengthMetres: total,
+      unitsPerMetre: scale,
     );
   }
 
@@ -165,5 +171,66 @@ class RouteGeometry {
       }
     }
     return best;
+  }
+
+  /// Where a car is on the route at fractional [sample] of the trip: a fractional
+  /// index into the points, for [xAt], [yAt] and [headingAt].
+  ///
+  /// Between two points the car is placed by the distance it had covered ([km] is
+  /// the trip's odometer at a fractional sample), not by the time, so that it
+  /// stands still while the car did: points a stopped car scattered were dropped,
+  /// and a stop must not make it creep. Where the odometer did not move between two
+  /// points at all (a GPS that wandered) it goes by the time instead, so it never
+  /// jumps.
+  double pointAt(double sample, double Function(double sample) km) {
+    final last = sampleIndex.length - 1;
+    if (last <= 0 || sample <= sampleIndex.first) return 0;
+    if (sample >= sampleIndex[last]) return last.toDouble();
+    // The last point at or before the sample.
+    var lo = 0, hi = last;
+    while (lo < hi) {
+      final mid = (lo + hi + 1) >> 1;
+      if (sampleIndex[mid] <= sample) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    final s0 = sampleIndex[lo].toDouble();
+    final s1 = sampleIndex[lo + 1].toDouble();
+    final d0 = km(s0);
+    final d1 = km(s1);
+    final share = d1 - d0 > 1e-6
+        ? (km(sample) - d0) / (d1 - d0)
+        : (sample - s0) / (s1 - s0);
+    return lo + share.clamp(0.0, 1.0);
+  }
+
+  /// The position at fractional point [p], on the panel.
+  double xAt(double p) {
+    final i = p.floor().clamp(0, length - 1);
+    if (i >= length - 1) return xs[length - 1];
+    return xs[i] + (xs[i + 1] - xs[i]) * (p - i).clamp(0.0, 1.0);
+  }
+
+  double yAt(double p) {
+    final i = p.floor().clamp(0, length - 1);
+    if (i >= length - 1) return ys[length - 1];
+    return ys[i] + (ys[i + 1] - ys[i]) * (p - i).clamp(0.0, 1.0);
+  }
+
+  /// The way the route is heading at fractional point [p], in radians on the
+  /// panel (0 is to the right, and y is down, so a quarter turn is down the
+  /// screen): the direction from [span] points behind to [span] points ahead, so
+  /// that a corner turns it over a few points and a scatter of GPS does not jerk
+  /// it. [previous] is returned where the route has no direction there (it stood
+  /// still).
+  double headingAt(double p, {double span = 2, double previous = 0}) {
+    final a = (p - span).clamp(0.0, (length - 1).toDouble());
+    final b = (p + span).clamp(0.0, (length - 1).toDouble());
+    final dx = xAt(b) - xAt(a);
+    final dy = yAt(b) - yAt(a);
+    if (dx * dx + dy * dy < 1e-9) return previous;
+    return math.atan2(dy, dx);
   }
 }
