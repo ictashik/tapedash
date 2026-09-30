@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-09-30, after the first real drives (see "First real drive" and "The second drives" below). Before it, at the end of phase 6, **the app was ready for real-hardware testing** (CLAUDE.md 11). Phases 0 to 6 are built, tested and committed, on the simulator. The app opens on a cold open and a choice: **TRY A DEMO DRIVE** (a simulated car, no hardware) or **CONNECT MY CAR** (a WiFi, Bluetooth or BLE ELM327), and then drives, records trips, works out where the money goes, coaches, and shows Review, Coach, History, Garage and Diagnostics. **Nothing here has met a real phone, adapter or car.** The next step is yours: `docs/HARDWARE_HANDOFF.md`.
+Updated 2026-09-30, after the first real drives (see "First real drive" and "The second drives" below) and the replay and the engine sound ("After the map"). Before it, at the end of phase 6, **the app was ready for real-hardware testing** (CLAUDE.md 11). Phases 0 to 6 are built, tested and committed, on the simulator. The app opens on a cold open and a choice: **TRY A DEMO DRIVE** (a simulated car, no hardware) or **CONNECT MY CAR** (a WiFi, Bluetooth or BLE ELM327), and then drives, records trips, works out where the money goes, coaches, and shows Review, Coach, History, Garage and Diagnostics. **Nothing here has met a real phone, adapter or car.** The next step is yours: `docs/HARDWARE_HANDOFF.md`.
 
 ## Where we are
 
@@ -252,6 +252,34 @@ Four requests from the human, all built and tested headlessly; **none seen on a 
 - **A bug found on the way:** the Review heading's readout overflowed by 20 px at 720 lp with a cursor set (four readings beside the date); it now scales to fit.
 
 **To look at on the phone:** the dock at its narrowest (is 52 lp of button comfortable?), the scrolling selector, pinch and drag on the map (does it feel like a map?), and whether a minute of history is what the Telemetry tiles should keep.
+
+## After the map: a trip to replay, and an engine to hear (2026-09-30)
+
+Two requests from the human: *an interactive playback of the drive, at 1x 2x 3x, like a game*, and *an engine sound that follows the tach, through the car's Bluetooth stereo*. The map basemap (OpenStreetMap) was assessed and **left out on purpose** (see "What is not built"). Everything below is built and tested headlessly; **none of it has been seen or heard on a phone.**
+
+**The replay (Review, DESIGN.md 6.12).**
+- A play button, a speed button (1x, 2x, 3x) and a stop button sit left of the scrubber (48 lp each). Play starts from the scrubber's cursor, or the start. The play head runs on the motion clock.
+- The route becomes a game map: a chase camera follows an arrow for the car, the map turning with it (heading up, the default, or north up), zooming out as the car speeds up and in as it slows; a dark road under the line, and a faint ground grid that carries with the map (there is no basemap, and this is what shows the ground going by). The route behind the car is bright and the route ahead is dim. A pinch or the zoom buttons sit closer or further, a drag lets go of the car, FOLLOW (a crosshair) takes it back. The tip gives its room to the map.
+- The receipt gives way to instruments: the speed large, rev and throttle bars, the ₹ so far, the distance, the time, and the marked moment as it passes ("Hard braking" and so on). Numerals rest on whole digits. **The replay ends on the receipt's own totals** (the integrals are scaled to the trip's distance and litres).
+- The car stands still while the car stood (placed by the trip's odometer between route points, never by time), and a stretch where the engine was off is crossed in half a second.
+- Scrubbing the band or tapping the route moves the play head. Five new icons (play, pause, stop, north, heading).
+- **New code:** `TripPlayback` (pure: values between samples, totals, the odometer), `TripPlayer` (the transport on the motion clock), `RouteViewController`'s chase camera and rotation, `RouteCar`, `RouteTrail`'s car, road and grid, `TripTransport`, `ReplayHud`, `PlaybackChannel`, `ReplayEvents`, `TapeSquareButton`. About 200 new tests, and capture frames that were looked at (720 and 640 wide).
+
+**The engine sound (DESIGN.md 5.10).**
+- **Seven engines made in code** (Inline-4, Three-cylinder, V6, V8, Flat-six, Turbo four, Electric): firing-order pulses placed between samples through an exhaust pipe (a feedback comb) and body resonances, with a throttle-opened muffler, intake rush, valve tick, a turbo's whistle and hiss, pops on an overrun, and an electric whine. No audio asset, so nothing to license and nothing added to the APK. It is deterministic and renders 10 s of audio in milliseconds.
+- **The revs glide** (at most 9000 up and 6000 down a second) so that a late reading is never a click; it fades out when the data goes stale or the engine goes off.
+- **It runs in its own isolate** and plays through a thin Kotlin `AudioTrack` channel (`EngineAudioChannel.kt`): car audio only by default (it does not start without Bluetooth, a wire or USB, and stops when the output changes to the speaker), no audio focus (music carries on), and it stops when the app leaves the screen (no service, no new permission).
+- **Garage** has an Engine sound group: on or off (off to begin with), the engine, the volume, "Also on the phone speaker" (off to begin with), a ten second test, and a status line. A Review replay has the engine too, from the recorded revs a moment ahead of the picture. The session recording notes say when it starts, stops, loses its output or runs dry.
+- **To hear it without the car:** `dart run tool/render_engine.dart --out build/engine` writes every engine, for three scenes (idle, a sweep, a drive), as WAV files. Spectrograms of them were looked at (the harmonic fan rising with the revs, the turbo's whistle as its own line).
+- **New code:** `lib/sound/` (profiles, `EngineSynth`, `SynthVoiceHost`, `EngineSound`, sinks), `lib/platform/engine_audio.dart`, `EngineAudioChannel.kt`, `lib/app/drive_sound.dart`, `lib/app/engine_sound_sources.dart`.
+
+**What I could not verify, plainly.**
+- **How it sounds.** I can test the pitch (a four at 3000 rpm is 100 Hz, and exact to a fraction of a sample), the level, that it never clips or clicks and is silent when off. I cannot hear it. Whether it is an engine or a buzzing synth, and which profile is best, is for your ear, and will take rounds like the tach did. The parameters are all in `EngineProfile`.
+- **Everything on the phone:** the Kotlin channel compiles (debug APK builds) and is unit-tested only through a mocked channel; the isolate's use of a platform channel (`BackgroundIsolateBinaryMessenger`) is untested on a device; the car-audio detection, the route-change stop and the stop-with-the-screen are untested. **Bluetooth audio while the OBD adapter is also on Bluetooth may slow the poll rate** (a Classic adapter especially), and the audio may stutter: the session recording's poll rate, with the sound on and off, will say.
+- **The sound lags.** The data is 1.3 to 2 Hz and already played out half a second late, Bluetooth audio adds about a fifth of a second: live, the sound is a second behind the real engine and glides instead of blipping. Next to a loud real engine it will drift out of step. A replay is taken a moment ahead to line up with its picture.
+- **The replay** was driven by widget tests and looked at in captures; never by a finger, and never on a phone. The chase camera's feel (how wide it looks, how quickly it turns) is in `TapeReplay`; **a long trip draws 3,000 points while it replays**, so a deep zoom still shows straight chords on a very long route.
+
+**What is not built.** A real map under the route (OpenStreetMap vector tiles, from a file you put on the phone): assessed, and worth doing after this; it needs a PMTiles and vector-tile reader and renderer of our own (flutter_map depends on `http`, which the offline check bans), attribution ("© OpenStreetMap contributors", ODbL) and a file picker. Nothing is bundled, to keep the ODbL on the data and Apache-2.0 on the app.
 
 ## Phase 3b: the review package, and where the phase stands
 

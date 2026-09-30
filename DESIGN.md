@@ -307,6 +307,16 @@ Garage → Display → Reduce motion; also honour the system animation scale set
 - Tier 3 follows the display refresh rate (60/90/120 Hz). Tier 2 locks to 60. Tier 1 targets 60 with a 30 fallback.
 - A dropped frame must never make a needle jump. Springs are analytic, so they resume from the correct state.
 
+### 5.10 Sound (the engine note)
+A sound is not a signal. The engine sound is an optional extra that says what the tach already says, in a second sense, and it follows the same rules as the screen.
+- **Off until turned on** (Garage, §7.8). No cue, alert, voice or chime: it carries no information beyond the revs and the load, so it cannot ask anything of the driver, and the coach's rule (CLAUDE.md 1.5) holds: nothing is said while driving.
+- **It is the needle's sound.** It follows the same played-out revs and throttle the tach shows (§5.2), so what is heard is what is seen, and a cheap adapter's slow readings glide and never step or swing. The revs can rise at most 9000 a second and fall at most 6000 (a flywheel), so a late reading is a glide and never a click.
+- **It goes quiet as the data does.** A stale signal, a lost link or the engine off fades it out (0.35 s), and it comes back in over 0.15 s. There is no drone on a dead link.
+- **Where it plays.** On car audio only (Bluetooth, a wire, USB) unless the Garage allows the phone's own speaker: it does not start without car audio, and stops at once if the output changes to the speaker (the Bluetooth link dropped). It asks for no audio focus, so music carries on under it. It belongs to the screen that is showing: it stops when the app leaves the screen (there is no service, so no new permission).
+- **Replay.** A Review replay (§6.12) has the engine too, from the trip's recorded revs, a little ahead of the picture (0.3 s at 1×, so that the sound arrives with it), on whatever output there is; it is silent while paused.
+- **The engines** are made in code, not recorded: Inline-4, Three-cylinder, V6, V8, Flat-six, Turbo four and Electric. They are named for the layout, never a make. Each is a parameter set (cylinders and their firing, the exhaust pulse, the pipe, the body's resonances, the throttle's brightness, the intake, a turbo, pops on an overrun); every one is set to the same level at a reference load so that changing engine does not change the volume.
+- **Latency is not the point.** The data arrives once or twice a second and the picture is already half a second behind it; Bluetooth audio adds about a fifth of a second more. The sound is honest about trends, not about blips, and next to a loud real engine it will drift out of step: it suits a quiet cabin best, and a replay.
+
 ---
 
 ## 6. Components
@@ -535,6 +545,7 @@ Full-width list rows grouped under bracketed headers:
 - **HUD:** colour, flips, position and scale, alignment pattern (§8).
 - **Fuel price and currency.**
 - **Coach:** speed threshold; hard acceleration and braking sensitivity as Gentle / Normal / Sporty presets mapping to `CoachThresholds`.
+- **Engine sound:** on or off (off to begin with), the engine, the volume, whether the phone's speaker is allowed (no to begin with), a ten second test on whatever output there is, and a line saying where it stands (playing, no car audio, stopped because the output went away). §5.10.
 - **Display:** automatic brightness, Daylight and Night automation, reduce motion, fidelity tier (Auto / Lite / Balanced / Full), ignition sequence (Off / Subtle / Full).
 - **Units and format.**
 - **Demo mode.**

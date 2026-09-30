@@ -101,6 +101,19 @@ With the phone mounted where it will live (the tape, or the holder):
 - **Motion and Parked:** when the car starts moving the driving layout should come back within a third of a second, and the dock, Garage, Pit Stop and Review should be unreachable while it moves.
 - **The phone's temperature.** In the sun on the dash the phone gets hot. Above 45 C the status strip shows a phone glyph, and Garage says to unplug the charger and move it; above 50 C the screen dims and the display eases to Lite at 30 fps. Note the battery temperature when the glyph appears (the debug overlay's BATTERY line shows it: long-press a driving screen), and whether the phone got hot enough to matter.
 
+## 5b. The replay and the engine sound
+
+**The replay, at your desk.** Review -> pick a trip with a route -> **play** (left of the scrubber). Watch: does the map turn smoothly? Does the camera sit too close or too far (try the zoom buttons while following; they move it from what the camera chose)? Do the speed, the rev and throttle bars and the ₹ tick up, and end on the receipt's own figures? Tap **1x** for 2x and 3x. Drag the scrubber: the car should jump there and carry on. Drag the map: the camera lets go of the car; the crosshair takes it back. Is the tip's room better spent on the map? Does anything overlap at your phone's size?
+
+**The engine, at your desk.** Garage -> **Engine sound** -> pick an engine -> **Test the sound** (ten seconds, on whatever output there is: the phone's speaker is fine here). Try each. Or, to listen on the Mac first: `dart run tool/render_engine.dart --out build/engine` writes WAV files of every engine (idle, a sweep, a drive). **Say what sounds wrong** ("buzzy", "too thin", "the idle drones", "the turbo is too loud"): the engines are parameter sets (`EngineProfile`) and tuning them is rounds of this.
+
+**The engine, in the car.** Turn **Engine sound** on in Garage and pair the phone to the car's Bluetooth stereo (for audio). Drive (or connect the adapter and sit with the engine running). Check:
+- **It plays on the car stereo**, not the phone. With the Bluetooth off it should say "No car audio to play on" in Garage and stay silent. **Turn the car off:** when the link drops it must stop and not come out of the phone's speaker (the most important thing on this list).
+- **Does the sound follow the tach?** It lags (the data is 1 to 2 Hz, and Bluetooth adds about 0.2 s): is that tolerable, or confusing next to the real engine? Does the pitch wobble or overshoot when you lift off?
+- **Does it glitch or stutter**, and **does the OBD poll rate drop** when it is on? Compare the poll rate (Diagnostics) with the sound on and off: a Classic Bluetooth adapter and Bluetooth audio share the radio. The session recording notes say `sound on ...`, `sound lost ...` and `sound underruns N`.
+- **Music** playing from the phone at the same time should carry on under the engine (the engine asks for no audio focus).
+- **Leaving the app** (Home) should stop it; coming back should start it again.
+
 ## 6. What to report back
 
 For each adapter you tried:
@@ -111,6 +124,7 @@ For each adapter you tried:
 - **The achieved poll rate** (Diagnostics), with and without compatibility mode if you tried both, and how long connecting took.
 - **The auto-selected fidelity tier** and the frame rate (the debug overlay: long-press on a driving screen, and read the FRAMES and TIER lines), and the phone model, Android version and RAM.
 - **Every error and every visual problem**: a screenshot, what you were doing, and the log file if a recording was on.
+- **The replay and the engine sound** (section 5b): what looked or sounded wrong, which engine is nearest, whether the sound stopped when the Bluetooth link dropped, and the poll rate with the sound on and off.
 - What was **slow to connect**, what **dropped**, and what **came back by itself** and what did not.
 
 ## 7. What happens next

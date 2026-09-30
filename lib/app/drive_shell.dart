@@ -282,6 +282,8 @@ class _DriveShellState extends State<DriveShell> {
         poll,
       ], () => '${_feed.pollRate.value.toStringAsFixed(1)} /s'),
       row('Fuel from', [source], () => services.estimator.source.value.label),
+      if (_sound != null)
+        row('Engine sound', [_sound!.status], () => _sound!.status.value.name),
       ...widget.debugRows,
     ];
   }

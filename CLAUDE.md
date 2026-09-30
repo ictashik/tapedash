@@ -24,7 +24,7 @@ Read this file and DESIGN.md fully before starting. Re-read the relevant DESIGN.
 2. **Old devices first.** Everything must run smoothly on a 2GB-RAM, 32-bit ARM phone with an old GPU and a 720p screen, running Android 7.0.
 3. **Simple to use.** Install to live gauges in under two minutes, with no manual needed. Sensible defaults over settings.
 4. **Open source and F-Droid compatible.** No Google Play Services, Firebase, or proprietary SDKs, directly or transitively. Only OSI-approved licenses.
-5. **Safety.** No interaction is required while driving. The coach **never nags during a drive**: live feedback is limited to subtle visual cues, and detailed tips appear only when the car is stopped or the trip has ended. No pop-ups, text entry, or small tap targets on driving screens. DESIGN.md §7.1–7.2 and DESIGN.md §11 define the Motion and Parked rules.
+5. **Safety.** No interaction is required while driving. The coach **never nags during a drive**: live feedback is limited to subtle visual cues, and detailed tips appear only when the car is stopped or the trip has ended. No pop-ups, text entry, or small tap targets on driving screens. DESIGN.md §7.1–7.2 and DESIGN.md §11 define the Motion and Parked rules. The optional engine sound (DESIGN.md §5.10) is opt-in and passive: it says only what the tach says, and never carries a cue, an alert or a voice.
 6. **Honest numbers.** Fuel and money figures are estimates. Label them as such, show calibration confidence, and never show false precision (round ₹ to whole rupees and km/L to one decimal).
 7. **Simulator first.** Every feature must be exercisable end-to-end with the simulator, headlessly, in `flutter test`.
 8. **World-class design on every device.** Every screen follows DESIGN.md: an instrument, not an app. No Material look, no jitter, no linear motion, and it must look deliberate on a 2016 phone, not just a flagship.
@@ -113,6 +113,7 @@ Before adding **any** package:
 - **BLE:** **verify the license first.** Don't assume `flutter_blue_plus` is acceptable; check its current terms. Alternatives are `flutter_reactive_ble` or a thin Kotlin channel. Ask the user if unsure.
 - **WiFi adapters:** `dart:io` `Socket`, behind the network guard.
 - **OBD protocol:** our own pure-Dart ELM327 layer. The `obd2` package (MPL-2.0) may be studied for design ideas; any copied file stays MPL-2.0 with its header, so prefer writing our own.
+- **Engine sound:** synthesised in our own pure-Dart code (`lib/sound/`, no audio asset and so nothing to license), played through a thin Kotlin channel over `AudioTrack`. No audio library (Oboe, SoLoud) and no plugin. It runs in an isolate of its own. It plays on car audio only unless the user allows the speaker, asks for no audio focus, and stops with the screen (no foreground service, so no new permission). DESIGN.md §5.10.
 - **Device features** (keep screen on, window brightness, battery temperature, immersive mode, ambient light, accelerometer): small native calls on a `DeviceChannel` rather than plugins. Ambient light drives Daylight and Night modes; the accelerometer drives the road view's body roll (DESIGN.md §4.4, §6.11).
 - **Storage:** `sqflite` for trips, samples, fill-ups and events. `shared_preferences` for settings.
 - **State:** no heavy frameworks and no code generation. Use `ValueNotifier`/`ValueListenable` and streams, with constructor-injected services. Live data must never trigger widget rebuilds (DESIGN.md §9.3).
@@ -131,6 +132,7 @@ lib/
   app/                 # shell, routes, landscape/immersive, service wiring
   core/                # Clock, Scheduler, Result types, units, currency formatting (en_IN grouping)
   platform/            # Dart side of Kotlin channels (gps, bt_classic, device)
+  sound/               # the engine sound: profiles, synth, voice host. Pure Dart, no Flutter imports
   sim/                 # vehicle simulator (section 7). Pure Dart, no Flutter imports
   obd/
     transport/         # Transport interface + sim, bt_classic, ble, wifi, replay
@@ -160,7 +162,7 @@ docs/                  # DECISIONS.md, STATUS.md, DEV_SETUP.md, HARDWARE_HANDOFF
 ```
 
 ### Layering rules
-- `sim/`, `obd/`, `vehicle/`, `fuel/`, `money/`, `coach/` and `trips/` (except the sqflite adapter) are **pure Dart with no Flutter imports**. They're tested headlessly.
+- `sim/`, `obd/`, `vehicle/`, `fuel/`, `money/`, `coach/`, `sound/` and `trips/` (except the sqflite adapter) are **pure Dart with no Flutter imports**. They're tested headlessly.
 - `ui/` only reads `ValueListenable`s and streams from services. It never touches transports or the database directly.
 - Pages are composed only from `ui/design/` components and tokens. No Material widgets and no raw colours, text styles, durations or spring constants anywhere in `ui/` outside `ui/design/tokens/` (enforced by the design-lint test).
 - `Transport` interface: `connect()`, `disconnect()`, `write(String)`, `Stream<String> incoming`, `Stream<TransportState> state`.
