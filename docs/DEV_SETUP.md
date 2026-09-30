@@ -103,6 +103,11 @@ emulator -avd Reference_API24 -no-window -no-audio -no-boot-anim -no-snapshot -g
 ```
 flutter test integration_test/device_channel_test.dart -d emulator-5554
 flutter test integration_test/app_launch_test.dart -d emulator-5554
+
+# These two talk to the simulator on your Mac, which the emulator reaches at 10.0.2.2:
+dart run tool/sim_server.dart --port 35000 --scenario city_stop_go &
+flutter test integration_test/adapters_test.dart -d emulator-5554
+flutter test integration_test/connect_wifi_flow_test.dart -d emulator-5554
 ```
 
 Run the files one at a time. Running the whole directory sometimes fails on the first file with a `WebSocketChannelException`, or hangs, while the tool connects to the app.

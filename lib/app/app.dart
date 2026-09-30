@@ -391,7 +391,12 @@ class _ShellState extends State<_Shell> {
                       child: Stack(
                         children: [
                           Positioned.fill(child: _screen()),
-                          if (DevMode.buttonVisible)
+                          // Only on the first screens: over the drive it would sit on the
+                          // connect flow's and Garage's buttons, and the debug overlay (a
+                          // long-press) opens the Lab from there.
+                          if (DevMode.buttonVisible &&
+                              !_onboarded &&
+                              !_connecting)
                             Positioned(
                               right: TapeSpace.s4,
                               bottom: TapeSpace.s4,

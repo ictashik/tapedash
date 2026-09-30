@@ -64,11 +64,11 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the dev button opens the Design Lab, and Close returns', (
+  testWidgets('the dev button opens the Design Lab on the first screens', (
     tester,
   ) async {
     _setPhoneWindow(tester);
-    await tester.pumpWidget(const TapeDashApp(onboarding: false));
+    await tester.pumpWidget(const TapeDashApp());
     await tester.pump();
     expect(find.byType(DesignLab), findsNothing);
 
@@ -76,6 +76,26 @@ void main() {
     await tester.pump();
     expect(find.byType(DesignLab), findsOneWidget);
     expect(tester.takeException(), isNull);
+
+    await tester.tap(find.widgetWithText(TapeButton, 'CLOSE'));
+    await tester.pump();
+    expect(find.byType(DesignLab), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('over the drive there is no dev button in the way; the debug '
+      'overlay opens the Lab', (tester) async {
+    _setPhoneWindow(tester);
+    await tester.pumpWidget(const TapeDashApp(onboarding: false));
+    await tester.pump();
+    expect(find.widgetWithText(TapeButton, 'DESIGN LAB'), findsNothing);
+
+    await tester.longPressAt(const Offset(320, 180));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(TapeButton, 'DESIGN LAB'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(DesignLab), findsOneWidget);
 
     await tester.tap(find.widgetWithText(TapeButton, 'CLOSE'));
     await tester.pump();
