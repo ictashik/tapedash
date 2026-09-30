@@ -11,7 +11,9 @@ Updated 2026-09-28, mid phase 3b: every component DESIGN.md 6 and CLAUDE.md 13 n
 | 2. OBD stack on the simulator (tag `v0.1.0-sim`) | **Done** |
 | 3a. Design system (tag `v0.2.0-design`) | **Done** |
 | 3b. Cockpit and HUD (tag `v0.3.0-sim`) | **In progress: all components, all 5 clusters, the Strip, the dock, the Motion <-> Parked choreography and the speed shared-element flight** |
-| 4 to 7 | Not started |
+| 4. Trips, fuel and money (tag `v0.4.0-sim`) | **Done** (simulator only) |
+| 5. Coach and review (tag `v0.5.0-sim`) | **Done** (simulator only) |
+| 6 and 7 | Not started |
 
 **Suggested tags, neither created:** `v0.1.0-sim` on `d5016d6` (end of phase 2) and `v0.2.0-design` on `62fb1bb` (end of phase 3a). Placing them is your call. Nothing has been pushed, and there is no remote.
 
@@ -150,6 +152,33 @@ Numbers as of this section: **2,188 tests** (2,179 before), `49915fa` at HEAD fo
 - The Debrief that should begin when a trip ends is phase 5; the recorder already tells the app when a trip ends and resumes.
 - No design review package for this phase (waived, see CLAUDE.md 13). I did look at renders of the new screens and fixed what was wrong; they were not judged in motion, on a device, or in any livery but ION.
 - The Money Tape does not yet compact into ₹5 and ₹10 blocks when full (a known gap in the component since 3b).
+
+## Phase 5: coach, review, Garage and Diagnostics (2026-09-30)
+
+**Built and tested** (all on the simulator; nothing here has met a real car or phone):
+
+- `coach/`: the tip rules (rupee-ranked, at most two a trip, only when parked or after the trip), the sweet spot (10 km/h bands, at least 3 km a band, the best band and its neighbours within 3%), weekly and monthly statistics, `SampleEvents` (hard events and long idles found again in a trip's samples, for the scrubber).
+- `trips/`: `TripLibrary` (the log for the screens, demo trips held but never counted), `RouteGeometry` (projection, at most 1,000 points).
+- **Review** with the route trail (SPEED, THROTTLE, ₹/KM), the receipt, where-it-went, one tip, and the telemetry scrubber; **the Debrief** plays when a trip ends (4.5 s, a tap skips it); **Coach** (efficiency curve with its sweet spot, this week against last, the eight-week trend, up to three tips); **History** (trips with a mini route and barcode, Week/Month/All).
+- **Garage**: car (fuel, engine size, tank, how far the fuel figures are checked), fuel price, layout, livery, driver side, the HUD (colour, flips, height, size, alignment pattern), the coach (Gentle/Normal/Sporty, speed threshold), display (reduce motion, fidelity Auto/Lite/Balanced/Full, ignition sequence), the demo (drive, car, end this trip now) and data (delete all, by slide to confirm). Every setting takes effect at once and is saved (`AppSettings`); the theme, the reel, the coach thresholds and the HUD follow it.
+- **Diagnostics**: the adapter (banner, protocol in words, voltage, poll rate with a one-minute sparkline, fuel source), the PID matrix (01 to 60, lit where the car answers, tap a cell to name it), fault codes with plain-English descriptions and a stored/pending chip, READ, and CLEAR CODES by slide to confirm (parked only; the car refusing is told to the user).
+- `SlideToConfirm`, a new control; `assets/dtc/dtc.json` (283 codes, written from scratch, `assets/dtc/SOURCE.md`); the dock's Garage and Diagnostics buttons are live.
+
+**Tests:** 2,688 (`./tool/verify.sh`), including widget tests for every new screen at 640, 720 and 800 wide, the Debrief playing, skipping and being asked for before its page exists, "tips never appear while the car moves", the Garage's every control, the Diagnostics source against a whole simulated stack (`dtc_present`), and the Garage/Diagnostics flow through the real app.
+
+**Real bugs the tests and captures found** (all fixed, each with a test that fails on the old code):
+- **The Strip and the Drive reel mounted the wrong pages.** They mounted only the page at the *floored* position, so a page swiped towards on the right stayed blank until the swipe landed, and a page the snap spring overshot (Review, at the strip's end) was torn down and rebuilt, throwing away its state: the Debrief died 0.4 s in. Both now mount the page below and the page above the position.
+- **The demo GPS never produced a fix.** `DemoLocationSource._release()` was async, so it ran after the replacement receiver had been created and stopped that one. Demo trips had no route.
+- **A scenario cut off by its time ended while moving,** so the demo trip never ended and Review never opened. `SimulatedCar.stopWhenFinished` (off by default, so test ground truth is untouched) brakes it to a stop; the demo uses it.
+- **A Garage list opened scrolled.** A picker reused the main list's scroll state, so it opened part-way down. It now starts at its top, and Back returns the page to where it was.
+- The Review and Coach pages sat under the parked dock; the compact bucket breakdown's numerals overlapped its swatches; roll-up numerals rested part-way through a roll (DESIGN.md 5.6: parked numbers are set normally); the Debrief's slice shares and roll-up sources were made on every build and never released.
+
+**Not done / not verified:**
+- **Not on a phone.** Everything above ran in `flutter test` and in the desktop render used for captures. The design review package is waived for phases 4 to 6 (CLAUDE.md 13); I looked at renders of Review, the Debrief, Coach and History and fixed what was wrong, in ION only and not in motion on a device.
+- **Garage items in DESIGN.md 7.8 that are not there:** the adapter (phase 6 adds it), currency and units (the money screens write ₹ directly, so a currency choice would need plumbing through all of them), max RPM/redline and the shift light, automatic brightness and Daylight/Night automation, CSV export to a chosen file (needs a native file picker), the licences screen and its QR code, and the livery picker's live previews (it is a plain list). The ignition sequence choice is read when the drive screen is built, so it applies from the next start.
+- **Diagnostics:** the PID matrix does not pulse on each response, and the voltage is the module voltage the poller reads (not `ATRV`).
+- The Money Tape still does not compact into ₹5 and ₹10 blocks when full; the ₹ shared-element flight from Drive to Money is still not built.
+- `assets/dtc/dtc.json` covers common generic codes only; manufacturer codes are described by their system, never guessed.
 
 ## Phase 3b: the review package, and where the phase stands
 
