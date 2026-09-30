@@ -44,6 +44,9 @@ const _required = [
   'flip',
   'pit-stop',
   'end-trip',
+  'zoom-in',
+  'zoom-out',
+  'fit',
 ];
 
 void main() {
@@ -57,9 +60,9 @@ void main() {
       );
     });
 
-    test('has 28 icons, each different from the others', () {
-      expect(TapeIcon.values, hasLength(28));
-      expect({for (final i in TapeIcon.values) i.path}, hasLength(28));
+    test('has 31 icons, each different from the others', () {
+      expect(TapeIcon.values, hasLength(31));
+      expect({for (final i in TapeIcon.values) i.path}, hasLength(31));
     });
 
     test('every icon has marks to draw, and parses without an error', () {

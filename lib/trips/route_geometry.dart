@@ -136,6 +136,23 @@ class RouteGeometry {
     return [for (final v in out) v / last];
   }
 
+  /// The point nearest to the panel position ([x], [y]), and how far it is from it
+  /// in panel units: what a tap on the route picks.
+  ({int point, double distance}) nearestTo(double x, double y) {
+    var best = 0;
+    var bestSq = double.infinity;
+    for (var n = 0; n < xs.length; n++) {
+      final dx = xs[n] - x;
+      final dy = ys[n] - y;
+      final sq = dx * dx + dy * dy;
+      if (sq < bestSq) {
+        bestSq = sq;
+        best = n;
+      }
+    }
+    return (point: best, distance: math.sqrt(bestSq));
+  }
+
   /// The point nearest to sample [i] (the scrubber's position dot).
   int nearestPoint(int i) {
     var best = 0;

@@ -188,5 +188,31 @@ void main() {
       await lib.refresh();
       expect((await lib.samples(lib.selected.value!)).length, 2);
     });
+
+    test('nearestTo finds the point nearest a panel position, and how far', () {
+      final g = RouteGeometry.build(
+        [
+          for (var i = 0; i < 5; i++)
+            at(12.90, 77.60 + i * 0.001, i.toDouble()),
+        ],
+        400,
+        200,
+      )!;
+
+      // Right on a point.
+      final on = g.nearestTo(g.xs[3], g.ys[3]);
+      expect(on.point, 3);
+      expect(on.distance, closeTo(0, 1e-9));
+
+      // A little to one side of it.
+      final near = g.nearestTo(g.xs[3] + 3, g.ys[3] + 4);
+      expect(near.point, 3);
+      expect(near.distance, closeTo(5, 1e-9));
+
+      // Far off: still the nearest point, and the distance says how far.
+      final far = g.nearestTo(-1000, g.ys[0]);
+      expect(far.point, 0);
+      expect(far.distance, greaterThan(900));
+    });
   });
 }

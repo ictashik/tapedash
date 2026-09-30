@@ -9,6 +9,8 @@ import 'package:tapedash/money/spend_bucket.dart';
 import 'package:tapedash/trips/trip.dart';
 import 'package:tapedash/trips/trip_library.dart';
 import 'package:tapedash/ui/design/components/controls/tape_scroll_segmented.dart';
+import 'package:tapedash/ui/design/components/route_trail.dart';
+import 'package:tapedash/ui/design/icons/icons.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
 import 'package:tapedash/ui/pages/coach/coach_page.dart';
@@ -231,7 +233,9 @@ void main() {
       expect(state.isDebriefing, isTrue);
       await tester.tapAt(const Offset(300, 150));
       await tester.pump();
-      expect(state.isDebriefing, isFalse);
+      expect(state.isDebriefing, isFalse, reason: 'at the touch, not after');
+      // Let the map's double-tap wait run out.
+      await tester.pump(const Duration(seconds: 1));
       expect(tester.takeException(), isNull);
     });
 
@@ -387,6 +391,239 @@ void main() {
       // 70 + 60 * 0.2 = 82.
       expect(find.text('82 °C COOLANT'), findsOneWidget);
     });
+  });
+
+  group('Review: the route map is interactive', () {
+    ReviewPage review(Size s) => ReviewPage(
+      library: library,
+      mode: mode,
+      width: s.width,
+      height: s.height,
+    );
+
+    Future<ReviewPageState> open(
+      WidgetTester tester, {
+      Size size = const Size(720, 360),
+    }) async {
+      await tester.runAsync(() async {
+        await addTrip(repo, channels: true);
+        await library.refresh();
+      });
+      await show(tester, review, size: size);
+      return tester.state<ReviewPageState>(find.byType(ReviewPage));
+    }
+
+    Rect panel(WidgetTester tester) => tester.getRect(find.byType(RouteTrail));
+
+    Future<void> settleView(WidgetTester tester) => settle(tester, 1500);
+
+    testWidgets('the route can be zoomed by pinching, about the fingers', (
+      tester,
+    ) async {
+      final state = await open(tester);
+      final p = panel(tester);
+      expect(state.routeView.scale, 1);
+
+      final a = await tester.startGesture(
+        p.center + const Offset(-20, 0),
+        pointer: 1,
+      );
+      final b = await tester.startGesture(
+        p.center + const Offset(20, 0),
+        pointer: 2,
+      );
+      await tester.pump();
+      for (var i = 1; i <= 8; i++) {
+        await a.moveTo(p.center + Offset(-20 - 5.0 * i, 0));
+        await b.moveTo(p.center + Offset(20 + 5.0 * i, 0));
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+
+      expect(state.routeView.scale, inInclusiveRange(1.4, 3.1));
+      await a.up();
+      await b.up();
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('zoomed in, a drag pans; at the whole route it does nothing', (
+      tester,
+    ) async {
+      final state = await open(tester);
+      final p = panel(tester);
+
+      // At 1 there is nowhere to go.
+      await tester.dragFrom(p.center, const Offset(-50, -30));
+      await tester.pump();
+      expect(state.routeView.offset, Offset.zero);
+
+      state.routeView.zoomAt(p.center - p.topLeft, 4);
+      final before = state.routeView.offset;
+      await tester.dragFrom(p.center, const Offset(-40, -20));
+      await tester.pump();
+
+      expect(state.routeView.offset, isNot(before));
+      expect(
+        state.routeView.scale,
+        closeTo(4, 1e-9),
+        reason: 'a drag is not a zoom',
+      );
+      await tester.pump(const Duration(seconds: 1));
+    });
+
+    testWidgets('a double-tap zooms in, and again when well in goes back out', (
+      tester,
+    ) async {
+      final state = await open(tester);
+      final p = panel(tester);
+
+      Future<void> doubleTap() async {
+        await tester.tapAt(p.center);
+        await tester.pump(const Duration(milliseconds: 60));
+        await tester.tapAt(p.center);
+        await tester.pump();
+        await settleView(tester);
+      }
+
+      await doubleTap();
+      expect(state.routeView.scale, closeTo(2.5, 0.05));
+      await doubleTap();
+      expect(state.routeView.scale, closeTo(6.25, 0.1));
+      await doubleTap();
+      expect(state.routeView.scale, closeTo(1, 0.05));
+    });
+
+    testWidgets('a tap on the route puts the scrubber cursor on that point', (
+      tester,
+    ) async {
+      final state = await open(tester);
+      final g = state.routeGeometry!;
+      final p = panel(tester);
+      expect(state.cursorSample, isNull);
+
+      final k = g.length ~/ 2;
+      await tester.tapAt(p.topLeft + Offset(g.xs[k], g.ys[k]));
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(state.cursorSample, g.sampleIndex[k]);
+    });
+
+    testWidgets('a tap far from the route picks nothing', (tester) async {
+      final state = await open(tester);
+      final p = panel(tester);
+
+      // The far corner of the panel, away from a route that runs up its middle.
+      await tester.tapAt(p.bottomRight - const Offset(4, 4));
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(state.cursorSample, isNull);
+    });
+
+    testWidgets('a tap on the route while zoomed picks through the zoom', (
+      tester,
+    ) async {
+      final state = await open(tester);
+      final g = state.routeGeometry!;
+      final p = panel(tester);
+      final k = g.length ~/ 3;
+      state.routeView.zoomAt(Offset(g.xs[k], g.ys[k]), 6);
+      await tester.pump();
+
+      final onScreen = state.routeView.toScreen(Offset(g.xs[k], g.ys[k]));
+      await tester.tapAt(p.topLeft + onScreen);
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(state.cursorSample, g.sampleIndex[k]);
+    });
+
+    testWidgets('the buttons zoom in, out and back to the whole route', (
+      tester,
+    ) async {
+      final state = await open(tester);
+      Finder button(TapeIcon icon) =>
+          find.byWidgetPredicate((w) => w is TapeIconView && w.icon == icon);
+
+      await tester.tap(button(TapeIcon.zoomIn));
+      await settleView(tester);
+      expect(state.routeView.scale, closeTo(2, 0.02));
+
+      await tester.tap(button(TapeIcon.zoomIn));
+      await settleView(tester);
+      expect(state.routeView.scale, closeTo(4, 0.05));
+
+      await tester.tap(button(TapeIcon.zoomOut));
+      await settleView(tester);
+      expect(state.routeView.scale, closeTo(2, 0.02));
+
+      await tester.tap(button(TapeIcon.fit));
+      await settleView(tester);
+      expect(state.routeView.scale, closeTo(1, 0.02));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('zooming out and fit do nothing at the whole route', (
+      tester,
+    ) async {
+      final state = await open(tester);
+
+      await tester.tap(
+        find.byWidgetPredicate(
+          (w) => w is TapeIconView && w.icon == TapeIcon.zoomOut,
+        ),
+      );
+      await settleView(tester);
+
+      expect(state.routeView.scale, 1);
+    });
+
+    testWidgets(
+      'moving the scrubber to somewhere off the zoomed view brings the view to it',
+      (tester) async {
+        final state = await open(tester);
+        final g = state.routeGeometry!;
+        state.routeView.zoomAt(Offset.zero, 8);
+        await tester.pump();
+
+        // The end of the route is far from the top-left corner the view is on.
+        state.debugSetCursor(g.sampleIndex.last);
+        await settleView(tester);
+
+        final end = state.routeView.toScreen(Offset(g.xs.last, g.ys.last));
+        final size = panel(tester).size;
+        expect(end.dx, inInclusiveRange(0, size.width));
+        expect(end.dy, inInclusiveRange(0, size.height));
+      },
+    );
+
+    testWidgets('choosing another trip goes back to the whole route', (
+      tester,
+    ) async {
+      final state = await open(tester);
+      state.routeView.zoomAt(const Offset(50, 50), 5);
+      await tester.runAsync(() async {
+        final other = await addTrip(repo, at: DateTime(2026, 3, 11, 9));
+        await library.refresh();
+        library.select(other);
+      });
+      await tester.pump();
+      await tester.pump();
+
+      expect(state.routeView.scale, 1);
+    });
+
+    for (final size in _sizes) {
+      testWidgets('lays out, zoomed and panned, at ${size.width.toInt()}x360', (
+        tester,
+      ) async {
+        final state = await open(tester, size: size);
+        final p = panel(tester);
+        state.routeView.zoomAt(p.center - p.topLeft, 10);
+        await tester.dragFrom(p.center, const Offset(30, 20));
+        await settleView(tester);
+
+        expect(tester.takeException(), isNull);
+      });
+    }
   });
 
   group('Coach', () {

@@ -209,7 +209,7 @@ Parked UI uses fixed sizes and honours system font scale up to 1.3×: headline 3
 
 ### 4.8 Iconography
 - Custom glyphs drawn in code on a 24-unit grid: stroke 1.75, square caps, 45° chamfers, no free curves except circles. One file, `icons.dart`. No icon fonts and no Material icons.
-- Required set: adapter, bluetooth, wifi, gps, check-engine, coolant, voltage, fuel pump, clock, lock, back, close, chevron, garage, history, coach, review, rupee, idle (hollow square with a dot), hard accel (double chevron up), hard brake (double bar), speed, phone hot, demo, HUD (windshield), flip, pit stop, end trip (a flag).
+- Required set: adapter, bluetooth, wifi, gps, check-engine, coolant, voltage, fuel pump, clock, lock, back, close, chevron, garage, history, coach, review, rupee, idle (hollow square with a dot), hard accel (double chevron up), hard brake (double bar), speed, phone hot, demo, HUD (windshield), flip, pit stop, end trip (a flag), zoom in, zoom out, fit.
 
 ### 4.9 Light and glow
 - Every luminous element has a crisp **core** (L2) and an optional **halo** (L3). A halo is a pre-rendered blurred sprite composited with `BlendMode.plus`. **Never blur at runtime.**
@@ -413,10 +413,12 @@ Inside the Horizon zone, on either side of the shift horizon.
 - A faint 8 lp underlay at 10% gives glow without blur.
 - **Markers:** start = hollow circle; end = filled chamfered square; hard acceleration = double chevron; hard braking = double bar; long idle = hollow square.
 - **Draw-on:** the path reveals over 1.6 s with a bright comet head, using path metrics precomputed at load.
+- **Metrics:** the selector offers SPEED, RPM, THROTTLE, LOAD, COOLANT, VOLTS and ₹/KM (the trip's own: LOAD, COOLANT and VOLTS only for a trip that recorded them). Seven do not fit 640 lp in equal cells, so the selector scrolls: cells as wide as their labels, the chosen one kept in view, a chevron at an edge with more. Coolant and volts are scaled over the range the trip covered (at least 10 °C and 1 V), the others from 0 or by their 95th percentile.
+- **Interactive:** pinch to zoom (1 to 24 times the whole route, about the fingers), drag to pan (the route always fills the panel), double-tap to zoom in by 2.5 or, when well in, back out to the whole route, zoom in, zoom out and fit buttons at the top right. A tap on the route puts the scrubber's cursor on the nearest point (within 36 lp); a cursor the scrubber moves somewhere the view is not looking brings the view to it. The line, the markers and the cursor keep their size on screen at any zoom. Zoom changes from a button or a double-tap move on `spring.gauge`; a pinch or a drag follows the fingers.
 
 **Telemetry scrubber**
-- A full-width band at the bottom of Review: speed trace (accent) above, throttle trace (`ink.mid`) below, a shared time axis, and event markers on the axis.
-- Drag anywhere to scrub: a vertical cursor appears, the route shows a position dot, and readouts show speed, RPM, throttle and ₹/km at that moment.
+- A full-width band at the bottom of Review: speed trace (accent) above, throttle trace (`ink.mid`) below (or, with a channel chosen in the selector, that channel), a shared time axis, and event markers on the axis.
+- Drag anywhere to scrub: a vertical cursor appears, the route shows a position dot, and readouts show speed, RPM, throttle and ₹/km at that moment (on another metric: the speed and that metric alone).
 - Pinch to zoom time; double-tap to reset.
 
 ### 6.13 Efficiency curve

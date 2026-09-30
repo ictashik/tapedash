@@ -14,6 +14,8 @@ import '../../design/components/controls/tape_segmented.dart' show TapeSegment;
 import '../../design/components/presence.dart';
 import '../../design/components/rolling_numerals.dart';
 import '../../design/components/route_trail.dart';
+import '../../design/components/route_view.dart';
+import '../../design/components/route_zoom_buttons.dart';
 import '../../design/components/tape_label.dart';
 import '../../design/components/telemetry_scrubber.dart';
 import '../../design/motion/motion_scope.dart';
@@ -158,6 +160,26 @@ class ReviewPageState extends State<ReviewPage> {
   Size? _geometrySize;
   int _load = 0;
 
+  /// Where the route panel is looking: pinch, drag and double-tap move it.
+  RouteViewController? _view;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _view ??= RouteViewController(clock: MotionScope.of(context));
+  }
+
+  /// The route as fitted to its panel, and the scrubber's cursor, for tests.
+  @visibleForTesting
+  RouteGeometry? get routeGeometry => _geometry;
+
+  @visibleForTesting
+  int? get cursorSample => _cursor.value;
+
+  /// The route panel's view, for tests.
+  @visibleForTesting
+  RouteViewController get routeView => _view!;
+
   @override
   void initState() {
     super.initState();
@@ -182,6 +204,7 @@ class ReviewPageState extends State<ReviewPage> {
     widget.debrief?.removeListener(_onDebriefRequest);
     _debrief?.dispose();
     _cursor.dispose();
+    _view?.dispose();
     _barShare.dispose();
     _routeShare.dispose();
     _receiptShare.dispose();
@@ -223,6 +246,7 @@ class ReviewPageState extends State<ReviewPage> {
         _events = SampleEvents.find(samples);
         _geometry = null;
         _cursor.value = null;
+        _view?.resetNow();
         // Only what this trip has: an older one has no load, coolant or volts.
         _metrics = [
           for (final m in ReviewMetric.values)
@@ -353,12 +377,24 @@ class ReviewPageState extends State<ReviewPage> {
                     const SizedBox(width: TapeSpace.s2),
                     const TapeLabel('Demo', size: 11),
                   ],
-                  const Spacer(),
-                  _CursorReadout(
-                    cursor: _cursor,
-                    samples: _samples,
-                    price: trip.pricePerLitre,
-                    metric: _metric,
+                  // The readout takes what is left of the row and scales down to it:
+                  // four readings are wider than the row on a 720 lp screen.
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: TapeSpace.s3),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: _CursorReadout(
+                            cursor: _cursor,
+                            samples: _samples,
+                            price: trip.pricePerLitre,
+                            metric: _metric,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -461,13 +497,29 @@ class ReviewPageState extends State<ReviewPage> {
         ];
         return ValueListenableBuilder<int?>(
           valueListenable: _cursor,
-          builder: (context, c, _) => RouteTrail(
-            geometry: g,
-            metric: normalised,
-            ramp: _ramp(palette),
-            reveal: reveal,
-            cursor: ValueNotifier(c == null ? null : g.nearestPoint(c)),
-            markers: markers,
+          builder: (context, c, _) => Stack(
+            children: [
+              Positioned.fill(
+                child: RouteTrail(
+                  geometry: g,
+                  metric: normalised,
+                  ramp: _ramp(palette),
+                  reveal: reveal,
+                  cursor: ValueNotifier(c == null ? null : g.nearestPoint(c)),
+                  markers: markers,
+                  view: _view,
+                  // A touch anywhere skips the Debrief while it plays; a tap on
+                  // the route puts the scrubber's cursor there.
+                  onTouch: _skip,
+                  onPick: (point) => _cursor.value = g.sampleIndex[point],
+                ),
+              ),
+              Positioned(
+                right: 0,
+                top: 0,
+                child: RouteZoomButtons(view: _view!),
+              ),
+            ],
           ),
         );
       },

@@ -9,6 +9,7 @@ import '../../../trips/route_geometry.dart';
 import '../theme/palette.dart';
 import '../theme/tape_theme.dart';
 import '../tokens/strokes.dart';
+import 'route_view.dart';
 
 /// The route trail (DESIGN.md 6.12): a trip's route on a dark panel, north up,
 /// coloured by a metric, with markers where things happened and a draw-on with a
@@ -27,7 +28,25 @@ class RouteTrail extends StatefulWidget {
     required this.reveal,
     this.cursor,
     this.markers = const [],
+    this.view,
+    this.onPick,
+    this.onTouch,
   });
+
+  /// Any touch on the panel, at the moment of touching (the page's own tap, which
+  /// the panel's gestures would otherwise swallow: a tap skips the Debrief, and
+  /// waiting out the double-tap to know it was a tap would make that slow).
+  final VoidCallback? onTouch;
+
+  /// Where the panel is looking. With one, the trail can be pinched, dragged and
+  /// double-tapped (DESIGN.md 6.12); without, it is a picture.
+  final RouteViewController? view;
+
+  /// A tap on the route: the geometry's point nearest to it. Only with a [view].
+  final ValueChanged<int>? onPick;
+
+  /// How near, in panel points, a tap must be to the route to pick a point.
+  static const double pickRadius = 36;
 
   /// The route, already fitted to this widget's size (`RouteGeometry.build` with
   /// the size the widget is given).
@@ -96,6 +115,27 @@ class _RouteTrailState extends State<RouteTrail> {
         !identical(old.metric, widget.metric)) {
       _prepare();
     }
+    // The scrubber moved the cursor: if the view is zoomed in somewhere else,
+    // it goes to the cursor.
+    final c = widget.cursor?.value;
+    if (widget.view != null && c != null && c != old.cursor?.value) {
+      final g = widget.geometry;
+      if (c >= 0 && c < g.length) {
+        widget.view!.follow(Offset(g.xs[c], g.ys[c]));
+      }
+    }
+  }
+
+  double _lastScale = 1;
+
+  void _onTapUp(TapUpDetails d) {
+    final view = widget.view;
+    final pick = widget.onPick;
+    if (view == null || pick == null) return;
+    final at = view.toRoute(d.localPosition);
+    final hit = widget.geometry.nearestTo(at.dx, at.dy);
+    // The distance in panel points is the route's, scaled.
+    if (hit.distance * view.scale <= RouteTrail.pickRadius) pick(hit.point);
   }
 
   void _prepare() {
@@ -116,17 +156,49 @@ class _RouteTrailState extends State<RouteTrail> {
   @override
   Widget build(BuildContext context) {
     final palette = TapeTheme.of(context).palette;
-    return CustomPaint(
+    final view = widget.view;
+    final trail = CustomPaint(
       painter: _TrailPainter(
         state: this,
         palette: palette,
         listenable: Listenable.merge([
           widget.reveal,
           if (widget.cursor != null) widget.cursor!,
+          ?view,
         ]),
       ),
     );
+    if (view == null) return trail;
+    return LayoutBuilder(
+      builder: (context, box) {
+        view.size = box.biggest;
+        return ClipRect(
+          child: Listener(
+            onPointerDown: (_) => widget.onTouch?.call(),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onScaleStart: (d) => _lastScale = 1,
+              onScaleUpdate: (d) {
+                final factor = d.scale / _lastScale;
+                _lastScale = d.scale;
+                if (factor != 1) view.zoomAt(d.localFocalPoint, factor);
+                view.panBy(d.focalPointDelta);
+              },
+              onDoubleTapDown: (d) => _doubleTapAt = d.localPosition,
+              onDoubleTap: () {
+                final at = _doubleTapAt;
+                if (at != null) view.doubleTap(at);
+              },
+              onTapUp: _onTapUp,
+              child: trail,
+            ),
+          ),
+        );
+      },
+    );
   }
+
+  Offset? _doubleTapAt;
 }
 
 class _TrailPainter extends CustomPainter {
@@ -159,41 +231,51 @@ class _TrailPainter extends CustomPainter {
       }
     }
 
+    // Zoomed, the lines are drawn through the view's transform with their widths
+    // divided by its scale, so they stay as thick on screen as at 1; everything
+    // that is a mark (the head, the markers, the cursor) is placed through it
+    // and drawn at its own size.
+    final view = w.view;
+    final sc = view?.scale ?? 1.0;
+    final off = view?.offset ?? Offset.zero;
+    canvas.save();
+    canvas.translate(off.dx, off.dy);
+    canvas.scale(sc);
+
     // The faint underlay (DESIGN.md 6.12), 8 lp at 10%, for a glow with no blur.
     _line
-      ..strokeWidth = 8
+      ..strokeWidth = 8 / sc
       ..color = palette.accentCore.withValues(alpha: 0.10);
     for (var b = 0; b < RouteTrail.bins; b++) {
       _drawBin(canvas, b, last);
     }
-    _line.strokeWidth = TapeStroke.bold;
+    _line.strokeWidth = TapeStroke.bold / sc;
     for (var b = 0; b < RouteTrail.bins; b++) {
       _line.color = RouteTrail.colourOf(b, w.ramp);
       _drawBin(canvas, b, last);
     }
+    canvas.restore();
+
+    Offset pos(int i) => Offset(g.xs[i] * sc + off.dx, g.ys[i] * sc + off.dy);
 
     if (reveal < 1 && last > 0) {
       // The comet head: a bright dot at the front of the line.
       _fill.color = palette.inkHot;
-      canvas.drawCircle(Offset(g.xs[last], g.ys[last]), 4, _fill);
+      canvas.drawCircle(pos(last), 4, _fill);
       _fill.color = palette.accentCore.withValues(alpha: 0.35);
-      canvas.drawCircle(Offset(g.xs[last], g.ys[last]), 8, _fill);
+      canvas.drawCircle(pos(last), 8, _fill);
     }
 
-    if (reveal >= 1) _drawMarkers(canvas, g);
+    if (reveal >= 1) _drawMarkers(canvas, g, pos, size);
 
     final c = w.cursor?.value;
     if (c != null && c >= 0 && c < g.length) {
       _fill.color = palette.inkHot;
-      canvas.drawCircle(Offset(g.xs[c], g.ys[c]), 5, _fill);
+      canvas.drawCircle(pos(c), 5, _fill);
       _line
         ..strokeWidth = TapeStroke.regular
         ..color = palette.accentCore;
-      canvas.drawCircle(
-        Offset(g.xs[c], g.ys[c]),
-        8,
-        _line..style = PaintingStyle.stroke,
-      );
+      canvas.drawCircle(pos(c), 8, _line..style = PaintingStyle.stroke);
     }
   }
 
@@ -224,11 +306,19 @@ class _TrailPainter extends CustomPainter {
     );
   }
 
-  void _drawMarkers(Canvas canvas, RouteGeometry g) {
+  void _drawMarkers(
+    Canvas canvas,
+    RouteGeometry g,
+    Offset Function(int) pos,
+    Size size,
+  ) {
     final ink = palette.inkBright;
+    final visible = (Offset.zero & size).inflate(12);
     for (final m in state.widget.markers) {
       if (m.point < 0 || m.point >= g.length) continue;
-      final p = Offset(g.xs[m.point], g.ys[m.point]);
+      final p = pos(m.point);
+      // Zoomed in, most of the markers are somewhere else.
+      if (!visible.contains(p)) continue;
       _line
         ..style = PaintingStyle.stroke
         ..strokeWidth = TapeStroke.regular
@@ -296,8 +386,10 @@ class _TrailPainter extends CustomPainter {
     );
   }
 
+  // A new painter means the geometry, the metric or the palette changed (the
+  // frames in between repaint through the listenable): draw it.
   @override
-  bool shouldRepaint(_TrailPainter old) => old.palette != palette;
+  bool shouldRepaint(_TrailPainter old) => true;
 }
 
 /// Normalises [values] to 0 to 1 for the metric ramp, by their 95th percentile so
