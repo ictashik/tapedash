@@ -285,8 +285,13 @@ class _TrailPainter extends CustomPainter {
     canvas.translate(off.dx, off.dy);
     canvas.scale(sc);
 
+    if (replaying && view != null) _drawGround(canvas, size, view, g);
+
     // The faint underlay (DESIGN.md 6.12), 8 lp at 10%, for a glow with no blur.
+    // Butt caps for the see-through passes: round caps overlap where two segments
+    // meet, and a translucent line would show a dot at every corner.
     _line
+      ..strokeCap = StrokeCap.butt
       ..strokeWidth = 8 / sc
       ..color = palette.accentCore.withValues(alpha: 0.10);
     for (var b = 0; b < RouteTrail.bins; b++) {
@@ -294,10 +299,20 @@ class _TrailPainter extends CustomPainter {
     }
     _line.strokeWidth = TapeStroke.bold / sc;
     if (replaying) {
+      // The road: a dark ribbon under the line, wide enough to read as a road and
+      // to give the car something to be on.
+      _line
+        ..strokeWidth = TapeReplay.roadWidth / sc
+        ..color = palette.track;
+      for (var b = 0; b < RouteTrail.bins; b++) {
+        _drawBin(canvas, b, last);
+      }
+      _line.strokeWidth = TapeStroke.bold / sc;
       for (var b = 0; b < RouteTrail.bins; b++) {
         _line.color = _dimColours[b];
         _drawBin(canvas, b, last);
       }
+      _line.strokeCap = StrokeCap.round;
       for (var b = 0; b < RouteTrail.bins; b++) {
         _line.color = _colours[b];
         _drawBin(canvas, b, driven);
@@ -313,6 +328,7 @@ class _TrailPainter extends CustomPainter {
         );
       }
     } else {
+      _line.strokeCap = StrokeCap.round;
       for (var b = 0; b < RouteTrail.bins; b++) {
         _line.color = _colours[b];
         _drawBin(canvas, b, last);
@@ -341,6 +357,52 @@ class _TrailPainter extends CustomPainter {
     }
 
     if (replaying) _drawCar(canvas, screen(car.x, car.y), car.heading + turn);
+  }
+
+  /// A faint grid on the ground, in the route's own space: lines every so many
+  /// metres (few enough that they are at least [TapeReplay.gridMinPixels] apart on
+  /// the screen), which the map carries with it. With no map under the route it is
+  /// what shows the ground going by, and how fast, and the turn of a heading-up map.
+  void _drawGround(
+    Canvas canvas,
+    Size size,
+    RouteViewController view,
+    RouteGeometry g,
+  ) {
+    final sc = view.scale;
+    // The panel's corners as points of the route: the ground in view.
+    var minX = double.infinity, maxX = -double.infinity;
+    var minY = double.infinity, maxY = -double.infinity;
+    for (final corner in [
+      Offset.zero,
+      Offset(size.width, 0),
+      Offset(size.width, size.height),
+      Offset(0, size.height),
+    ]) {
+      final r = view.toRoute(corner);
+      minX = math.min(minX, r.dx);
+      maxX = math.max(maxX, r.dx);
+      minY = math.min(minY, r.dy);
+      maxY = math.max(maxY, r.dy);
+    }
+    final unitsPerMetre = g.unitsPerMetre;
+    if (unitsPerMetre <= 0 || !unitsPerMetre.isFinite) return;
+    var metres = TapeReplay.gridMetres.first;
+    for (final m in TapeReplay.gridMetres) {
+      metres = m;
+      if (m * unitsPerMetre * sc >= TapeReplay.gridMinPixels) break;
+    }
+    final step = metres * unitsPerMetre;
+    _line
+      ..strokeCap = StrokeCap.butt
+      ..strokeWidth = TapeStroke.fine / sc
+      ..color = palette.etch;
+    for (var x = (minX / step).floor() * step; x <= maxX; x += step) {
+      canvas.drawLine(Offset(x, minY), Offset(x, maxY), _line);
+    }
+    for (var y = (minY / step).floor() * step; y <= maxY; y += step) {
+      canvas.drawLine(Offset(minX, y), Offset(maxX, y), _line);
+    }
   }
 
   // The car: an arrow with a notch in its tail, pointing up at rest.

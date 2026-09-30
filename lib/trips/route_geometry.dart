@@ -42,8 +42,9 @@ class RouteGeometry {
   static RouteGeometry? build(
     List<TripSample> samples,
     double width,
-    double height,
-  ) {
+    double height, {
+    int maxPoints = RouteGeometry.maxPoints,
+  }) {
     final index = <int>[];
     for (var i = 0; i < samples.length; i++) {
       if (samples[i].latitude != null && samples[i].longitude != null) {

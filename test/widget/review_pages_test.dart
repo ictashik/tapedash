@@ -9,12 +9,17 @@ import 'package:tapedash/money/spend_bucket.dart';
 import 'package:tapedash/trips/trip.dart';
 import 'package:tapedash/trips/trip_library.dart';
 import 'package:tapedash/ui/design/components/controls/tape_scroll_segmented.dart';
+import 'package:tapedash/ui/design/components/controls/tape_square_button.dart';
 import 'package:tapedash/ui/design/components/route_trail.dart';
+import 'package:tapedash/ui/design/components/route_zoom_buttons.dart';
+import 'package:tapedash/ui/design/components/telemetry_scrubber.dart';
+import 'package:tapedash/ui/design/components/trip_transport.dart';
 import 'package:tapedash/ui/design/icons/icons.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
 import 'package:tapedash/ui/pages/coach/coach_page.dart';
 import 'package:tapedash/ui/pages/history/history_page.dart';
+import 'package:tapedash/ui/pages/review/replay_hud.dart';
 import 'package:tapedash/ui/pages/review/review_page.dart';
 import 'package:tapedash/vehicle/vehicle_state.dart' show DrivingMode;
 
@@ -755,5 +760,372 @@ void main() {
       expect(library.selected.value?.id, older.id);
       expect(opened?.id, older.id);
     });
+  });
+
+  group('Review: the replay of a trip', () {
+    ReviewPage review(Size s, {DebriefRequest? debrief}) => ReviewPage(
+      library: library,
+      mode: mode,
+      width: s.width,
+      height: s.height,
+      debrief: debrief,
+    );
+
+    Future<ReviewPageState> open(
+      WidgetTester tester, {
+      Size size = const Size(720, 360),
+      bool gps = true,
+    }) async {
+      await tester.runAsync(() async {
+        await addTrip(repo, channels: true, gps: gps);
+        await library.refresh();
+      });
+      await show(tester, review, size: size);
+      return tester.state<ReviewPageState>(find.byType(ReviewPage));
+    }
+
+    Finder transport() => find.descendant(
+      of: find.byType(TripTransport),
+      matching: find.byType(TapeSquareButton),
+    );
+
+    Future<void> tapPlay(WidgetTester tester) async {
+      await tester.tap(transport().at(0));
+      await tester.pump();
+    }
+
+    /// Runs [seconds] of the replay at frame rate.
+    Future<void> run(WidgetTester tester, double seconds) async {
+      for (var t = 0.0; t < seconds; t += 0.1) {
+        motion.advance(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    testWidgets('a trip has a play button, a speed and a stop that waits', (
+      tester,
+    ) async {
+      final state = await open(tester);
+
+      expect(transport(), findsNWidgets(3));
+      expect(find.text('1×'), findsOneWidget);
+      expect(state.isReplaying, isFalse);
+      expect(state.player, isNotNull);
+      expect(find.byType(ReplayHud), findsNothing);
+      // Each is a 48 lp touch target.
+      for (var i = 0; i < 3; i++) {
+        expect(tester.getSize(transport().at(i)), const Size(48, 48));
+      }
+    });
+
+    testWidgets('play brings up the instruments and the car, and follows it', (
+      tester,
+    ) async {
+      final state = await open(tester);
+
+      await tapPlay(tester);
+      await run(tester, 3);
+
+      expect(state.isReplaying, isTrue);
+      expect(state.player!.isPlaying, isTrue);
+      expect(find.byType(ReplayHud), findsOneWidget);
+      expect(state.car.visible, isTrue);
+      expect(state.routeView.isChasing, isTrue);
+      expect(state.routeView.scale, greaterThan(2));
+      // Heading up, the car is on the panel's middle line, below its middle (the
+      // road ahead has the room).
+      final panel = tester.getSize(find.byType(RouteTrail));
+      final at = state.routeView.toScreen(Offset(state.car.x, state.car.y));
+      expect(at.dx, closeTo(panel.width / 2, 0.5));
+      expect(at.dy, greaterThan(panel.height / 2));
+      expect(at.dy, lessThan(panel.height));
+    });
+
+    testWidgets('a replay gives the map the tip\'s room', (tester) async {
+      final state = await open(tester);
+      final before = tester.getSize(find.byType(RouteTrail)).height;
+      expect(find.byType(TipPanel), findsOneWidget);
+
+      await tapPlay(tester);
+      await run(tester, 1);
+
+      expect(
+        tester.getSize(find.byType(RouteTrail)).height,
+        greaterThan(before),
+      );
+      expect(find.byType(TipPanel), findsNothing);
+
+      state.endReplay();
+      await run(tester, 1);
+      expect(tester.getSize(find.byType(RouteTrail)).height, before);
+      expect(find.byType(TipPanel), findsOneWidget);
+    });
+
+    testWidgets(
+      'the play head, the scrubber\'s cursor and the car move with it',
+      (tester) async {
+        final state = await open(tester);
+
+        await tapPlay(tester);
+        await run(tester, 5);
+
+        expect(state.player!.seconds, closeTo(5, 0.3));
+        expect(state.cursorSample, closeTo(5, 1));
+        final first = state.car.point;
+        await run(tester, 5);
+        expect(state.car.point, greaterThan(first));
+      },
+    );
+
+    testWidgets('the speed button goes 2x, 3x, and round to 1x', (
+      tester,
+    ) async {
+      final state = await open(tester);
+
+      await tester.tap(transport().at(1));
+      await tester.pump();
+      expect(find.text('2×'), findsOneWidget);
+      await tester.tap(transport().at(1));
+      await tester.pump();
+      expect(find.text('3×'), findsOneWidget);
+
+      await tapPlay(tester);
+      await run(tester, 4);
+      expect(state.player!.seconds, closeTo(12, 0.8));
+
+      await tester.tap(transport().at(1));
+      await tester.pump();
+      expect(find.text('1×'), findsOneWidget);
+    });
+
+    testWidgets('pause holds the moment, and play carries on', (tester) async {
+      final state = await open(tester);
+
+      await tapPlay(tester);
+      await run(tester, 3);
+      await tapPlay(tester);
+      final held = state.player!.seconds;
+      await run(tester, 3);
+
+      expect(state.player!.isPlaying, isFalse);
+      expect(state.player!.seconds, held);
+      expect(state.isReplaying, isTrue, reason: 'paused is still a replay');
+
+      await tapPlay(tester);
+      await run(tester, 2);
+      expect(state.player!.seconds, greaterThan(held + 1));
+    });
+
+    testWidgets('stop leaves the replay: the receipt is back, the map whole', (
+      tester,
+    ) async {
+      final state = await open(tester);
+      await tapPlay(tester);
+      await run(tester, 4);
+      final where = state.cursorSample;
+
+      await tester.tap(transport().at(2));
+      await tester.pump();
+      await run(tester, 2);
+
+      expect(state.isReplaying, isFalse);
+      expect(state.player!.isPlaying, isFalse);
+      expect(state.car.visible, isFalse);
+      expect(find.byType(ReplayHud), findsNothing);
+      expect(state.routeView.isChasing, isFalse);
+      expect(state.routeView.scale, closeTo(1, 0.02));
+      expect(state.cursorSample, where, reason: 'the cursor stays');
+    });
+
+    testWidgets('dragging the scrubber while it plays moves the play head', (
+      tester,
+    ) async {
+      final state = await open(tester);
+      await tapPlay(tester);
+      await run(tester, 1);
+
+      final scrubber = tester.getRect(find.byType(TelemetryScrubber));
+      await tester.tapAt(
+        Offset(scrubber.left + scrubber.width * 0.75, scrubber.center.dy),
+      );
+      // A tap waits out the double-tap before it is one.
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(state.player!.seconds, closeTo(119 * 0.75, 1.5));
+      expect(state.player!.isPlaying, isTrue);
+    });
+
+    testWidgets('a tap on the map while it plays takes the car there', (
+      tester,
+    ) async {
+      final state = await open(tester);
+      await tapPlay(tester);
+      await run(tester, 1);
+      // Out of the chase, to see the whole route and pick a point on it.
+      await tester.tap(find.byType(TapeSquareButton).first);
+      await tester.pump();
+      state.routeView.reset();
+      await run(tester, 1);
+
+      final g = state.routeGeometry!;
+      final panel = tester.getRect(find.byType(RouteTrail));
+      final k = g.length * 3 ~/ 4;
+      final p = state.routeView.toScreen(Offset(g.xs[k], g.ys[k]));
+      await tester.tapAt(panel.topLeft + p);
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(
+        state.player!.playback.sampleAt(state.player!.seconds),
+        closeTo(g.sampleIndex[k], 2.5),
+      );
+    });
+
+    testWidgets('a drag on the map lets go of the car; FOLLOW takes it back', (
+      tester,
+    ) async {
+      final state = await open(tester);
+      await tapPlay(tester);
+      await run(tester, 2);
+      expect(state.isFollowing, isTrue);
+
+      final panel = tester.getRect(find.byType(RouteTrail));
+      await tester.dragFrom(panel.center, const Offset(40, 10));
+      await run(tester, 2);
+
+      expect(state.isFollowing, isFalse);
+      expect(state.routeView.isChasing, isFalse);
+      expect(state.routeView.rotation, closeTo(0, 0.01), reason: 'north up');
+
+      // FOLLOW is the crosshair, first among the map's buttons while replaying.
+      final follow = find.descendant(
+        of: find.byType(RouteZoomButtons),
+        matching: find.byType(TapeSquareButton),
+      );
+      await tester.tap(follow.first);
+      await run(tester, 2);
+
+      expect(state.isFollowing, isTrue);
+      expect(state.routeView.isChasing, isTrue);
+    });
+
+    testWidgets('the map turns with the car, and N keeps it north up', (
+      tester,
+    ) async {
+      final state = await open(tester);
+      await tapPlay(tester);
+      await run(tester, 4);
+      expect(state.isHeadingUp, isTrue);
+      expect(state.routeView.rotation.abs(), greaterThan(0.01));
+
+      final buttons = find.descendant(
+        of: find.byType(RouteZoomButtons),
+        matching: find.byType(TapeSquareButton),
+      );
+      // The turn button comes before FOLLOW while following.
+      await tester.tap(buttons.first);
+      await tester.pump();
+      await run(tester, 4);
+
+      expect(state.isHeadingUp, isFalse);
+      expect(state.routeView.rotation, closeTo(0, 0.01));
+    });
+
+    testWidgets('the instruments show the moment: speed, ₹ so far, time', (
+      tester,
+    ) async {
+      final state = await open(tester);
+      await tapPlay(tester);
+      await run(tester, 10);
+
+      final f = state.player!.frame;
+      expect(f.speedKmh, greaterThan(15));
+      expect(f.cost, greaterThan(0));
+      Finder inHud(String text) => find.descendant(
+        of: find.byType(ReplayHud),
+        matching: find.text(text),
+      );
+      expect(inHud('KM/H'), findsOneWidget);
+      expect(inHud('RPM'), findsOneWidget);
+      expect(inHud('SPENT'), findsOneWidget);
+      expect(inHud('DISTANCE'), findsOneWidget);
+      expect(inHud('TIME'), findsOneWidget);
+    });
+
+    testWidgets('a trip with no GPS still replays, without a map', (
+      tester,
+    ) async {
+      final state = await open(tester, gps: false);
+
+      await tapPlay(tester);
+      await run(tester, 3);
+
+      expect(state.isReplaying, isTrue);
+      expect(find.byType(ReplayHud), findsOneWidget);
+      expect(state.car.visible, isFalse);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('choosing another trip ends the replay', (tester) async {
+      await tester.runAsync(() async {
+        await addTrip(repo, channels: true);
+        await addTrip(repo, at: DateTime(2026, 3, 8, 18));
+        await library.refresh();
+      });
+      await show(tester, review);
+      final state = tester.state<ReviewPageState>(find.byType(ReviewPage));
+      await tapPlay(tester);
+      await run(tester, 2);
+      expect(state.isReplaying, isTrue);
+
+      await tester.runAsync(() async {
+        library.select(library.trips.value.last);
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      });
+      await tester.pump();
+      await tester.pump();
+
+      expect(state.isReplaying, isFalse);
+      expect(state.player!.seconds, 0);
+    });
+
+    testWidgets('the Debrief ends a replay', (tester) async {
+      final request = DebriefRequest();
+      await tester.runAsync(() async {
+        await addTrip(repo, channels: true);
+        await library.refresh();
+      });
+      await show(tester, (s) => review(s, debrief: request));
+      final state = tester.state<ReviewPageState>(find.byType(ReviewPage));
+      await tapPlay(tester);
+      await run(tester, 2);
+
+      state.playDebrief();
+      await tester.pump();
+
+      expect(state.isReplaying, isFalse);
+    });
+
+    for (final size in _sizes) {
+      testWidgets('it lays out at ${size.width.toInt()}x360 while it plays', (
+        tester,
+      ) async {
+        final state = await open(tester, size: size);
+        await tapPlay(tester);
+        await run(tester, 6);
+        expect(tester.takeException(), isNull);
+
+        // The instruments stay inside their column, and clear of the scrubber.
+        final hud = tester.getRect(find.byType(ReplayHud));
+        final scrubber = tester.getRect(find.byType(TelemetryScrubber));
+        expect(hud.bottom, lessThanOrEqualTo(scrubber.top));
+        expect(hud.right, lessThanOrEqualTo(size.width));
+        // The transport is left of the scrubber, and does not overlap it.
+        expect(
+          tester.getRect(find.byType(TripTransport)).right,
+          lessThanOrEqualTo(scrubber.left),
+        );
+        expect(state.isReplaying, isTrue);
+      });
+    }
   });
 }

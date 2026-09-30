@@ -280,12 +280,12 @@ abstract final class TapeReplay {
 
   /// The camera shows the ground the car will cover in this many seconds, across the
   /// panel's width, so that it zooms out as the car speeds up and in as it slows.
-  static const double chaseSeconds = 22;
+  static const double chaseSeconds = 45;
 
   /// The least ground, in metres, the panel's width shows (a car at a standstill),
   /// and the most.
-  static const double chaseMinMetres = 140;
-  static const double chaseMaxMetres = 1600;
+  static const double chaseMinMetres = 260;
+  static const double chaseMaxMetres = 3000;
 
   /// The chase camera can go further in than a pinch can: a long route's whole
   /// view is a hundred times wider than the ground the camera wants.
@@ -304,11 +304,32 @@ abstract final class TapeReplay {
   /// One press of the zoom buttons while following.
   static const double biasStep = 1.6;
 
+  /// Heading up, the car sits below the middle of the panel so that the road ahead
+  /// has the room: this share of the panel's height.
+  static const double chaseAheadShare = 0.2;
+
   /// The car's mark, in logical pixels: its half-length.
   static const double carSize = 9;
 
   /// How much of its colour the part of the route still to be driven keeps.
-  static const double aheadAlpha = 0.28;
+  static const double aheadAlpha = 0.4;
+
+  /// The road under the line, in logical pixels.
+  static const double roadWidth = 14;
+
+  /// The ground grid's spacings, in metres: the nearest that is at least
+  /// [gridMinPixels] apart on the screen is used.
+  static const List<double> gridMetres = [
+    25,
+    50,
+    100,
+    250,
+    500,
+    1000,
+    2500,
+    5000,
+  ];
+  static const double gridMinPixels = 44;
 
   /// How far ahead on the route the heading looks, in metres: a corner turns the
   /// map over this distance and GPS scatter does not jerk it.

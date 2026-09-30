@@ -27,6 +27,13 @@ class TripPlayer extends ChangeNotifier implements MotionDriven {
   bool _playing = false;
   bool _disposed = false;
 
+  /// What the transport's buttons show: 1 while playing, plus twice the index of
+  /// the speed. It changes only when one of them does, not on every frame of a
+  /// replay (which [addListener] is for).
+  final ValueNotifier<int> state = ValueNotifier(0);
+
+  void _publish() => state.value = (_playing ? 1 : 0) | (_rate << 1);
+
   /// How far into the replay, in seconds at 1 times.
   double get seconds => _seconds;
 
@@ -50,6 +57,7 @@ class TripPlayer extends ChangeNotifier implements MotionDriven {
     if (isAtEnd) _moveTo(0);
     _playing = true;
     clock.attach(this);
+    _publish();
     notifyListeners();
   }
 
@@ -57,6 +65,7 @@ class TripPlayer extends ChangeNotifier implements MotionDriven {
     if (!_playing) return;
     _playing = false;
     clock.detach(this);
+    _publish();
     notifyListeners();
   }
 
@@ -65,6 +74,7 @@ class TripPlayer extends ChangeNotifier implements MotionDriven {
   /// The next speed: 1, 2, 3 and round again.
   void cycleRate() {
     _rate = (_rate + 1) % TapeReplay.rates.length;
+    _publish();
     notifyListeners();
   }
 
@@ -90,6 +100,7 @@ class TripPlayer extends ChangeNotifier implements MotionDriven {
     _moveTo(_seconds + dt * rate);
     if (isAtEnd) {
       _playing = false;
+      _publish();
       notifyListeners();
       return false;
     }
@@ -102,6 +113,7 @@ class TripPlayer extends ChangeNotifier implements MotionDriven {
     if (_disposed) return;
     _disposed = true;
     clock.detach(this);
+    state.dispose();
     super.dispose();
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
@@ -8,6 +10,7 @@ import '../../../money/spend_bucket.dart';
 import '../../../trips/route_geometry.dart';
 import '../../../trips/trip.dart';
 import '../../../trips/trip_library.dart';
+import '../../../trips/trip_playback.dart';
 import '../../../vehicle/vehicle_state.dart' show DrivingMode;
 import '../../design/components/controls/tape_scroll_segmented.dart';
 import '../../design/components/controls/tape_segmented.dart' show TapeSegment;
@@ -18,9 +21,13 @@ import '../../design/components/route_view.dart';
 import '../../design/components/route_zoom_buttons.dart';
 import '../../design/components/tape_label.dart';
 import '../../design/components/telemetry_scrubber.dart';
+import '../../design/components/trip_transport.dart';
 import '../../design/motion/motion_scope.dart';
 import '../../design/motion/numeral_source.dart';
+import '../../design/motion/playback_channel.dart';
+import '../../design/motion/spring_value.dart';
 import '../../design/motion/timeline.dart';
+import '../../design/motion/trip_player.dart';
 import '../../design/theme/palette.dart';
 import '../../design/theme/tape_theme.dart';
 import '../../design/tokens/motion_tokens.dart';
@@ -30,6 +37,7 @@ import '../../design/tokens/strokes.dart';
 import '../../design/tokens/typography.dart';
 import '../money/bucket_breakdown.dart';
 import '../money/money_figure.dart';
+import 'replay_hud.dart';
 import 'roll_up_source.dart';
 
 /// A request for the Debrief to play (DESIGN.md 7.5): the shell makes one when a
@@ -163,10 +171,52 @@ class ReviewPageState extends State<ReviewPage> {
   /// Where the route panel is looking: pinch, drag and double-tap move it.
   RouteViewController? _view;
 
+  // ---- The replay (DESIGN.md 6.12) ----
+
+  /// The trip as a replay, or null for a trip with fewer than two samples.
+  TripPlayer? _player;
+  ReplayEvents? _replayEvents;
+
+  /// Whether the replay's instruments are up: the camera follows the car and the
+  /// receipt gives way to the HUD.
+  bool _replaying = false;
+
+  /// Whether the camera is to follow the car, and whether the map turns with it.
+  bool _follow = true;
+  bool _headingUp = true;
+  bool _wasChasing = false;
+
+  /// The car on the route, and where the scrubber's line is (a fractional sample).
+  final RouteCar _car = RouteCar();
+  final ValueNotifier<double?> _playhead = ValueNotifier(null);
+  double _heading = 0;
+
+  /// How many points the route is drawn with: more while replaying, so that the
+  /// camera can go in close.
+  int _geometryPoints = RouteGeometry.maxPoints;
+
+  /// The receipt and the HUD take turns: each fades by its own share.
+  SpringValue? _receiptMix;
+  SpringValue? _hudMix;
+  bool _hudBuilt = false;
+
+  /// Set while the page moves the scrubber's cursor itself, so that it does not
+  /// take its own move for a scrub.
+  bool _settingCursor = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _view ??= RouteViewController(clock: MotionScope.of(context));
+    final clock = MotionScope.of(context);
+    _view ??= RouteViewController(clock: clock)
+      ..flags.addListener(_onViewFlags);
+    _receiptMix ??= SpringValue(
+      clock: clock,
+      spec: TapeSprings.gauge,
+      initial: 1,
+    );
+    _hudMix ??= SpringValue(clock: clock, spec: TapeSprings.gauge)
+      ..addListener(_onHudMix);
   }
 
   /// The route as fitted to its panel, and the scrubber's cursor, for tests.
@@ -175,6 +225,22 @@ class ReviewPageState extends State<ReviewPage> {
 
   @visibleForTesting
   int? get cursorSample => _cursor.value;
+
+  /// The replay's player and car, and whether it is on, for tests.
+  @visibleForTesting
+  TripPlayer? get player => _player;
+
+  @visibleForTesting
+  RouteCar get car => _car;
+
+  @visibleForTesting
+  bool get isReplaying => _replaying;
+
+  @visibleForTesting
+  bool get isFollowing => _follow;
+
+  @visibleForTesting
+  bool get isHeadingUp => _headingUp;
 
   /// The route panel's view, for tests.
   @visibleForTesting
@@ -185,6 +251,7 @@ class ReviewPageState extends State<ReviewPage> {
     super.initState();
     widget.library.selected.addListener(_onSelected);
     widget.debrief?.addListener(_onDebriefRequest);
+    _cursor.addListener(_onCursor);
     _onSelected();
     _onDebriefRequest();
   }
@@ -203,7 +270,14 @@ class ReviewPageState extends State<ReviewPage> {
     widget.library.selected.removeListener(_onSelected);
     widget.debrief?.removeListener(_onDebriefRequest);
     _debrief?.dispose();
+    _cursor.removeListener(_onCursor);
     _cursor.dispose();
+    _disposePlayer();
+    _playhead.dispose();
+    _car.dispose();
+    _receiptMix?.dispose();
+    _hudMix?.dispose();
+    _view?.flags.removeListener(_onViewFlags);
     _view?.dispose();
     _barShare.dispose();
     _routeShare.dispose();
@@ -231,7 +305,9 @@ class ReviewPageState extends State<ReviewPage> {
   void _onSelected() {
     final trip = widget.library.selected.value;
     final ticket = ++_load;
+    _leaveReplay();
     if (trip == null) {
+      _disposePlayer();
       setState(() {
         _trip = null;
         _samples = const [];
@@ -245,8 +321,11 @@ class ReviewPageState extends State<ReviewPage> {
         _samples = samples;
         _events = SampleEvents.find(samples);
         _geometry = null;
+        _geometryPoints = RouteGeometry.maxPoints;
+        _hudBuilt = false;
         _cursor.value = null;
         _view?.resetNow();
+        _makePlayer(trip, samples);
         // Only what this trip has: an older one has no load, coolant or volts.
         _metrics = [
           for (final m in ReviewMetric.values)
@@ -259,6 +338,7 @@ class ReviewPageState extends State<ReviewPage> {
 
   /// Plays the Debrief (DESIGN.md 7.5): call it when a trip ends.
   void playDebrief() {
+    endReplay();
     _debrief?.dispose();
     if (widget.reduceMotion) {
       _seconds.value = double.infinity;
@@ -282,6 +362,197 @@ class ReviewPageState extends State<ReviewPage> {
     _debrief?.dispose();
     _debrief = null;
     _seconds.value = double.infinity;
+  }
+
+  // ---- The replay ----
+
+  void _makePlayer(Trip trip, List<TripSample> samples) {
+    _disposePlayer();
+    final playback = TripPlayback(
+      samples,
+      pricePerLitre: trip.pricePerLitre,
+      tripDistanceKm: trip.distanceKm,
+      tripLitres: trip.litres,
+    );
+    if (!playback.isReplayable) return;
+    final player = TripPlayer(
+      clock: MotionScope.of(context),
+      playback: playback,
+    );
+    player.addListener(_onPlayer);
+    _player = player;
+    _replayEvents = ReplayEvents(player: player, events: _events);
+  }
+
+  void _disposePlayer() {
+    final player = _player;
+    final events = _replayEvents;
+    _replayEvents = null;
+    _player = null;
+    if (player == null) return;
+    player.removeListener(_onPlayer);
+    player.pause();
+    // The instruments that listen to it are let go of in this frame's rebuild:
+    // it is disposed after them, not under them.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      events?.dispose();
+      player.dispose();
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  /// Starts the replay (the play button, the first time): the instruments come up,
+  /// the camera goes to the car and the play head runs, from where the scrubber's
+  /// cursor is if it was put somewhere.
+  void beginReplay() {
+    final player = _player;
+    if (player == null || _replaying) return;
+    _skip();
+    final from = _cursor.value;
+    if (from != null) player.seekToSample(from.toDouble());
+    _follow = true;
+    _wasChasing = false;
+    _heading = 0;
+    setState(() {
+      _replaying = true;
+      _hudBuilt = true;
+      // More points for the camera to go in close on (the thinned route's chords
+      // would show at that zoom).
+      _geometryPoints = TapeReplay.routePoints;
+      _geometry = null;
+    });
+    _receiptMix?.retarget(0);
+    _hudMix?.retarget(1);
+    player.play();
+    _onPlayer();
+  }
+
+  /// Leaves the replay (the stop button): the instruments go, the map goes back to
+  /// the whole route, and the scrubber's cursor stays where the car was.
+  void endReplay() {
+    if (!_replaying) return;
+    _leaveReplay();
+    setState(() {
+      _geometryPoints = RouteGeometry.maxPoints;
+      _geometry = null;
+    });
+  }
+
+  /// The part of leaving that needs no rebuild.
+  void _leaveReplay() {
+    if (!_replaying) return;
+    _replaying = false;
+    _player?.pause();
+    _car.hide();
+    _playhead.value = null;
+    _view?.reset();
+    _receiptMix?.retarget(1);
+    _hudMix?.retarget(0);
+  }
+
+  void _togglePlay() {
+    final player = _player;
+    if (player == null) return;
+    if (!_replaying) {
+      beginReplay();
+    } else {
+      player.toggle();
+    }
+  }
+
+  void _onHudMix() {
+    // The HUD stays built until it has faded out.
+    if (mounted && !_replaying && _hudBuilt && (_hudMix?.value ?? 0) <= 0.001) {
+      setState(() => _hudBuilt = false);
+    }
+  }
+
+  /// The camera was let go of by a drag on the map: stop following.
+  void _onViewFlags() {
+    final chasing = (_view?.flags.value ?? 0) & 4 != 0;
+    if (_wasChasing && !chasing && _replaying) _follow = false;
+    _wasChasing = chasing;
+  }
+
+  void _toggleFollow() {
+    final view = _view;
+    if (view == null) return;
+    if (view.isChasing) {
+      _follow = false;
+      view.endChase();
+    } else {
+      _follow = true;
+      _onPlayer();
+    }
+  }
+
+  void _toggleHeading() {
+    setState(() => _headingUp = !_headingUp);
+    _onPlayer();
+  }
+
+  /// The scrubber was dragged, or the map tapped: the play head goes there.
+  void _onCursor() {
+    final c = _cursor.value;
+    if (_settingCursor || !_replaying || c == null) return;
+    _player?.seekToSample(c.toDouble());
+  }
+
+  /// A frame of the replay: the scrubber's line, the car, and the camera. It runs
+  /// on every frame the play head moves and allocates nothing that lasts.
+  void _onPlayer() {
+    final player = _player;
+    if (player == null || !_replaying) return;
+    final f = player.frame;
+    _playhead.value = f.sample;
+    final whole = f.sample.round();
+    if (whole != _cursor.value) {
+      _settingCursor = true;
+      _cursor.value = whole;
+      _settingCursor = false;
+    }
+    final g = _geometry;
+    final view = _view;
+    if (g == null || view == null) return;
+    final point = g.pointAt(f.sample, player.playback.kmAtSample);
+    final x = g.xAt(point);
+    final y = g.yAt(point);
+    final spacing = g.lengthMetres / math.max(1, g.length - 1);
+    _heading = g.headingAt(
+      point,
+      span: math.max(
+        1.0,
+        TapeReplay.headingLookMetres / math.max(spacing, 0.1),
+      ),
+      previous: _heading,
+    );
+    _car.place(point, x, y, _heading);
+    if (_follow) {
+      // The camera shows the ground the car will cover in a few seconds: out as it
+      // speeds up, in as it slows.
+      final metres = (TapeReplay.chaseSeconds * f.speedKmh / 3.6).clamp(
+        TapeReplay.chaseMinMetres,
+        TapeReplay.chaseMaxMetres,
+      );
+      final scale = view.size.width / (metres * g.unitsPerMetre);
+      // Heading up, the camera looks a little ahead of the car, so that the car sits
+      // low in the panel and the road ahead has the room.
+      var focus = Offset(x, y);
+      if (_headingUp) {
+        final ahead =
+            view.size.height *
+            TapeReplay.chaseAheadShare /
+            math.max(view.scale, 1e-3);
+        focus += Offset(math.cos(_heading), math.sin(_heading)) * ahead;
+      }
+      view.chaseTo(
+        focus,
+        scale: scale.isFinite ? scale : 1,
+        rotation: _headingUp ? -math.pi / 2 - _heading : 0,
+      );
+    } else {
+      view.follow(Offset(x, y));
+    }
   }
 
   void _skip() {
@@ -333,7 +604,7 @@ class ReviewPageState extends State<ReviewPage> {
     // The scrubber stands on the parked dock's clear line (it is over the dock's
     // floor otherwise), the tip sits on the scrubber, and the route takes what is
     // left between the metric selector and the tip.
-    final scrubberH = widget.height * 0.13;
+    final scrubberH = math.max(TapeSpace.touchTarget, widget.height * 0.13);
     final scrubberBottom = widget.height * TapeSpace.clearOfDockShare;
     const tipH = 52.0;
     final shares = (
@@ -349,7 +620,9 @@ class ReviewPageState extends State<ReviewPage> {
     final routeTop = selectorTop + selectorH + TapeSpace.s1;
     final tipTop =
         widget.height - scrubberBottom - scrubberH - TapeSpace.s1 - tipH;
-    final routeH = tipTop - TapeSpace.s1 - routeTop;
+    // A replay takes the tip's room for the map: the tip is not for then.
+    final routeH =
+        (_replaying ? tipTop + tipH : tipTop - TapeSpace.s1) - routeTop;
 
     return SizedBox(
       width: widget.width,
@@ -384,15 +657,18 @@ class ReviewPageState extends State<ReviewPage> {
                       padding: const EdgeInsets.only(left: TapeSpace.s3),
                       child: Align(
                         alignment: Alignment.centerRight,
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: _CursorReadout(
-                            cursor: _cursor,
-                            samples: _samples,
-                            price: trip.pricePerLitre,
-                            metric: _metric,
-                          ),
-                        ),
+                        // A replay has its own readouts (the HUD).
+                        child: _replaying
+                            ? const SizedBox.shrink()
+                            : FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: _CursorReadout(
+                                  cursor: _cursor,
+                                  samples: _samples,
+                                  price: trip.pricePerLitre,
+                                  metric: _metric,
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -417,35 +693,99 @@ class ReviewPageState extends State<ReviewPage> {
               height: routeH,
               child: _route(trip, palette, shares.route),
             ),
-            // One tip, in a bracket frame, only while the car is not moving.
-            Positioned(
-              left: margin,
-              top: tipTop,
-              width: leftW,
-              child: ValueListenableBuilder<DrivingMode>(
-                valueListenable: widget.mode,
-                builder: (context, m, _) =>
-                    m == DrivingMode.parked && tip != null
-                    ? TipPanel(tip: tip, share: shares.tip)
-                    : const SizedBox.shrink(),
+            // One tip, in a bracket frame, only while the car is not moving (and
+            // not while a replay has the room).
+            if (!_replaying)
+              Positioned(
+                left: margin,
+                top: tipTop,
+                width: leftW,
+                child: ValueListenableBuilder<DrivingMode>(
+                  valueListenable: widget.mode,
+                  builder: (context, m, _) =>
+                      m == DrivingMode.parked && tip != null
+                      ? TipPanel(tip: tip, share: shares.tip)
+                      : const SizedBox.shrink(),
+                ),
               ),
-            ),
+            // The receipt, or, while a replay runs, its instruments: each fades by
+            // its own share, so the one gives way to the other.
             Positioned(
               left: widget.width * 0.62,
               right: margin,
               top: TapeSpace.s2,
               bottom: scrubberBottom + scrubberH + TapeSpace.s2,
-              child: _Receipt(
-                key: ValueKey(trip.id),
-                trip: trip,
-                palette: palette,
-                receiptShare: shares.receipt,
-                barShare: shares.bar,
-                height: widget.height,
+              child: Stack(
+                children: [
+                  if (_receiptMix != null)
+                    Positioned.fill(
+                      child: Presence(
+                        share: _receiptMix!,
+                        child: _Receipt(
+                          key: ValueKey(trip.id),
+                          trip: trip,
+                          palette: palette,
+                          receiptShare: shares.receipt,
+                          barShare: shares.bar,
+                          height: widget.height,
+                        ),
+                      ),
+                    )
+                  else
+                    Positioned.fill(
+                      child: _Receipt(
+                        key: ValueKey(trip.id),
+                        trip: trip,
+                        palette: palette,
+                        receiptShare: shares.receipt,
+                        barShare: shares.bar,
+                        height: widget.height,
+                      ),
+                    ),
+                  if (_hudBuilt && _player != null && _hudMix != null)
+                    Positioned.fill(
+                      child: LayoutBuilder(
+                        builder: (context, box) => Presence(
+                          share: _hudMix!,
+                          child: ReplayHud(
+                            key: ValueKey(trip.id),
+                            player: _player!,
+                            events: _replayEvents!,
+                            price: trip.pricePerLitre,
+                            maxRpm: ScrubberTrace.roundedMax(
+                              _samples,
+                              (s) => s.rpm,
+                              1000,
+                            ),
+                            width: box.maxWidth,
+                            height: box.maxHeight,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
+            // The transport, left of the scrubber.
+            if (_player != null)
+              Positioned(
+                left: margin,
+                bottom: scrubberBottom,
+                height: scrubberH,
+                width: TripTransport.width,
+                child: Center(
+                  child: TripTransport(
+                    player: _player!,
+                    replaying: _replaying,
+                    onToggle: _togglePlay,
+                    onStop: endReplay,
+                  ),
+                ),
+              ),
             Positioned(
-              left: margin,
+              left: _player == null
+                  ? margin
+                  : margin + TripTransport.width + TapeSpace.s3,
               right: margin,
               bottom: scrubberBottom,
               height: scrubberH,
@@ -454,6 +794,7 @@ class ReviewPageState extends State<ReviewPage> {
                   : TelemetryScrubber(
                       samples: _samples,
                       cursor: _cursor,
+                      playhead: _playhead,
                       events: _events,
                       lower: _lowerTrace(trip),
                     ),
@@ -473,7 +814,12 @@ class ReviewPageState extends State<ReviewPage> {
       builder: (context, box) {
         final size = Size(box.maxWidth, box.maxHeight);
         if (_geometry == null || _geometrySize != size) {
-          _geometry = RouteGeometry.build(_samples, size.width, size.height);
+          _geometry = RouteGeometry.build(
+            _samples,
+            size.width,
+            size.height,
+            maxPoints: _geometryPoints,
+          );
           _geometrySize = size;
         }
         final g = _geometry;
@@ -505,11 +851,15 @@ class ReviewPageState extends State<ReviewPage> {
                   metric: normalised,
                   ramp: _ramp(palette),
                   reveal: reveal,
-                  cursor: ValueNotifier(c == null ? null : g.nearestPoint(c)),
+                  cursor: ValueNotifier(
+                    c == null || _replaying ? null : g.nearestPoint(c),
+                  ),
                   markers: markers,
                   view: _view,
+                  car: _car,
                   // A touch anywhere skips the Debrief while it plays; a tap on
-                  // the route puts the scrubber's cursor there.
+                  // the route puts the scrubber's cursor there (in a replay, the
+                  // car: the cursor follows it).
                   onTouch: _skip,
                   onPick: (point) => _cursor.value = g.sampleIndex[point],
                 ),
@@ -517,7 +867,12 @@ class ReviewPageState extends State<ReviewPage> {
               Positioned(
                 right: 0,
                 top: 0,
-                child: RouteZoomButtons(view: _view!),
+                child: RouteZoomButtons(
+                  view: _view!,
+                  onFollow: _replaying ? _toggleFollow : null,
+                  onHeading: _replaying ? _toggleHeading : null,
+                  headingUp: _headingUp,
+                ),
               ),
             ],
           ),

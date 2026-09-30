@@ -24,7 +24,13 @@ class TelemetryScrubber extends StatefulWidget {
     required this.cursor,
     this.events = const [],
     this.lower,
+    this.playhead,
   });
+
+  /// Where a replay is, as a fractional sample (null when there is none): the line
+  /// is drawn there, moving smoothly, and the [cursor] is left to say which whole
+  /// sample it is nearest. Dragging still sets the [cursor].
+  final ValueListenable<double?>? playhead;
 
   /// What the lower trace shows: null is the throttle, 0 to 100 %.
   final ScrubberTrace? lower;
@@ -78,6 +84,7 @@ class _TelemetryScrubberState extends State<TelemetryScrubber> {
               cursor: widget.cursor,
               palette: palette,
               lower: widget.lower,
+              playhead: widget.playhead,
             ),
           ),
         );
@@ -147,9 +154,11 @@ class ScrubberPainter extends CustomPainter {
     required this.cursor,
     required this.palette,
     this.lower,
-  }) : super(repaint: cursor);
+    this.playhead,
+  }) : super(repaint: Listenable.merge([cursor, ?playhead]));
 
   final ScrubberTrace? lower;
+  final ValueListenable<double?>? playhead;
 
   final List<TripSample> samples;
   final List<SampleEvent> events;
@@ -276,7 +285,7 @@ class ScrubberPainter extends CustomPainter {
       }
     }
 
-    final c = cursor.value;
+    final c = playhead?.value ?? cursor.value;
     if (c != null) {
       final x = size.width * c / (n - 1);
       line
@@ -291,6 +300,7 @@ class ScrubberPainter extends CustomPainter {
       old.lower != lower ||
       !identical(old.samples, samples) ||
       old.palette != palette ||
+      !identical(old.playhead, playhead) ||
       !identical(old.events, events);
 }
 

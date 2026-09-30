@@ -2,7 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
 
-import '../motion/smoothing_pipeline.dart';
+import '../motion/numeral_source.dart';
 import '../render/chamfer.dart';
 import '../theme/palette.dart';
 import '../theme/tape_theme.dart';
@@ -35,8 +35,9 @@ class BarGauge extends StatelessWidget {
     this.decimals = 0,
   });
 
-  /// The live value, smoothed with `spring.needle`.
-  final SmoothedSignal value;
+  /// The live value, smoothed with `spring.needle` (a `SmoothedSignal`), or a
+  /// replay's own reading of a moment.
+  final NumeralSource value;
 
   final double min;
   final double max;
@@ -137,7 +138,7 @@ class BarGaugePainter extends CustomPainter {
     required this.palette,
   }) : super(repaint: listenable);
 
-  final SmoothedSignal value;
+  final NumeralSource value;
   final double min, max, length, thickness;
   final bool vertical;
   final double? normalBandMin, normalBandMax;

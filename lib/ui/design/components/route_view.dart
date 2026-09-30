@@ -248,6 +248,8 @@ class RouteViewController extends ChangeNotifier implements MotionDriven {
       _scale.setSpec(TapeReplay.zoom);
       _updateFlags();
     }
+    // The car is in the middle now, not a frame from now.
+    _centreOnCar();
     clock.attach(this);
   }
 
@@ -286,15 +288,21 @@ class RouteViewController extends ChangeNotifier implements MotionDriven {
     final goal = (_scaleGoal * _bias).clamp(1.0, TapeReplay.chaseMaxScale);
     _scale.track(goal.toDouble(), dt);
     _turn.track(_turnGoal, dt);
-    final s = _scale.value;
-    _x.place(_size.width / 2 - _chasePoint.dx * s);
-    _y.place(_size.height / 2 - _chasePoint.dy * s);
+    _centreOnCar();
     final settled =
         (_scale.value - goal).abs() < 1e-3 &&
         (_turn.value - _turnGoal).abs() < 1e-4 &&
         _scale.velocity.abs() < 1e-3 &&
         _turn.velocity.abs() < 1e-4;
     return !settled;
+  }
+
+  /// The offset that puts the followed point in the middle of the panel at the
+  /// zoom the view has now.
+  void _centreOnCar() {
+    final s = _scale.value;
+    _x.place(_size.width / 2 - _chasePoint.dx * s);
+    _y.place(_size.height / 2 - _chasePoint.dy * s);
   }
 
   void _updateFlags() {
