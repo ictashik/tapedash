@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TapeDash sound lab</title>
+<style>
+  :root { --bg:#0b0c0e; --panel:#15171b; --line:#262a31; --ink:#e8e9ec; --dim:#8a909b; --amber:#ffb020; --red:#ff4d3d; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:20px 16px 40px; background:var(--bg); color:var(--ink); font:14px/1.4 -apple-system,system-ui,sans-serif; }
+  main { max-width:920px; margin:0 auto; display:grid; gap:14px; }
+  h1 { font-size:15px; letter-spacing:.14em; text-transform:uppercase; margin:0; font-weight:600; }
+  h1 span { color:var(--dim); font-weight:400; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .row { display:flex; flex-wrap:wrap; gap:12px 20px; align-items:center; }
+  label { color:var(--dim); font-size:12px; text-transform:uppercase; letter-spacing:.08em; }
+  select, button { font:inherit; color:var(--ink); background:#1e2127; border:1px solid var(--line); border-radius:7px; padding:8px 12px; cursor:pointer; }
+  button:hover, select:hover { border-color:#3a404a; }
+  button.on { background:var(--amber); color:#111; border-color:var(--amber); }
+  button.big { padding:12px 22px; font-weight:600; }
+  button.pressed { background:#2a2f38; border-color:var(--amber); }
+  input[type=range] { width:100%; accent-color:var(--amber); }
+  .readouts { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; }
+  .readout b { display:block; font:600 34px/1.1 ui-monospace,Menlo,monospace; font-variant-numeric:tabular-nums; }
+  .readout label { display:block; }
+  .tach { height:14px; background:#0e0f12; border:1px solid var(--line); border-radius:7px; overflow:hidden; position:relative; }
+  .tach i { position:absolute; inset:0 auto 0 0; width:0; background:linear-gradient(90deg,var(--amber),var(--amber)); }
+  .tach i.hot { background:var(--red); }
+  .gears { display:flex; gap:6px; flex-wrap:wrap; }
+  .gears button { min-width:44px; }
+  .pedals { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .pedals > div { display:grid; gap:6px; }
+  canvas { width:100%; height:110px; display:block; background:#0e0f12; border-radius:6px; }
+  .hint { color:var(--dim); font-size:12px; }
+  kbd { background:#1e2127; border:1px solid var(--line); border-radius:4px; padding:1px 6px; font:11px ui-monospace,Menlo,monospace; color:var(--ink); }
+  #status { color:var(--dim); font-size:12px; }
+  [hidden] { display:none !important; }
+  @media (max-width:560px) { .pedals { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>TapeDash <span>sound lab</span></h1>
+
+  <div class="panel row">
+    <button id="power" class="big">Start sound</button>
+    <div><label for="profile">Engine</label><br><select id="profile"></select></div>
+    <div><label>Mode</label><br>
+      <button id="modeDrive" class="on">Drive</button>
+      <button id="modeDirect">Direct rpm</button>
+    </div>
+    <div style="min-width:160px;flex:1"><label for="volume">Volume</label><input id="volume" type="range" min="0" max="1" step="0.01" value="0.5"></div>
+    <span id="status">not connected</span>
+  </div>
+  <div id="desc" class="hint"></div>
+
+  <div class="panel">
+    <div class="readouts">
+      <div class="readout"><label>rpm</label><b id="rRpm">0</b></div>
+      <div class="readout"><label>speed km/h</label><b id="rSpeed">0</b></div>
+      <div class="readout"><label>gear</label><b id="rGear">N</b></div>
+      <div class="readout"><label>load</label><b id="rLoad">0%</b></div>
+    </div>
+    <div class="tach" style="margin-top:12px"><i id="tach"></i></div>
+  </div>
+
+  <div id="drivePanel" class="panel" style="display:grid;gap:16px">
+    <div class="pedals">
+      <div><label>Throttle <span id="vThrottle">0%</span> &nbsp; <span class="hint">hold <kbd>W</kbd> or <kbd>↑</kbd></span></label>
+        <input id="throttle" type="range" min="0" max="1" step="0.01" value="0"></div>
+      <div><label>Brake <span id="vBrake">0%</span> &nbsp; <span class="hint">hold <kbd>S</kbd> or <kbd>↓</kbd></span></label>
+        <input id="brake" type="range" min="0" max="1" step="0.01" value="0"></div>
+    </div>
+    <div class="row">
+      <div><label>Gearbox</label>
+        <div class="gears" id="gears"></div></div>
+      <div><label>&nbsp;</label><br>
+        <button id="down">Down <kbd>Q</kbd></button>
+        <button id="up">Up <kbd>E</kbd></button>
+        <button id="auto">Automatic</button>
+        <button id="blip">Rev blip <kbd>Space</kbd></button></div>
+    </div>
+    <div class="hint">Manual: in neutral, hold throttle to rev the engine; shift to 1 and ease on the throttle to pull away. Shifts take a quarter of a second with the clutch out, so the revs drop and catch as in a car. Lift off in gear to hear the overrun; hit the limiter at the top.</div>
+  </div>
+
+  <div id="directPanel" class="panel" style="display:none;gap:16px" hidden>
+    <div><label>Revs <span id="vRpm">800</span></label><input id="rpm" type="range" min="0" max="7000" step="10" value="800"></div>
+    <div><label>Load <span id="vLoad">12%</span></label><input id="load" type="range" min="0" max="1" step="0.01" value="0.12"></div>
+    <div class="row"><button id="sweep">Sweep idle → redline → idle</button></div>
+  </div>
+
+  <div class="panel"><label>Spectrum</label><canvas id="spec" width="900" height="110"></canvas></div>
+  <div class="hint">This is the app's own synth (<code>lib/sound/engine_synth.dart</code>), rendered by <code>tool/sound_lab.dart</code> and streamed here. A short, constant lag (about a tenth of a second) between a key and the sound is the stream, not the engine.</div>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  let ws = null, ctx = null, node = null, gainNode = null, analyser = null;
+  let profiles = [], rate = 32000, running = false, mode = 'drive', auto = false;
+  let throttle = 0, brake = 0, keyUp = false, keyDown = false, blip = false;
+  let sweeping = false, last = performance.now();
+
+  const workletSrc = `
+    class Player extends AudioWorkletProcessor {
+      constructor() { super(); this.q = []; this.cur = null; this.pos = 0; this.queued = 0; this.started = false;
+        this.port.onmessage = e => { this.q.push(e.data); this.queued += e.data.length; }; }
+      process(_, outs) {
+        const out = outs[0][0]; const n = out.length;
+        if (!this.started) { if (this.queued >= ${'${PRE}'}) this.started = true; else { out.fill(0); return true; } }
+        // never lag far behind: past a quarter second, drop the oldest
+        while (this.queued > ${'${MAX}'} && this.q.length > 1) { const d = this.q.shift(); this.queued -= d.length; }
+        for (let i = 0; i < n; i++) {
+          if (!this.cur || this.pos >= this.cur.length) {
+            if (this.cur) this.queued -= this.cur.length;
+            this.cur = this.q.shift() || null; this.pos = 0;
+            if (!this.cur) { for (; i < n; i++) out[i] = 0; this.started = false; this.queued = 0; return true; }
+          }
+          out[i] = this.cur[this.pos++] / 32768;
+        }
+        return true;
+      }
+    }
+    registerProcessor('player', Player);`;
+
+  function status(t) { $('status').textContent = t; }
+
+  function connect() {
+    return new Promise((resolve, reject) => {
+      ws = new WebSocket(`ws://${location.host}/ws`);
+      ws.binaryType = 'arraybuffer';
+      ws.onopen = () => status('connected');
+      ws.onclose = () => { status('disconnected'); running = false; setPower(); };
+      ws.onerror = () => reject(new Error('socket'));
+      ws.onmessage = e => {
+        if (typeof e.data === 'string') {
+          const m = JSON.parse(e.data);
+          if (m.type === 'hello') { rate = m.sampleRate; profiles = m.profiles; fillProfiles(); resolve(); }
+          else if (m.type === 'state') show(m);
+        } else if (node && running) {
+          node.port.postMessage(new Int16Array(e.data));
+        }
+      };
+    });
+  }
+
+  function fillProfiles() {
+    const sel = $('profile');
+    if (sel.options.length) return;
+    for (const p of profiles) sel.add(new Option(p.name, p.id));
+    describe();
+  }
+  function describe() {
+    const p = profiles.find(p => p.id === $('profile').value);
+    if (p) { $('desc').textContent = p.description; $('rpm').max = Math.round(p.redline * 1.1); }
+  }
+
+  async function start() {
+    if (!ws || ws.readyState !== 1) await connect();
+    if (!ctx) {
+      ctx = new AudioContext({ sampleRate: rate, latencyHint: 'interactive' });
+      const src = workletSrc.replace('${PRE}', Math.round(rate * 0.09)).replace('${MAX}', Math.round(rate * 0.3));
+      await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+      node = new AudioWorkletNode(ctx, 'player', { outputChannelCount: [1] });
+      gainNode = ctx.createGain(); analyser = ctx.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.8;
+      node.connect(gainNode); gainNode.connect(analyser); analyser.connect(ctx.destination);
+      applyVolume();
+    }
+    await ctx.resume();
+    running = true;
+    send({ type: 'start' });
+    pushProfile(); sendControls();
+    setPower();
+  }
+  function stop() { running = false; sendControls(); if (ctx) ctx.suspend(); setPower(); }
+  function setPower() { $('power').textContent = running ? 'Stop sound' : 'Start sound'; $('power').classList.toggle('on', running); }
+
+  function send(m) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); }
+  function pushProfile() { send({ type: 'profile', id: $('profile').value }); }
+  function sendControls() {
+    send({ type: 'controls', throttle, brake, mode, auto, on: running,
+           rpm: +$('rpm').value, load: +$('load').value });
+  }
+  function applyVolume() { if (gainNode) gainNode.gain.value = Math.pow(+$('volume').value, 2) * 1.4; }
+
+  function buildGears() {
+    const g = $('gears');
+    for (const [label, v] of [['R', -1], ['N', 0], ['1', 1], ['2', 2], ['3', 3], ['4', 4], ['5', 5], ['6', 6]]) {
+      const b = document.createElement('button'); b.textContent = label; b.dataset.g = v;
+      b.onclick = () => send({ type: 'gear', to: v });
+      g.appendChild(b);
+    }
+  }
+
+  function show(m) {
+    $('rRpm').textContent = Math.round(m.rpm / 10) * 10;
+    $('rSpeed').textContent = Math.round(m.speed);
+    $('rLoad').textContent = Math.round(m.load * 100) + '%';
+    const g = m.shifting ? '–' : (m.gear === 0 ? 'N' : m.gear < 0 ? 'R' : m.gear);
+    $('rGear').textContent = m.drive ? g : '';
+    const p = profiles.find(p => p.id === $('profile').value);
+    const red = p ? p.redline : 6500;
+    const t = $('tach'); t.style.width = Math.min(100, m.rpm / (red * 1.05) * 100) + '%'; t.classList.toggle('hot', m.rpm > red * 0.93);
+    for (const b of $('gears').children) b.classList.toggle('pressed', +b.dataset.g === (m.shifting ? m.wantGear : m.gear));
+  }
+
+  function setMode(m) {
+    mode = m;
+    $('modeDrive').classList.toggle('on', m === 'drive'); $('modeDirect').classList.toggle('on', m === 'direct');
+    $('drivePanel').hidden = m !== 'drive'; $('directPanel').hidden = m !== 'direct';
+    $('drivePanel').style.display = m === 'drive' ? 'grid' : 'none';
+    $('directPanel').style.display = m === 'direct' ? 'grid' : 'none';
+    sendControls();
+  }
+
+  // The pedals ease to the keys: a foot is not a switch.
+  function loop(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (mode === 'drive') {
+      if (keyUp || blip) throttle = Math.min(1, throttle + (blip ? 9 : 2.8) * dt);
+      else if (document.activeElement !== $('throttle') && !dragging.throttle) throttle = Math.max(0, throttle - 4 * dt);
+      if (blip) { /* a blip is a short stab: released by its key-up */ }
+      if (keyDown) brake = Math.min(1, brake + 5 * dt);
+      else if (!dragging.brake) brake = Math.max(0, brake - 6 * dt);
+      $('throttle').value = throttle; $('brake').value = brake;
+      $('vThrottle').textContent = Math.round(throttle * 100) + '%'; $('vBrake').textContent = Math.round(brake * 100) + '%';
+      if (running) sendControls();
+    } else if (sweeping) {
+      sweepT += dt; const p = profiles.find(p => p.id === $('profile').value) || { idle: 800, redline: 6500 };
+      const T = 10, f = sweepT / T;
+      const r = f < 0.55 ? p.idle + (p.redline - p.idle) * (f / 0.55) : p.redline - (p.redline - p.idle) * ((f - 0.55) / 0.45);
+      const l = f < 0.55 ? 0.9 : 0.05;
+      $('rpm').value = r; $('load').value = l; labels(); sendControls();
+      if (f >= 1) { sweeping = false; $('sweep').classList.remove('on'); }
+    }
+    drawSpectrum();
+    requestAnimationFrame(loop);
+  }
+  let sweepT = 0; const dragging = { throttle: false, brake: false };
+
+  function labels() { $('vRpm').textContent = Math.round($('rpm').value); $('vLoad').textContent = Math.round($('load').value * 100) + '%'; }
+
+  function drawSpectrum() {
+    if (!analyser) return;
+    const c = $('spec'), g = c.getContext('2d'); const w = c.width, h = c.height;
+    const bins = new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(bins);
+    g.fillStyle = '#0e0f12'; g.fillRect(0, 0, w, h); g.fillStyle = '#ffb020';
+    const max = 4000, hz = rate / 2 / bins.length, n = Math.min(bins.length, Math.floor(max / hz));
+    for (let i = 0; i < n; i++) { const bh = bins[i] / 255 * h; g.fillRect(i / n * w, h - bh, Math.max(1, w / n), bh); }
+  }
+
+  // ---- Wiring ----
+  $('power').onclick = () => running ? stop() : start().catch(e => status('could not start: ' + e.message));
+  $('profile').onchange = () => { describe(); pushProfile(); };
+  $('modeDrive').onclick = () => setMode('drive'); $('modeDirect').onclick = () => setMode('direct');
+  $('volume').oninput = applyVolume;
+  $('up').onclick = () => send({ type: 'gear', by: 1 }); $('down').onclick = () => send({ type: 'gear', by: -1 });
+  $('auto').onclick = () => { auto = !auto; $('auto').classList.toggle('on', auto); sendControls(); };
+  $('blip').onmousedown = () => blip = true; addEventListener('mouseup', () => blip = false);
+  $('throttle').oninput = e => throttle = +e.target.value; $('brake').oninput = e => brake = +e.target.value;
+  for (const k of ['throttle', 'brake']) {
+    $(k).addEventListener('pointerdown', () => dragging[k] = true);
+    addEventListener('pointerup', () => dragging[k] = false);
+  }
+  $('rpm').oninput = () => { sweeping = false; labels(); sendControls(); }; $('load').oninput = () => { sweeping = false; labels(); sendControls(); };
+  $('sweep').onclick = () => { sweeping = true; sweepT = 0; $('sweep').classList.add('on'); };
+  addEventListener('keydown', e => {
+    if (e.repeat || e.metaKey || e.ctrlKey) return;
+    const k = e.key.toLowerCase();
+    if (k === 'w' || k === 'arrowup') { keyUp = true; e.preventDefault(); }
+    else if (k === 's' || k === 'arrowdown') { keyDown = true; e.preventDefault(); }
+    else if (k === 'e') send({ type: 'gear', by: 1 });
+    else if (k === 'q') send({ type: 'gear', by: -1 });
+    else if (k === ' ') { blip = true; e.preventDefault(); }
+    else if (k >= '1' && k <= '6') send({ type: 'gear', to: +k });
+    else if (k === '0' || k === 'n') send({ type: 'gear', to: 0 });
+    else if (k === 'r') send({ type: 'gear', to: -1 });
+  });
+  addEventListener('keyup', e => {
+    const k = e.key.toLowerCase();
+    if (k === 'w' || k === 'arrowup') keyUp = false;
+    else if (k === 's' || k === 'arrowdown') keyDown = false;
+    else if (k === ' ') blip = false;
+  });
+  addEventListener('blur', () => { keyUp = keyDown = blip = false; });
+
+  buildGears(); setMode('drive');
+  connect().then(() => status('connected, press Start sound')).catch(() => status('start tool/sound_lab.dart'));
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
