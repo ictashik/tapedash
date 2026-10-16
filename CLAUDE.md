@@ -140,6 +140,7 @@ lib/
     pids/              # PID definitions, decoders, supported-PID discovery
     dtc/               # Mode 03/04/07, decoding, description lookup
     poller.dart        # priority scheduler, multi-PID batching
+    survey/            # the survey drive: a read-only sweep of every ECU into a log (docs/SURVEY.md)
   location/            # LocationSource interface + native GPS + sim GPS
   vehicle/             # VehicleState: derived values, smoothing, acceleration
   fuel/                # fuel-flow estimators (5E / MAF / MAP), calibration

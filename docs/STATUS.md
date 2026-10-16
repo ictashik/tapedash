@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-09-30, after the first real drives (see "First real drive" and "The second drives" below) and the replay and the engine sound ("After the map"). Before it, at the end of phase 6, **the app was ready for real-hardware testing** (CLAUDE.md 11). Phases 0 to 6 are built, tested and committed, on the simulator. The app opens on a cold open and a choice: **TRY A DEMO DRIVE** (a simulated car, no hardware) or **CONNECT MY CAR** (a WiFi, Bluetooth or BLE ELM327), and then drives, records trips, works out where the money goes, coaches, and shows Review, Coach, History, Garage and Diagnostics. **Nothing here has met a real phone, adapter or car.** The next step is yours: `docs/HARDWARE_HANDOFF.md`.
+Updated 2026-10-16, with the survey drive ("The survey drive" below). Before that, 2026-09-30, after the first real drives (see "First real drive" and "The second drives" below) and the replay and the engine sound ("After the map"). Before it, at the end of phase 6, **the app was ready for real-hardware testing** (CLAUDE.md 11). Phases 0 to 6 are built, tested and committed, on the simulator. The app opens on a cold open and a choice: **TRY A DEMO DRIVE** (a simulated car, no hardware) or **CONNECT MY CAR** (a WiFi, Bluetooth or BLE ELM327), and then drives, records trips, works out where the money goes, coaches, and shows Review, Coach, History, Garage and Diagnostics. **Nothing here has met a real phone, adapter or car.** The next step is yours: `docs/HARDWARE_HANDOFF.md`.
 
 ## Where we are
 
@@ -280,6 +280,39 @@ Two requests from the human: *an interactive playback of the drive, at 1x 2x 3x,
 - **The replay** was driven by widget tests and looked at in captures; never by a finger, and never on a phone. The chase camera's feel (how wide it looks, how quickly it turns) is in `TapeReplay`; **a long trip draws 3,000 points while it replays**, so a deep zoom still shows straight chords on a very long route.
 
 **What is not built.** A real map under the route (OpenStreetMap vector tiles, from a file you put on the phone): assessed, and worth doing after this; it needs a PMTiles and vector-tile reader and renderer of our own (flutter_map depends on `http`, which the offline check bans), attribution ("© OpenStreetMap contributors", ODbL) and a file picker. Nothing is bundled, to keep the ODbL on the data and Apache-2.0 on the app.
+
+## The survey drive (2026-10-16)
+
+Asked for by the human, after an analysis of the first real recordings (two drives, 115 minutes, a BLE ELM327 on a petrol City): *build the survey mode; once I drive I will connect the data.* The point is to find out what the car will report before designing an electrical page and an engine page. **Garage → Adapter → Survey drive**; the how-to is `docs/SURVEY.md`.
+
+**What the recordings had shown, which this is built on.**
+- **Two ECUs** answer every request on 29-bit CAN, with different PID sets (22 and 28; 32 PIDs between them). The dashboard read 9 of them.
+- **Only one ECU's long answer survives** when both answer: the adapter sends flow control to one. That is why batches never worked for the dashboard, and why every PID is a request of its own (1.3 reads a second).
+- A request takes **141 ms, or 172 ms for a batch of six** (the `slow_ble` preset's "no batches" was a wrong guess).
+- Not on the car: fuel level (2F), fuel rate (5E), engine torque (61 to 63), oil temperature, any battery current. On it, and never read: ignition timing, commanded and measured air-fuel ratio, the open or closed loop status, fuel trims, both pedal sensors, the commanded throttle, absolute load, barometric pressure.
+
+**What was built.**
+
+| | Where |
+|---|---|
+| The simulator can have **several ECUs**, headers (11-bit and 29-bit IDs), `ATCRA`, physical addressing, protocol 7, Mode 06 / 0A / 09 calibration data, and the PIDs beyond the app's 11. A new profile, `petrol_cvt_twin_ecu`, has the first car's two PID sets (not in `VehicleProfiles.all`). The plain ECU is unchanged: every existing test passes. | `lib/sim/` |
+| `HeadedReply` (frames with headers, ISO-TP put back together, one message per ECU), `Mode01Lengths`, `SurveySchedule` (what to ask next), `SurveyRunner` (start-up, ECU discovery, the read-once probe, the drive loop, and the ways back below), `SurveyLogReader` (a log back into per-ECU readings and marks) | `lib/obd/survey/` |
+| `SurveyDrive` (the adapter taken over from the dashboard, the log written every 20 s and at the end, parked-only finishing, marks) and `SurveyPage` (before, during, after; the marks and the finish button only when the car has stood still for 5 s) | `lib/app/survey_drive.dart`, `lib/ui/pages/survey/` |
+| The Garage row, the hand-over of the adapter in `app.dart` (the dashboard's link is closed first, and made again after) | `garage_page.dart`, `drive_shell.dart`, `app.dart` |
+| `tool/record_survey.dart` (a survey log from the simulator) and `tool/survey_summary.dart` (ECUs, PIDs and rates, the other modes, marks, what the survey did; `--csv`) | `tool/` |
+
+**Measured on the simulator**, behind an adapter given the real one's timing: the revs, speed and battery voltage are read **2.3 times a second** (the dashboard gets 1.3), the engine-state PIDs about once a second, the first ECU's oxygen sensor about every 2.5 s. It reads **only**: a test fails on any command that is not Mode 01, 03, 06, 07, 09 (PIDs 00, 04, 06, 0A) or 0A, or an AT command from a short list; never Mode 04, never the VIN.
+
+**Numbers:** 3,330 tests pass with `tool/verify.sh` (65 golden tests are skipped on this Mac and run on CI Linux), of which about 160 are new: the simulator's second ECU and headers, the frame and length parsing, the scheduler, 23 end-to-end surveys on the simulator (two ECUs, one ECU, each way back), the drive object, the screen at three sizes, the whole app from Garage to the dashboard coming back, and the two tools.
+
+**Ways back, each tested:** no `ATCRA` (listens to every ECU; the batch falls to what works), an `ATCRA` that lets nothing through (dropped after three requests; the car is not taken for switched off), no batches (falls to three, then one), headers in a format nobody expected (goes on without them), an adapter that resets itself, a dropped link, the ignition going off (waits, carries on without starting over), the car staying off for 30 minutes (ends and saves).
+
+**What was not verified, plainly.**
+- **Nothing here has met the real adapter or car.** Whether it takes `ATCRA`, prints 29-bit IDs as eight hex digits, prints headers-on frames in the format assumed, and lets six PIDs through to one ECU: all assumptions, each with a way back, each visible in the log (`@ survey` lines say which was used).
+- The simulator's numbers (2.3 Hz and so on) are the simulator's. The real adapter may do better or worse.
+- The values behind the new PIDs in the simulator are invented (right length, plausible, not data).
+- The survey screen has been laid out at 640, 720 and 800 by 360 and driven by widget tests; it has not been seen on a phone, and no screenshots were taken (the per-phase design review package is waived for this work, as for phases 4 to 6).
+- **No Mode 22 or UDS probing** (see DECISIONS.md): no list for this car was found, and standard OBD has no battery current. The electricity page is therefore limited to the voltage, plus the load signatures the marks make.
 
 ## Phase 3b: the review package, and where the phase stands
 

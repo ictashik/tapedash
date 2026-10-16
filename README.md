@@ -94,7 +94,7 @@ dart run tool/record_sim.dart --all                         # record all ten sce
 lib/
   core/        clock, scheduler, units, ₹ formatting (Indian digit grouping)
   sim/         the vehicle simulator (pure Dart)
-  obd/         ELM327 layer, PIDs, DTCs, poller, transports (sim, WiFi, BT Classic, BLE, replay)
+  obd/         ELM327 layer, PIDs, DTCs, poller, survey, transports (sim, WiFi, BT Classic, BLE, replay)
   vehicle/     derived values and smoothing
   fuel/ money/ fuel-flow estimators, fill-ups, calibration, attribution
   coach/       event detection, sweet spot, tips
@@ -104,7 +104,7 @@ lib/
   ui/          the design system, pages, HUD, Design Lab
 android/       the Kotlin channels
 test/          unit, e2e simulated drives, widget, design (goldens and design lint)
-tool/          check_offline.sh, verify.sh, sim_server, record_sim, sound lab, font subsetting
+tool/          check_offline.sh, verify.sh, sim_server, record_sim, record_survey, survey_summary, sound lab, font subsetting
 recordings/    replayable raw ELM327 sessions (simulator-made and from real drives)
 docs/          STATUS, DECISIONS, DEV_SETUP, HARDWARE_HANDOFF, design reviews
 ```
@@ -121,6 +121,7 @@ The layering rules (what may import what) are enforced by tests. The full archit
 | [docs/DECISIONS.md](docs/DECISIONS.md) | The choices made, and why. |
 | [docs/DEV_SETUP.md](docs/DEV_SETUP.md) | Toolchain, building, emulators and phones. |
 | [docs/HARDWARE_HANDOFF.md](docs/HARDWARE_HANDOFF.md) | How to test on a real adapter and car, and what to report back. |
+| [docs/SURVEY.md](docs/SURVEY.md) | The survey drive: read everything the car's ECUs will say, to a file, to find out what TapeDash could show. |
 | [recordings/README.md](recordings/README.md) | The session log format and how replay works. |
 
 ## Contributing
