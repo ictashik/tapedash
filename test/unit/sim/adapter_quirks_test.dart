@@ -40,11 +40,12 @@ void main() {
   });
 
   group('presets by name', () {
-    test('are the four presets', () {
+    test('are the five presets', () {
       expect(AdapterQuirks.presets.keys, [
         'none',
         'bluetooth_clone',
         'slow_ble',
+        'measured_ble',
         'flaky',
       ]);
       expect(AdapterQuirks.presets['slow_ble'], AdapterQuirks.slowBle);
@@ -54,7 +55,17 @@ void main() {
         AdapterQuirks.bluetoothClone,
       );
       expect(AdapterQuirks.presets['flaky'], AdapterQuirks.flaky);
+      expect(AdapterQuirks.presets['measured_ble'], AdapterQuirks.measuredBle);
     });
+
+    test(
+      'the measured BLE one takes batches and is as slow as the recordings',
+      () {
+        final q = AdapterQuirks.measuredBle;
+        expect(q.noMultiPid, isFalse);
+        expect(q.latency, const Duration(milliseconds: 140));
+      },
+    );
   });
 
   group('copyWith', () {

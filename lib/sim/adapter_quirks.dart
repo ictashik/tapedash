@@ -8,6 +8,7 @@ class AdapterQuirks {
     this.dropFirstCommand = false,
     this.ignoreAdaptiveTiming = false,
     this.noMultiPid = false,
+    this.noReceiveFilter = false,
     this.noDataRate = 0,
     this.missingPromptRate = 0,
     this.garbageRate = 0,
@@ -27,6 +28,10 @@ class AdapterQuirks {
 
   /// A request for several PIDs at once is not understood, and gets `?`.
   final bool noMultiPid;
+
+  /// `ATCRA`, which makes the adapter listen to one ECU, is not understood and
+  /// gets `?`.
+  final bool noReceiveFilter;
 
   /// The chance, 0 to 1, that a supported PID is answered with `NO DATA`.
   final double noDataRate;
@@ -59,6 +64,14 @@ class AdapterQuirks {
     noMultiPid: true,
   );
 
+  /// The BLE adapter of the first real drives, as its recordings measured it:
+  /// 141 ms for a request, and 172 ms for one with several PIDs, so it does
+  /// take them (the `slowBle` guess was that it did not).
+  static const AdapterQuirks measuredBle = AdapterQuirks(
+    latency: Duration(milliseconds: 140),
+    jitter: Duration(milliseconds: 6),
+  );
+
   /// A flaky one: slow, forgetful, and sometimes silent or noisy.
   static const AdapterQuirks flaky = AdapterQuirks(
     latency: Duration(milliseconds: 80),
@@ -75,6 +88,7 @@ class AdapterQuirks {
     'none': none,
     'bluetooth_clone': bluetoothClone,
     'slow_ble': slowBle,
+    'measured_ble': measuredBle,
     'flaky': flaky,
   };
 
@@ -88,6 +102,7 @@ class AdapterQuirks {
       if (dropFirstCommand) 'drops first command',
       if (ignoreAdaptiveTiming) 'ignores adaptive timing',
       if (noMultiPid) 'no multi-PID',
+      if (noReceiveFilter) 'no receive filter',
       if (noDataRate > 0) 'NO DATA ${_percent(noDataRate)}',
       if (missingPromptRate > 0)
         'missing prompt ${_percent(missingPromptRate)}',
@@ -110,6 +125,7 @@ class AdapterQuirks {
     bool? dropFirstCommand,
     bool? ignoreAdaptiveTiming,
     bool? noMultiPid,
+    bool? noReceiveFilter,
     double? noDataRate,
     double? missingPromptRate,
     double? garbageRate,
@@ -119,6 +135,7 @@ class AdapterQuirks {
     dropFirstCommand: dropFirstCommand ?? this.dropFirstCommand,
     ignoreAdaptiveTiming: ignoreAdaptiveTiming ?? this.ignoreAdaptiveTiming,
     noMultiPid: noMultiPid ?? this.noMultiPid,
+    noReceiveFilter: noReceiveFilter ?? this.noReceiveFilter,
     noDataRate: noDataRate ?? this.noDataRate,
     missingPromptRate: missingPromptRate ?? this.missingPromptRate,
     garbageRate: garbageRate ?? this.garbageRate,

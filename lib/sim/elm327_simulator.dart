@@ -386,6 +386,7 @@ class Elm327Simulator {
   /// ATCRA with an ID makes the adapter show only the frames from that ID, and
   /// ATCRA alone puts every ECU back.
   AdapterOutput _setReceiveFilter(String argument, String echo) {
+    if (quirks.noReceiveFilter) return _unknown(echo);
     if (argument.isEmpty) {
       _receiveFilter = null;
       return _ok(echo);
