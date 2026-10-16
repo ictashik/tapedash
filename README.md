@@ -1,54 +1,136 @@
 # TapeDash
 
-TapeDash turns an old Android phone into a car dashboard, a windshield HUD and a trip computer that shows where the money goes. It runs off a cheap ELM327 OBD-II adapter.
+**An old Android phone, a cheap OBD adapter and a roll of double-sided tape: a car dashboard, a windshield HUD, and a trip computer that shows where the money goes.**
 
-The whole idea: buy an ELM327, plug it into the OBD port, stick an old phone to the dash with double-sided tape, and drive.
+TapeDash is a free, open-source, strictly offline Flutter app. It reads your car through a cheap ELM327 OBD-II adapter and draws what it reads like the best instrument clusters, not like an app.
 
-- **A dashboard built like an instrument, not an app.** Tapes, a tach arc, detented numerals, a shift horizon. See [DESIGN.md](DESIGN.md).
-- **A trip computer for your wallet.** ₹ per trip, per km, and what idling cost you.
-- **A gentle driving coach.** It stays quiet while you drive and speaks only when the car is stopped.
+<p align="center">
+  <img src="docs/build-video/frames/023-apex-cluster.jpg" width="49%" alt="The Apex cluster: a segmented tach arc around a large speed readout">
+  <img src="docs/build-video/frames/027-telemetry-cluster.jpg" width="49%" alt="The Telemetry cluster: six live tiles with trailing graphs">
+</p>
+<p align="center">
+  <img src="docs/build-video/frames/025-tape-cluster.jpg" width="49%" alt="The Tape cluster: speed and RPM as vertical tapes">
+  <img src="docs/build-video/frames/024-road-cluster.jpg" width="49%" alt="The Road cluster: a road view that rolls with the car">
+</p>
+<p align="center"><sub>Frames from the built-in simulator, captured from the real app. Mid-roll numerals are intentional: they move like an odometer, not like a text field.</sub></p>
 
-## Status
+## What it does
 
-Pre-alpha. **Phases 0 (foundation), 1 (the simulator), 2 (the OBD stack on the simulator) and 3a (the design system) are done**; the cockpit and HUD are next. There is no Drive page yet, but the design system is real and running: the app boots onto the void canvas with a dev button into the Design Lab, a gallery of the components built so far (rolling numerals in Saira and as VFD seven-segments, the chamfer button, toggle, segmented selector, slider, list row, the 27-glyph icon set) in every livery and mode, tried on a real Android 7.0 emulator. See [docs/design-review/phase-3a/](docs/design-review/phase-3a/) for screenshots and what was and wasn't verified. Nothing has been tried on a real car, and nothing has been checked against a real ELM327 adapter. The plan is to build and test everything against a built-in vehicle simulator first, and to connect real hardware only after every simulator test passes. The roadmap is in [CLAUDE.md](CLAUDE.md) section 13.
-
-The simulator is a physical car, a scripted driver, an ELM327 adapter that prints byte-accurate text, a GPS, and a set of adapter faults, all pure Dart. `dart run tool/sim_server.dart` serves it over TCP, and `dart run tool/record_sim.dart` records a drive as a replayable session log.
-
-On top of it sits the OBD stack, also pure Dart: an ELM327 client and start-up, PID decoders, a poller with tiers and batching, fault codes, a session that reconnects, and a vehicle state that checks and smooths what it reads. In tests it reads a whole simulated drive in seconds and compares the result with the simulator's ground truth.
-
-The design system turns that data into an instrument: tokens for every colour, spring and typeface (DESIGN.md 4–5); a motion core built on one shared vsync clock, so numerals roll with a detented mechanical feel and nothing snaps or jumps; a glyph atlas and a seven-segment renderer for the VFD livery, both drawn with batched `drawAtlas` calls rather than per-frame text layout; and a fidelity system that picks and governs how much of it a phone can afford. All of it lives in the Design Lab before it composes into a real screen.
+- **A dashboard built like an instrument.** Five Drive layouts (Apex, Tape, Minimal, Telemetry, Road), four liveries, automatic Daylight and Night modes, numerals that roll with a detent, needles that never jitter, and a startup sequence. The full spec is [DESIGN.md](DESIGN.md).
+- **A windshield HUD.** Mirrored, pure black, one colour, huge numerals, with an alignment pattern for setting it up on a reflector film or a 3D-printed holder.
+- **A trip computer for your wallet.** ₹ per trip, ₹ per km, km/L, and what idling cost you, with every rupee sorted into exactly one bucket (idling, hard acceleration, high speed, normal driving).
+- **A gentle driving coach.** It never speaks while you drive. Tips appear only when the car is stopped or the trip is over, and they are factual, never shaming.
+- **Trips, fill-ups and fuel calibration.** Log a fill-up and the fuel estimate calibrates itself against the real litres. Numbers are labelled as estimates, with confidence shown.
+- **Fault codes.** Read, look up and (when stopped) clear stored and pending codes.
+- **Engine sound (optional).** A synthesised engine note that says only what the tach says. Off by default.
+- **Demo Mode.** A built-in simulated car, so you can try everything without a car or an adapter.
 
 ## Principles
 
-- **Strictly offline.** No cloud, accounts, analytics, ads or price lookups. Fuel prices are entered by you. The only network use is a local WiFi ELM327 adapter, and that is limited to private addresses.
-- **Old phones first.** Targets a 2 GB RAM, 32-bit ARM phone on Android 7.0 with a 720p screen.
-- **Open source, F-Droid compatible.** No Google Play Services, Firebase or proprietary SDKs.
-- **Honest numbers.** Fuel and money figures are estimates and are labelled as such.
+- **Strictly offline.** No cloud, accounts, analytics, crash reporting, ads or price lookups. Fuel prices are entered by you. The only network use is a local WiFi ELM327 adapter, and the app refuses any address outside private ranges. `tool/check_offline.sh` enforces this on every commit.
+- **Old phones first.** Designed to run smoothly on a 2 GB RAM, 32-bit ARM phone with a 720p screen on Android 7.0.
+- **Open source and F-Droid compatible.** No Google Play Services, Firebase or proprietary SDKs.
+- **Honest numbers.** Fuel and money are estimates. Rupees are rounded to whole numbers, km/L to one decimal.
+- **Safe by design.** Nothing on a driving screen needs a touch. Settings, tips, fill-ups and fault-code clearing are reachable only when parked.
+- **Simulator first.** Every feature runs end to end against a built-in vehicle simulator, headlessly, in `flutter test`.
 
-## Safety
+## Status
 
-TapeDash is an aid, not a certified instrument. Set it up while parked. It is designed so that nothing needs your attention while you drive, but you remain responsible for driving safely.
+**Pre-alpha, and being driven on a real car.** The app is built and tested on the simulator through phase 6, and the first real drives (a BLE ELM327 on a petrol CVT car) are in. Phase 7, tuning against real recordings, is under way.
+
+| | |
+|---|---|
+| Built and tested on the simulator | Dashboard, HUD, trips, fuel and money, coach, Review, History, Garage, Diagnostics, onboarding |
+| Run on real hardware | A BLE adapter in one car, over two long drives. WiFi and Bluetooth Classic adapters have **not** been tried on a real car yet. |
+| Not built yet | Offline map under the route, F-Droid metadata, a signed release. See [docs/STATUS.md](docs/STATUS.md). |
+
+[docs/STATUS.md](docs/STATUS.md) is blunt about what has and has not been verified. If you try TapeDash on your own car, your report is genuinely useful: see [Contributing](#contributing).
+
+There are no release builds yet. For now, build from source.
+
+## Quick start
+
+Android only (Bluetooth Classic ELM327s, the common cheap kind, cannot work on iOS).
+
+You need the **Flutter stable SDK** (CI pins 3.44.1), **JDK 17** and the **Android SDK**. Details are in [docs/DEV_SETUP.md](docs/DEV_SETUP.md).
+
+```sh
+git clone https://github.com/ictashik/tapedash.git
+cd tapedash
+flutter pub get
+tool/verify.sh                 # format, analyze, tests and the offline check
+```
+
+**Try it without a car.** Run on a phone or emulator and choose **TRY A DEMO DRIVE** on the first screen:
+
+```sh
+flutter run
+```
+
+**Install on a phone.** For a first look, a debug build is fine. It is much slower than the real app, so judge smoothness on a release build:
+
+```sh
+flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64
+adb install -r build/app/outputs/flutter-apk/app-arm64-v8a-release.apk    # or app-armeabi-v7a-release.apk for a 32-bit phone
+```
+
+**In the car.** Plug the ELM327 into the OBD port, mount the phone, and choose **CONNECT MY CAR**. The step-by-step test script, in order, is [docs/HARDWARE_HANDOFF.md](docs/HARDWARE_HANDOFF.md).
+
+## The simulator
+
+The simulator is a first-class feature, not a test fixture. It is a physical car model (mass, drag, a CVT, warm-up, fuel), a set of scripted drivers, an ELM327 adapter that prints byte-accurate text with injectable quirks, a GPS, and six vehicle profiles. All of it is pure Dart.
+
+```sh
+dart run tool/sim_server.dart --list                        # scenarios, profiles, adapter quirks
+dart run tool/sim_server.dart --scenario city_stop_go --profile petrol_cvt_map
+dart run tool/record_sim.dart --all                         # record all ten scenarios as replayable logs
+```
+
+`sim_server` serves the simulator over TCP, so you can point the real WiFi transport at it (`10.0.2.2:35000` from an Android emulator) and exercise the production code path with no hardware. A 30-minute simulated drive runs in seconds on a fake clock, and the tests compare the app's estimates against the simulator's exact ground truth.
+
+## Project layout
+
+```
+lib/
+  core/        clock, scheduler, units, ₹ formatting (Indian digit grouping)
+  sim/         the vehicle simulator (pure Dart)
+  obd/         ELM327 layer, PIDs, DTCs, poller, transports (sim, WiFi, BT Classic, BLE, replay)
+  vehicle/     derived values and smoothing
+  fuel/ money/ fuel-flow estimators, fill-ups, calibration, attribution
+  coach/       event detection, sweet spot, tips
+  trips/       trip lifecycle and storage
+  sound/       the engine sound synth (pure Dart)
+  platform/    Dart side of the thin Kotlin channels (GPS, Bluetooth, device, audio)
+  ui/          the design system, pages, HUD, Design Lab
+android/       the Kotlin channels
+test/          unit, e2e simulated drives, widget, design (goldens and design lint)
+tool/          check_offline.sh, verify.sh, sim_server, record_sim, sound lab, font subsetting
+recordings/    replayable raw ELM327 sessions (simulator-made and from real drives)
+docs/          STATUS, DECISIONS, DEV_SETUP, HARDWARE_HANDOFF, design reviews
+```
+
+The layering rules (what may import what) are enforced by tests. The full architecture, the OBD and fuel maths, and the roadmap are in [CLAUDE.md](CLAUDE.md).
 
 ## Documents
 
-- [CLAUDE.md](CLAUDE.md): architecture, data, offline guarantees, safety, performance budgets and the roadmap.
-- [DESIGN.md](DESIGN.md): the visual, motion and interaction spec.
-- [docs/STATUS.md](docs/STATUS.md): where the project is, and what has and has not been verified.
-- [docs/DEV_SETUP.md](docs/DEV_SETUP.md): toolchain, building, and running on emulators and phones.
-- [docs/DECISIONS.md](docs/DECISIONS.md): the choices made so far, and why.
-- [docs/design-review/](docs/design-review/): what each UI phase looked like, with screenshots, and what was and wasn't verified (CLAUDE.md 1).
+| | |
+|---|---|
+| [DESIGN.md](DESIGN.md) | The visual, motion and interaction spec. Binding for everything you see. |
+| [CLAUDE.md](CLAUDE.md) | Architecture, data, offline guarantees, safety, performance budgets, roadmap. Binding for everything you don't. It is also the project's brief for its AI coding agent. |
+| [docs/STATUS.md](docs/STATUS.md) | Where the project is, and what has and has not been verified. |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | The choices made, and why. |
+| [docs/DEV_SETUP.md](docs/DEV_SETUP.md) | Toolchain, building, emulators and phones. |
+| [docs/HARDWARE_HANDOFF.md](docs/HARDWARE_HANDOFF.md) | How to test on a real adapter and car, and what to report back. |
+| [recordings/README.md](recordings/README.md) | The session log format and how replay works. |
 
-## Building
+## Contributing
 
-Android only. You need the Flutter stable SDK and an Android SDK.
+TapeDash is young and moves fast. Issues and pull requests are welcome; read [CONTRIBUTING.md](CONTRIBUTING.md) first. The most valuable contribution right now is a **real-car report**: your adapter, your car, which PIDs it answered, and a session recording (the app can record one; see [docs/HARDWARE_HANDOFF.md](docs/HARDWARE_HANDOFF.md)).
 
-```
-flutter pub get
-tool/verify.sh
-```
+## Safety
 
-`tool/verify.sh` is the gate for every commit: a format check, `flutter analyze`, `flutter test` and `tool/check_offline.sh`, which fails if the app could reach the network or pulls in Play Services or Firebase. Golden tests run on Linux CI only, so on macOS the script skips them.
+TapeDash is an aid, not a certified instrument. Set it up while parked. It is designed so that nothing needs your attention while you drive, but you remain responsible for driving safely. Fuel and cost figures are estimates. Do not use "Clear fault codes" on a car you do not understand: it also clears the data a mechanic would want.
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE).
+Apache License 2.0. See [LICENSE](LICENSE). Bundled fonts (Saira, Barlow, Barlow Semi Condensed) are under the SIL Open Font License 1.1.

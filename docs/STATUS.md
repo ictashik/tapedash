@@ -16,7 +16,7 @@ Updated 2026-09-30, after the first real drives (see "First real drive" and "The
 | 6. Real transports (tag `v0.6.0-handoff`) | **Done, unverified on hardware**; stopped for the handoff |
 | 7. After hardware | **Started**: the first real drive is in; recordings, tuning and the fixes below are next |
 
-**Suggested tags, none created** (placing them is your call; nothing has been pushed, and there is no remote): `v0.1.0-sim` on `d5016d6`, `v0.2.0-design` on `62fb1bb`, `v0.3.0-sim` on `57cd4e2`, `v0.4.0-sim` on `f0105e3`, `v0.5.0-sim` on `2db202f`, `v0.6.0-handoff` on the commit that adds `docs/HARDWARE_HANDOFF.md`.
+**Suggested tags, none created** (placing them is your call; none has been pushed): `v0.1.0-sim` on `d5016d6`, `v0.2.0-design` on `62fb1bb`, `v0.3.0-sim` on `57cd4e2`, `v0.4.0-sim` on `f0105e3`, `v0.5.0-sim` on `2db202f`, `v0.6.0-handoff` on the commit that adds `docs/HARDWARE_HANDOFF.md`.
 
 ## Phase 3b so far: every component
 
