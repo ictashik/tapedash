@@ -95,6 +95,8 @@ class VehicleProfile {
     required this.redlineRpm,
     required this.tachMaxRpm,
     required this.supportedPids,
+    this.secondEcuPids = const {},
+    this.canProtocol = 6,
     this.dragAreaM2 = 0.68,
     this.rollingResistance = 0.011,
     this.maxBrakeDecelMs2 = 7.5,
@@ -137,6 +139,15 @@ class VehicleProfile {
   /// count), which every OBD-II ECU has and the simulator always adds.
   final Set<int> supportedPids;
 
+  /// The PIDs of a second ECU on the same bus, if the car has one: many do (an
+  /// engine and a transmission or body module answer the same request, each in
+  /// its own frames). Empty means one ECU.
+  final Set<int> secondEcuPids;
+
+  /// The ELM327 protocol number the car speaks: 6 is 11-bit CAN at 500 kbaud,
+  /// 7 is 29-bit CAN at 500 kbaud.
+  final int canProtocol;
+
   /// The same car running on petrol with [blend] ethanol in it: the air makes
   /// more litres of fuel and less energy per litre, and the ground truth follows.
   /// Only a petrol car has a blend.
@@ -154,6 +165,8 @@ class VehicleProfile {
       redlineRpm: redlineRpm,
       tachMaxRpm: tachMaxRpm,
       supportedPids: supportedPids,
+      secondEcuPids: secondEcuPids,
+      canProtocol: canProtocol,
       dragAreaM2: dragAreaM2,
       rollingResistance: rollingResistance,
       maxBrakeDecelMs2: maxBrakeDecelMs2,

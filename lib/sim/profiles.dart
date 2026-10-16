@@ -170,6 +170,75 @@ abstract final class VehicleProfiles {
     supportedPids: _withMaf,
   );
 
+  /// A car like the one the first real recordings came from: two ECUs on 29-bit
+  /// CAN, each with its own PIDs, the PID sets those recordings listed. Only the
+  /// survey needs it, so it is not one of [all]. The values behind the PIDs the
+  /// app does not read are invented (`SimulatedEcu`), and the engine is an
+  /// ordinary simulated one: the survey is what finds out the real figures.
+  static const VehicleProfile surveyTwin = VehicleProfile(
+    name: 'petrol_cvt_twin_ecu',
+    description: 'Petrol CVT with two ECUs on 29-bit CAN, for the survey',
+    engine: PetrolSpec(displacementLitres: 1.5),
+    transmission: CvtTransmission(),
+    massKg: 1150,
+    tankLitres: 40,
+    idleRpm: 750,
+    redlineRpm: 6500,
+    tachMaxRpm: 7000,
+    // The first ECU to answer has no MAF.
+    supportedPids: {
+      pidLoad,
+      pidCoolant,
+      pidMap,
+      pidRpm,
+      pidSpeed,
+      pidIntakeAir,
+      pidThrottle,
+      0x21,
+      0x2E,
+      0x30,
+      0x31,
+      0x33,
+      0x34,
+      0x41,
+      pidVoltage,
+      0x45,
+      0x47,
+      0x49,
+      0x4A,
+    },
+    secondEcuPids: {
+      0x03,
+      pidLoad,
+      pidCoolant,
+      0x06,
+      pidMap,
+      pidRpm,
+      pidSpeed,
+      0x0E,
+      pidIntakeAir,
+      pidMaf,
+      pidThrottle,
+      0x13,
+      0x15,
+      0x1F,
+      0x21,
+      0x31,
+      0x33,
+      pidVoltage,
+      0x43,
+      0x44,
+      0x45,
+      0x47,
+      0x49,
+      0x4A,
+      0x4C,
+    },
+    canProtocol: 7,
+  );
+
+  /// Every profile the tests and scenarios iterate over. The survey's car is
+  /// not here; ask for it by name.
   static const List<VehicleProfile> all = [
     petrolCvtMaf,
     petrolCvtMap,
@@ -181,7 +250,7 @@ abstract final class VehicleProfiles {
 
   /// The profile called [name], or null.
   static VehicleProfile? byName(String name) {
-    for (final profile in all) {
+    for (final profile in [...all, surveyTwin]) {
       if (profile.name == name) return profile;
     }
     return null;

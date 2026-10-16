@@ -2,7 +2,6 @@ import 'dart:async';
 
 import '../../core/scheduler.dart';
 import '../../sim/adapter_quirks.dart';
-import '../../sim/ecu.dart';
 import '../../sim/elm327_device.dart';
 import '../../sim/elm327_simulator.dart';
 import '../../sim/scenario_events.dart';
@@ -36,8 +35,8 @@ class SimTransport implements Transport {
   }) {
     this.adapter =
         adapter ??
-        Elm327Simulator(
-          ecu: SimulatedEcu(car: car),
+        Elm327Simulator.forCar(
+          car,
           quirks: quirks ?? car.scenario.quirks,
           version: version,
           seed: seed,

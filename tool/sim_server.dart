@@ -27,7 +27,6 @@ import 'package:tapedash/obd/transport/session_log.dart';
 import 'package:tapedash/obd/transport/sim_transport.dart';
 import 'package:tapedash/obd/transport/transport.dart';
 import 'package:tapedash/sim/adapter_quirks.dart';
-import 'package:tapedash/sim/ecu.dart';
 import 'package:tapedash/sim/elm327_simulator.dart';
 import 'package:tapedash/sim/profiles.dart';
 import 'package:tapedash/sim/scenarios.dart';
@@ -272,11 +271,7 @@ Future<void> main(List<String> args) async {
   );
   final server = SimServer(
     car: car,
-    adapter: Elm327Simulator(
-      ecu: SimulatedEcu(car: car),
-      quirks: quirks,
-      seed: seed,
-    ),
+    adapter: Elm327Simulator.forCar(car, quirks: quirks, seed: seed),
     host: options['host'] ?? '127.0.0.1',
     port: port,
     loop: !flags.contains('no-loop'),

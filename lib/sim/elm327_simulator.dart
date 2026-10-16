@@ -1,6 +1,7 @@
 import 'adapter_quirks.dart';
 import 'ecu.dart';
 import 'sim_random.dart';
+import 'simulated_car.dart';
 
 /// One piece of what the adapter sends, and when.
 class AdapterChunk {
@@ -35,9 +36,18 @@ class AdapterOutput {
 /// CAN formatting, error messages. The car's answers come from an [ObdEcu], and
 /// the link's own latency is added by whatever carries the bytes.
 ///
-/// **What it models.** ISO 15765-4 CAN, 11-bit, 500 kbaud (protocol 6), with
-/// one ECU at 7E8. Every other protocol can be selected but the car does not
+/// **What it models.** ISO 15765-4 CAN at 500 kbaud, 11-bit (protocol 6, the
+/// ECUs at 7E8, 7E9...) or 29-bit (protocol 7, at 18DAF110, 18DAF111...), with
+/// one ECU or several. Every other protocol can be selected but the car does not
 /// speak it, so the adapter reports what a real one would.
+///
+/// **More than one ECU.** Every ECU addressed answers. With headers on, each
+/// frame is printed with its ECU's ID. When two ECUs answer with a message of
+/// several frames, the adapter sends the flow control to one of them only, so
+/// the other's message stops after its first frame: this is what the first real
+/// recordings of a two-ECU car show (the first to answer is the one completed;
+/// which of the two it is on a real car is not settled, and here it is the
+/// first). `ATCRA` makes the adapter listen to one ECU, which then completes.
 ///
 /// **Where the details come from.** The message formats and the AT commands are
 /// from the ELM327 datasheet (ELM327DSJ v2.1). The datasheet is written for a
@@ -60,6 +70,7 @@ class AdapterOutput {
 class Elm327Simulator {
   Elm327Simulator({
     required this.ecu,
+    this.extraEcus = const [],
     this.quirks = AdapterQuirks.none,
     this.version = 'ELM327 v1.5',
     this.linefeedsByDefault = true,
@@ -70,7 +81,31 @@ class Elm327Simulator {
     _restoreProtocol();
   }
 
+  /// An adapter on [car], with the ECUs and the protocol its profile has.
+  factory Elm327Simulator.forCar(
+    SimulatedCar car, {
+    AdapterQuirks quirks = AdapterQuirks.none,
+    String version = 'ELM327 v1.5',
+    int seed = 1,
+  }) {
+    final ecus = SimulatedEcu.forCar(car);
+    return Elm327Simulator(
+      ecu: ecus.first,
+      extraEcus: ecus.skip(1).toList(),
+      quirks: quirks,
+      version: version,
+      carProtocol: car.profile.canProtocol,
+      seed: seed,
+    );
+  }
+
+  /// The car's first ECU, the one whose answer comes first.
   final ObdEcu ecu;
+
+  /// The other ECUs on the bus, if the car has more than one. A request sent to
+  /// the functional address reaches all of them, and each answers in its own
+  /// frames.
+  final List<ObdEcu> extraEcus;
   final AdapterQuirks quirks;
 
   /// What `ATZ` and `ATI` print.
@@ -80,8 +115,9 @@ class Elm327Simulator {
   /// leaves it to a pin on the chip, and most adapters have it set.
   final bool linefeedsByDefault;
 
-  /// The protocol the car speaks. Protocol 6, 11-bit CAN at 500 kbaud, is the
-  /// only one the simulator can answer on.
+  /// The protocol the car speaks: 6, 11-bit CAN at 500 kbaud (the default), or
+  /// 7, 29-bit CAN at 500 kbaud. These are the only two the simulator can
+  /// answer on.
   final int carProtocol;
 
   final SimRandom _random;
@@ -122,6 +158,7 @@ class Elm327Simulator {
   late int _adaptiveTiming;
   late int _timeoutUnits;
   late String _header;
+  String? _receiveFilter;
   late bool _allowLong;
 
   // Kept across ATZ, as the chip keeps them in its memory.
@@ -150,7 +187,8 @@ class Elm327Simulator {
     _headers = false;
     _adaptiveTiming = 1;
     _timeoutUnits = 0x32;
-    _header = '7DF';
+    _header = _functionalHeader;
+    _receiveFilter = null;
     _allowLong = false;
   }
 
@@ -254,6 +292,9 @@ class Elm327Simulator {
     if (command.startsWith('SH')) {
       return _setHeader(command.substring(2), echo);
     }
+    if (command.startsWith('CRA')) {
+      return _setReceiveFilter(command.substring(3), echo);
+    }
     return _unknown(echo);
   }
 
@@ -342,6 +383,21 @@ class Elm327Simulator {
     return _ok(echo);
   }
 
+  /// ATCRA with an ID makes the adapter show only the frames from that ID, and
+  /// ATCRA alone puts every ECU back.
+  AdapterOutput _setReceiveFilter(String argument, String echo) {
+    if (argument.isEmpty) {
+      _receiveFilter = null;
+      return _ok(echo);
+    }
+    final valid =
+        RegExp(r'^[0-9A-F]+$').hasMatch(argument) &&
+        (argument.length == 3 || argument.length == 8);
+    if (!valid) return _unknown(echo);
+    _receiveFilter = argument;
+    return _ok(echo);
+  }
+
   String _protocolNumber() {
     final digit = _protocol.toRadixString(16).toUpperCase();
     return _auto ? 'A$digit' : digit;
@@ -386,32 +442,90 @@ class Elm327Simulator {
       return (out..add(attempt.took, '${attempt.error}$_nl$_nl>')).build();
     }
 
-    // An ECU answers requests sent to it: to the functional address 7DF that
-    // every ECU listens to, or to its own, 7E0.
-    final addressed = _header == '7DF' || _header == '7E0';
-    var payload = addressed ? ecu.respond(request) : null;
-    if (payload != null &&
-        quirks.noDataRate > 0 &&
-        _random.chance(quirks.noDataRate)) {
-      payload = null;
+    // An ECU answers requests sent to it: to the functional address that every
+    // ECU listens to, or to its own.
+    final answers = <_Answer>[];
+    for (final index in _addressedEcus()) {
+      var payload = _bus[index].respond(request);
+      if (payload != null &&
+          quirks.noDataRate > 0 &&
+          _random.chance(quirks.noDataRate)) {
+        payload = null;
+      }
+      if (payload != null && _passesFilter(index)) {
+        answers.add(_Answer(index, payload));
+      }
     }
-    if (payload == null) {
+    if (answers.isEmpty) {
       // Nothing came back, so the adapter waited its whole timeout.
       return (out..add(attempt.took + _timeout, 'NO DATA$_nl$_nl>')).build();
     }
 
-    final frames = payload.length <= 7 ? 1 : 1 + payload.length ~/ 7;
+    // The flow control goes to the first ECU with a long message, and only to
+    // it.
+    var flowControlled = false;
+    var frames = 1;
+    for (final answer in answers) {
+      final count = _isoTpFrames(answer.payload).length;
+      if (count > 1 && !flowControlled) {
+        flowControlled = answer.complete = true;
+        frames = count > frames ? count : frames;
+      }
+    }
     final answered = attempt.took + _ecuTime + _perFrameTime * (frames - 1);
     out
-      ..add(answered, _canLines(payload).map((l) => '$l$_nl').join())
-      ..add(answered + _waitAfterAnswer(expected), '$_nl>');
+      ..add(answered, _canLines(answers).map((l) => '$l$_nl').join())
+      ..add(answered + _waitAfterAnswer(expected, answers.length), '$_nl>');
     return out.build();
   }
 
+  // ------------------------------------------------------------------- the bus
+
+  List<ObdEcu> get _bus => [ecu, ...extraEcus];
+
+  bool get _is29Bit => carProtocol == 7 || carProtocol == 9;
+
+  /// The header a request goes out with unless it is changed: the functional
+  /// address, which every ECU listens to.
+  String get _functionalHeader => _is29Bit ? 'DB33F1' : '7DF';
+
+  /// The ID the ECU at [index] answers from.
+  String _responseId(int index) => _is29Bit
+      ? '18DAF1${_hexByte(0x10 + index)}'
+      : (0x7E8 + index).toRadixString(16).toUpperCase();
+
+  /// The header that addresses the ECU at [index] alone.
+  String _physicalHeader(int index) => _is29Bit
+      ? 'DA${_hexByte(0x10 + index)}F1'
+      : (0x7E0 + index).toRadixString(16).toUpperCase();
+
+  static String _hexByte(int value) =>
+      value.toRadixString(16).toUpperCase().padLeft(2, '0');
+
+  /// Which ECUs the current header reaches.
+  List<int> _addressedEcus() {
+    // A 29-bit header may be given with its leading 18, the priority byte.
+    final header = _header.length == 8 && _header.startsWith('18')
+        ? _header.substring(2)
+        : _header;
+    if (header == _functionalHeader) {
+      return [for (var i = 0; i < _bus.length; i++) i];
+    }
+    for (var i = 0; i < _bus.length; i++) {
+      if (header == _physicalHeader(i)) return [i];
+    }
+    return const [];
+  }
+
+  bool _passesFilter(int index) =>
+      _receiveFilter == null || _receiveFilter == _responseId(index);
+
   /// How long the adapter goes on listening after the answer, in case another
   /// ECU has more to say.
-  Duration _waitAfterAnswer(int? expected) {
-    if (expected == 1) return Duration.zero;
+  Duration _waitAfterAnswer(int? expected, int answered) {
+    if (expected != null && expected > 0 && answered >= expected) {
+      return Duration.zero;
+    }
     final adaptive = _adaptiveTiming != 0 && !quirks.ignoreAdaptiveTiming;
     if (adaptive && (expected == null || expected == 0)) {
       return _adaptiveTiming == 2 ? _adaptiveWait2 : _adaptiveWait1;
@@ -466,17 +580,48 @@ class Elm327Simulator {
 
   // -------------------------------------------------------- CAN formatting
 
-  /// The lines the adapter prints for an ECU's answer.
-  List<String> _canLines(List<int> payload) {
-    if (_headers) {
-      final id = _spaces ? '7E8 ' : '7E8';
-      return [for (final frame in _isoTpFrames(payload)) '$id${_hex(frame)}'];
+  /// The lines the adapter prints for the ECUs' answers.
+  ///
+  /// With headers on, every frame has its ECU's ID in front, the first (or only)
+  /// frame of each ECU first and then the later frames of the ECU that got flow
+  /// control. With headers off, a message of one frame is its bytes; a longer one
+  /// is its length, then the bytes in numbered lines (six in the first frame,
+  /// seven in each one after it, the last padded), and the numbered lines after
+  /// the first come once every ECU has begun.
+  List<String> _canLines(List<_Answer> answers) {
+    final first = <String>[];
+    final later = <String>[];
+    for (final answer in answers) {
+      final payload = answer.payload;
+      if (_headers) {
+        final id = _spaces
+            ? _spacedId(answer.index)
+            : _responseId(answer.index);
+        final frames = _isoTpFrames(payload);
+        first.add('$id${_hex(frames.first)}');
+        if (answer.complete) {
+          later.addAll([for (final f in frames.skip(1)) '$id${_hex(f)}']);
+        }
+      } else if (payload.length <= 7) {
+        first.add(_hex(payload));
+      } else {
+        final lines = _numberedLines(payload);
+        first.addAll(lines.take(2));
+        if (answer.complete) later.addAll(lines.skip(2));
+      }
     }
-    if (payload.length <= 7) return [_hex(payload)];
+    return [...first, ...later];
+  }
 
-    // A message of several frames is printed as its length, then the bytes in
-    // numbered lines: six in the first frame, seven in each one after it, the
-    // last padded.
+  /// The ID with a space between its bytes, and one after.
+  String _spacedId(int index) {
+    final id = _responseId(index);
+    if (!_is29Bit) return '$id ';
+    return '${[for (var i = 0; i < id.length; i += 2) id.substring(i, i + 2)].join(' ')} ';
+  }
+
+  /// A message of several frames as the adapter prints it with headers off.
+  List<String> _numberedLines(List<int> payload) {
     final lines = <String>[
       payload.length.toRadixString(16).toUpperCase().padLeft(3, '0'),
     ];
@@ -600,6 +745,19 @@ class Elm327Simulator {
         '${text.substring(0, at)}$stray${text.substring(at)}',
       );
   }
+}
+
+/// One ECU's reply to a request.
+class _Answer {
+  _Answer(this.index, this.payload);
+
+  /// Which ECU on the bus.
+  final int index;
+  final List<int> payload;
+
+  /// Whether the adapter sent this ECU flow control, so that a message of
+  /// several frames arrives whole.
+  bool complete = false;
 }
 
 /// How an attempt to open a session with the car went.
