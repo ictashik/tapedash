@@ -46,6 +46,19 @@ class SurveyOtherReply {
   final bool complete;
 }
 
+/// Something the user switched on or off during the survey (headlights, A/C...),
+/// as they marked it on the screen.
+class SurveyMark {
+  const SurveyMark({required this.at, required this.id, required this.on});
+
+  final Duration at;
+
+  /// What it was: `headlights`, `blower`, `ac`, `defogger`, `wipers`,
+  /// `steering`.
+  final String id;
+  final bool on;
+}
+
 /// A survey log, read back.
 class SurveySummary {
   SurveySummary({
@@ -57,6 +70,7 @@ class SurveySummary {
     required this.notes,
     required this.supported,
     required this.adapterLines,
+    required this.marks,
   });
 
   /// The `#` lines of the log.
@@ -83,6 +97,9 @@ class SurveySummary {
 
   /// What the adapter said to `ATI`, `AT@1` and `ATRV`, by command.
   final Map<String, String> adapterLines;
+
+  /// What the user marked, in order.
+  final List<SurveyMark> marks;
 
   /// The reads of [pid] from [ecu] (or from any ECU if it is null).
   List<SurveyRead> readsOf(int pid, {String? ecu}) => [
@@ -116,6 +133,7 @@ abstract final class SurveyLogReader {
     final notes = <(Duration, String)>[];
     final supported = <String, Set<int>>{};
     final adapterLines = <String, String>{};
+    final marks = <SurveyMark>[];
 
     var headersOn = false;
     String? filter;
@@ -215,6 +233,18 @@ abstract final class SurveyLogReader {
           final text = e.text;
           if (text.startsWith('survey ')) {
             notes.add((e.at, text.substring(7)));
+            final mark = RegExp(
+              r'^mark id=(\S+) state=(on|off)$',
+            ).firstMatch(text.substring(7));
+            if (mark != null) {
+              marks.add(
+                SurveyMark(
+                  at: e.at,
+                  id: mark.group(1)!,
+                  on: mark.group(2) == 'on',
+                ),
+              );
+            }
             final ecu = RegExp(
               r'^ecu id=(\S+) pids=(\S*)$',
             ).firstMatch(text.substring(7));
@@ -240,6 +270,7 @@ abstract final class SurveyLogReader {
       notes: notes,
       supported: supported,
       adapterLines: adapterLines,
+      marks: marks,
     );
   }
 

@@ -225,6 +225,57 @@ void main() {
     });
   });
 
+  group('an adapter whose receive filter lets nothing through', () {
+    test('the survey notices, drops it, and does not think the car is off', () {
+      final rig = SurveyRig(
+        quirks: AdapterQuirks.measuredBle.copyWith(deadReceiveFilter: true),
+      )..start();
+      rig.run(150);
+
+      expect(rig.progress.filter, SurveyFilter.refused);
+      expect(rig.progress.phase, SurveyPhase.driving);
+      expect(
+        rig.notes.any((n) => n.startsWith('filter gives no data')),
+        isTrue,
+      );
+      expect(rig.sequence, isNot(contains(SurveyPhase.waitingForCar)));
+      // The first ECU's PIDs and the second's are both read, with no filter.
+      final s = rig.summary;
+      expect(s.readsOf(0x10), isNotEmpty);
+      expect(s.readsOf(0x34), isNotEmpty);
+      rig.close();
+    });
+
+    test('and a filter that works is not distrusted', () {
+      final rig = SurveyRig()..start();
+      rig.run(90);
+
+      expect(
+        rig.notes.any((n) => n.startsWith('filter gives no data')),
+        isFalse,
+      );
+      expect(rig.progress.filter, SurveyFilter.working);
+      rig.close();
+    });
+  });
+
+  group('marks in the log', () {
+    test('are read back, in order, with their times', () {
+      final rig = SurveyRig()..start();
+      rig.run(40);
+      rig.recorder.note('survey mark id=ac state=on');
+      rig.run(10);
+      rig.recorder.note('survey mark id=ac state=off');
+      rig.run(5);
+
+      final marks = rig.summary.marks;
+      expect(marks.map((m) => m.id), ['ac', 'ac']);
+      expect(marks.map((m) => m.on), [true, false]);
+      expect(marks.last.at - marks.first.at, const Duration(seconds: 10));
+      rig.close();
+    });
+  });
+
   group('an adapter that does not take several PIDs at once', () {
     test('the batch falls to one, and every PID is still read', () {
       final rig = SurveyRig(

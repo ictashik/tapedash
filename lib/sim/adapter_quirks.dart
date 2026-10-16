@@ -9,6 +9,7 @@ class AdapterQuirks {
     this.ignoreAdaptiveTiming = false,
     this.noMultiPid = false,
     this.noReceiveFilter = false,
+    this.deadReceiveFilter = false,
     this.noDataRate = 0,
     this.missingPromptRate = 0,
     this.garbageRate = 0,
@@ -32,6 +33,10 @@ class AdapterQuirks {
   /// `ATCRA`, which makes the adapter listen to one ECU, is not understood and
   /// gets `?`.
   final bool noReceiveFilter;
+
+  /// `ATCRA` is accepted, and then nothing gets through it: as if the ID given
+  /// were not the one the ECU answers from.
+  final bool deadReceiveFilter;
 
   /// The chance, 0 to 1, that a supported PID is answered with `NO DATA`.
   final double noDataRate;
@@ -103,6 +108,7 @@ class AdapterQuirks {
       if (ignoreAdaptiveTiming) 'ignores adaptive timing',
       if (noMultiPid) 'no multi-PID',
       if (noReceiveFilter) 'no receive filter',
+      if (deadReceiveFilter) 'dead receive filter',
       if (noDataRate > 0) 'NO DATA ${_percent(noDataRate)}',
       if (missingPromptRate > 0)
         'missing prompt ${_percent(missingPromptRate)}',
@@ -126,6 +132,7 @@ class AdapterQuirks {
     bool? ignoreAdaptiveTiming,
     bool? noMultiPid,
     bool? noReceiveFilter,
+    bool? deadReceiveFilter,
     double? noDataRate,
     double? missingPromptRate,
     double? garbageRate,
@@ -136,6 +143,7 @@ class AdapterQuirks {
     ignoreAdaptiveTiming: ignoreAdaptiveTiming ?? this.ignoreAdaptiveTiming,
     noMultiPid: noMultiPid ?? this.noMultiPid,
     noReceiveFilter: noReceiveFilter ?? this.noReceiveFilter,
+    deadReceiveFilter: deadReceiveFilter ?? this.deadReceiveFilter,
     noDataRate: noDataRate ?? this.noDataRate,
     missingPromptRate: missingPromptRate ?? this.missingPromptRate,
     garbageRate: garbageRate ?? this.garbageRate,

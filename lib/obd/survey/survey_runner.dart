@@ -207,6 +207,12 @@ class SurveyRunner {
   String? _filter;
   SurveySchedule? _schedule;
 
+  // Whether the filter just set has let anything through yet, and how many
+  // requests have failed since it was set.
+  bool _filterGood = false;
+  int _filterFails = 0;
+  bool _clearFilter = false;
+
   // ---- the step queue of discovery and the probe
   final Queue<_Step> _steps = Queue();
   void Function()? _stepsDone;
@@ -522,12 +528,28 @@ class SurveyRunner {
           if (r.ok) {
             _filter = ecu;
             _filterState = SurveyFilter.working;
+            _filterGood = false;
+            _filterFails = 0;
           } else {
             _filter = null;
             _filterState = SurveyFilter.refused;
             _say('survey ATCRA refused: listening to every ECU at once');
           }
         }, when: () => _filterState != SurveyFilter.refused);
+      }
+      if (_manyEcus) {
+        // Does the filter let this ECU through? If not, it is not used.
+        _push(
+          '0100',
+          (r) {
+            if (_filter == ecu && !r.messages.any((m) => m.id == ecu)) {
+              _distrustFilter('nothing from $ecu after ATCRA');
+              _insertAll([_Step(() => 'ATCRA', (_) {})]);
+            }
+          },
+          expectDigit: true,
+          when: () => _filterState == SurveyFilter.working,
+        );
       }
       _say('survey probe ecu=$ecu');
       for (final pid in _supported[ecu]!.toList()..sort()) {
@@ -717,6 +739,11 @@ class SurveyRunner {
 
   void _loop() {
     if (!_running || !_linkUp || _phase != SurveyPhase.driving) return;
+    if (_clearFilter) {
+      _clearFilter = false;
+      _ask('ATCRA', (_) => _loop());
+      return;
+    }
     final now = clock.monotonic();
     if (now >= _nextVitals) {
       _nextVitals = now + config.vitalsEvery;
@@ -750,6 +777,8 @@ class SurveyRunner {
         if (r.ok) {
           _filter = request.ecu;
           _filterState = SurveyFilter.working;
+          _filterGood = false;
+          _filterFails = 0;
         } else {
           _filter = null;
           _filterState = SurveyFilter.refused;
@@ -806,6 +835,7 @@ class SurveyRunner {
     if (got.isNotEmpty) {
       _answered++;
       _failStreak = 0;
+      _filterGood = true;
       _lastAnswerAt = now;
       schedule.record(request, now, got: got, config: config);
       _batchResult(size, ok: true);
@@ -813,6 +843,13 @@ class SurveyRunner {
     }
     _failed++;
     _failStreak++;
+    if (_filter != null && !_filterGood && ++_filterFails >= 3) {
+      // Set a filter, and nothing at all has come through it: it is the wrong
+      // ID, or the adapter does not do what it says. Listen to every ECU.
+      _distrustFilter('no answers after ATCRA$_filter');
+      _clearFilter = true;
+      return;
+    }
     if (size == 1) {
       // One PID asked for and nothing back: the PID's own miss.
       schedule.record(request, now, got: const {}, config: config);
@@ -823,6 +860,13 @@ class SurveyRunner {
         now - _lastAnswerAt > const Duration(seconds: 5)) {
       _waitForCar();
     }
+  }
+
+  /// Gives up on the receive filter: it let nothing through.
+  void _distrustFilter(String why) {
+    _say('survey filter gives no data ($why): listening to every ECU at once');
+    _filter = null;
+    _filterState = SurveyFilter.refused;
   }
 
   /// Halves the batch after repeated failures and grows it back after a long

@@ -518,8 +518,11 @@ class Elm327Simulator {
     return const [];
   }
 
-  bool _passesFilter(int index) =>
-      _receiveFilter == null || _receiveFilter == _responseId(index);
+  bool _passesFilter(int index) {
+    if (_receiveFilter == null) return true;
+    if (quirks.deadReceiveFilter) return false;
+    return _receiveFilter == _responseId(index);
+  }
 
   /// How long the adapter goes on listening after the answer, in case another
   /// ECU has more to say.

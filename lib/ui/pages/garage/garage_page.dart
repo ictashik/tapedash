@@ -55,6 +55,7 @@ class GaragePage extends StatefulWidget {
     this.onSetPrice,
     this.adapters,
     this.onChangeAdapter,
+    this.onSurvey,
     this.phoneTemperature,
     this.demo,
     this.onEndTrip,
@@ -84,6 +85,10 @@ class GaragePage extends StatefulWidget {
 
   /// Opens the connect flow, to choose or change the adapter.
   final VoidCallback? onChangeAdapter;
+
+  /// Starts a survey drive (docs/SURVEY.md). Null leaves the row out: there is
+  /// no real adapter to survey.
+  final VoidCallback? onSurvey;
 
   /// The battery temperature, for the suggestion when the phone is hot.
   final Observable<double?>? phoneTemperature;
@@ -607,6 +612,12 @@ class GaragePageState extends State<GaragePage> {
             'Saved on this phone',
             'One file for each drive, in Android/data/io.github.ictashik.tapedash/'
                 'files/recordings. Nothing leaves the phone by itself.',
+          ),
+        if (widget.onSurvey != null && adapters.useAdapter.value)
+          TapeListRow(
+            label: 'Survey drive',
+            value: 'Find out what your car reports',
+            onTap: widget.onSurvey,
           ),
         TapeListRow(
           label: 'Forget this adapter',

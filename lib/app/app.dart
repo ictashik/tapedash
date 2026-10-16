@@ -27,6 +27,7 @@ import '../ui/dev/dev_settings.dart';
 import '../ui/lab/design_lab.dart';
 import '../ui/onboarding/connect_flow.dart';
 import '../ui/onboarding/onboarding_screen.dart';
+import '../ui/pages/survey/survey_page.dart';
 import 'app_info.dart';
 import 'app_services.dart';
 import 'app_settings.dart';
@@ -35,6 +36,7 @@ import 'display_controller.dart';
 import 'drive_shell.dart';
 import 'live_drive.dart';
 import 'radio_transport_factory.dart';
+import 'survey_drive.dart';
 import 'transport_adapter_checker.dart';
 
 /// Root widget.
@@ -235,6 +237,14 @@ class _ShellState extends State<_Shell> {
   /// Whether the connect flow is on screen.
   bool _connecting = false;
 
+  /// Whether a survey drive has the screen (Garage → Survey drive). It takes the
+  /// adapter over, so the dashboard's drive is gone for as long as it lasts and
+  /// is made again when it ends.
+  bool _surveying = false;
+
+  /// The survey itself, once the dashboard has let go of the adapter.
+  SurveyDrive? _survey;
+
   AdapterStore get _adapters => _services.adapters;
 
   @override
@@ -254,6 +264,8 @@ class _ShellState extends State<_Shell> {
   /// compatibility mode, recording) reach the drive here; they only happen while
   /// parked.
   Future<void> _syncDrive() async {
+    // A survey has the adapter; it gives the drive back when it ends.
+    if (_surveying) return;
     final ticket = ++_syncs;
     final config = _adapters.useAdapter.value ? _adapters.adapter.value : null;
     if (config == null) {
@@ -298,6 +310,7 @@ class _ShellState extends State<_Shell> {
     _adapters.recordSessions.removeListener(_syncDrive);
     _demo?.dispose();
     unawaited(_live?.dispose());
+    unawaited(_survey?.dispose());
     _phoneHot.dispose();
     for (final t in _debugTexts) {
       t.dispose();
@@ -308,6 +321,42 @@ class _ShellState extends State<_Shell> {
   }
 
   void _openConnect() => setState(() => _connecting = true);
+
+  /// Hands the adapter from the dashboard to a survey drive. The dashboard's link
+  /// is closed first, since an adapter takes one connection at a time.
+  Future<void> _openSurvey() async {
+    final config = _adapters.useAdapter.value ? _adapters.adapter.value : null;
+    if (config == null || _surveying) return;
+    _surveying = true;
+    final old = _live;
+    _live = null;
+    setState(() {});
+    await old?.dispose();
+    final memory = await _adapters.memoryFor(config);
+    if (!mounted || !_surveying) return;
+    setState(() {
+      _survey = SurveyDrive(
+        adapter: config,
+        transports: _transports,
+        clock: widget.clock,
+        scheduler: widget.scheduler,
+        sink: _sink,
+        memory: memory,
+        appVersion: appVersion,
+      );
+    });
+  }
+
+  /// Ends the survey screen and gives the adapter back to the dashboard, which is
+  /// made again once the survey has let go of the link.
+  Future<void> _closeSurvey() async {
+    final survey = _survey;
+    _survey = null;
+    if (mounted) setState(() {});
+    await survey?.dispose();
+    _surveying = false;
+    if (mounted) await _syncDrive();
+  }
 
   Widget _screen() {
     if (_connecting) {
@@ -328,6 +377,21 @@ class _ShellState extends State<_Shell> {
         ),
       );
     }
+    if (_surveying) {
+      final survey = _survey;
+      // The dashboard is letting go of the adapter, or the survey is.
+      if (survey == null) return const SizedBox.shrink();
+      return LayoutBuilder(
+        builder: (context, box) => TapeBackdrop(
+          child: SurveyPage(
+            drive: survey,
+            width: box.maxWidth,
+            height: box.maxHeight,
+            onClose: () => unawaited(_closeSurvey()),
+          ),
+        ),
+      );
+    }
     if (_onboarded) {
       final live = _live;
       final demo = _demo;
@@ -342,6 +406,7 @@ class _ShellState extends State<_Shell> {
         clock: widget.clock,
         scheduler: widget.scheduler,
         onChangeAdapter: _openConnect,
+        onSurvey: live == null ? null : () => unawaited(_openSurvey()),
         phoneHot: _phoneHot,
         phoneTemperature: _display.temperature,
         debugRows: _debugRows,

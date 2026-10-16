@@ -73,6 +73,7 @@ class DriveShell extends StatefulWidget {
     this.live,
     this.app,
     this.onChangeAdapter,
+    this.onSurvey,
     this.phoneHot,
     this.phoneTemperature,
     this.debugRows = const [],
@@ -105,6 +106,10 @@ class DriveShell extends StatefulWidget {
 
   /// Garage's request to choose an adapter (the connect flow is the app's).
   final VoidCallback? onChangeAdapter;
+
+  /// Garage's request to start a survey drive (the app's: it takes the adapter
+  /// over). Null when the drive is not from a real adapter.
+  final VoidCallback? onSurvey;
 
   /// Whether the phone is hot, for the status strip's glyph.
   final ValueListenable<bool>? phoneHot;
@@ -410,6 +415,7 @@ class _DriveShellState extends State<DriveShell> {
           demo: _demo,
           adapters: _app.adapters,
           onChangeAdapter: widget.onChangeAdapter,
+          onSurvey: widget.onSurvey,
           phoneTemperature: widget.phoneTemperature,
           onEndTrip: () => _services?.recorder.endNow(),
           onAlignment: () => _hud.showAlignment = true,
