@@ -1,0 +1,854 @@
+# tapedash-session v1
+# app: tapedash 0.5.0-sim
+# adapter: OBDBLE
+# kind: ble
+# address: 81:23:45:67:89:BA
+# started: 2026-09-30T15:30:44.702654Z
+# compatibility: false
+0.004 @ status searching
+0.008 ! connecting
+0.468 ! disconnected (unreachable)
+1.474 ! connecting
+1.478 ! disconnected (unreachable)
+3.479 ! connecting
+3.481 ! disconnected (unreachable)
+4.972 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+7.482 ! connecting
+7.485 ! disconnected (unreachable)
+9.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+14.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+15.487 ! connecting
+15.490 ! disconnected (unreachable)
+19.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+24.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+25.492 ! connecting
+25.494 ! disconnected (unreachable)
+29.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+34.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+35.496 ! connecting
+35.499 ! disconnected (unreachable)
+39.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+44.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+45.501 ! connecting
+45.503 ! disconnected (unreachable)
+49.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+54.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+55.505 ! connecting
+55.507 ! disconnected (unreachable)
+59.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+64.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+65.508 ! connecting
+65.514 ! disconnected (unreachable)
+69.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+74.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+75.516 ! connecting
+75.522 ! disconnected (unreachable)
+79.983 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+84.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+85.525 ! connecting
+85.529 ! disconnected (unreachable)
+89.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+94.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+95.529 ! connecting
+95.531 ! disconnected (unreachable)
+99.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+104.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+105.532 ! connecting
+105.534 ! disconnected (unreachable)
+109.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+114.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+115.535 ! connecting
+115.538 ! disconnected (unreachable)
+119.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+124.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+125.540 ! connecting
+125.542 ! disconnected (unreachable)
+129.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+134.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+135.543 ! connecting
+135.546 ! disconnected (unreachable)
+139.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+144.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+145.548 ! connecting
+145.555 ! disconnected (unreachable)
+149.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+154.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+155.557 ! connecting
+155.559 ! disconnected (unreachable)
+159.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+164.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+165.561 ! connecting
+165.563 ! disconnected (unreachable)
+169.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+174.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+175.564 ! connecting
+175.574 ! disconnected (unreachable)
+179.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+184.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+185.575 ! connecting
+185.578 ! disconnected (unreachable)
+189.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+194.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+195.579 ! connecting
+195.590 ! disconnected (unreachable)
+199.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+204.972 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+205.591 ! connecting
+205.599 ! disconnected (unreachable)
+209.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+214.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+215.600 ! connecting
+215.606 ! disconnected (unreachable)
+219.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+224.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+225.608 ! connecting
+225.615 ! disconnected (unreachable)
+229.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+234.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+235.616 ! connecting
+235.623 ! disconnected (unreachable)
+239.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+244.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+245.624 ! connecting
+245.630 ! disconnected (unreachable)
+249.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+254.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+255.631 ! connecting
+255.637 ! disconnected (unreachable)
+259.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+264.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+265.638 ! connecting
+265.644 ! disconnected (unreachable)
+269.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+274.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+275.645 ! connecting
+275.651 ! disconnected (unreachable)
+279.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+284.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+285.653 ! connecting
+285.659 ! disconnected (unreachable)
+289.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+294.972 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+295.660 ! connecting
+295.667 ! disconnected (unreachable)
+299.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+304.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+305.668 ! connecting
+305.674 ! disconnected (unreachable)
+309.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+314.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+315.675 ! connecting
+315.681 ! disconnected (unreachable)
+319.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+324.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+325.682 ! connecting
+325.688 ! disconnected (unreachable)
+329.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+334.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+335.689 ! connecting
+335.695 ! disconnected (unreachable)
+339.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+344.985 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+345.696 ! connecting
+345.700 ! disconnected (unreachable)
+349.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+354.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+355.702 ! connecting
+355.705 ! disconnected (unreachable)
+359.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+364.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+365.706 ! connecting
+365.714 ! disconnected (unreachable)
+369.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+374.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+375.716 ! connecting
+375.726 ! disconnected (unreachable)
+379.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+384.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+385.728 ! connecting
+385.734 ! disconnected (unreachable)
+389.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+394.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+395.735 ! connecting
+395.742 ! disconnected (unreachable)
+399.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+404.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+405.743 ! connecting
+405.750 ! disconnected (unreachable)
+409.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+414.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+415.751 ! connecting
+415.758 ! disconnected (unreachable)
+419.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+424.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+425.760 ! connecting
+425.766 ! disconnected (unreachable)
+429.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+434.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+435.767 ! connecting
+435.774 ! disconnected (unreachable)
+439.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+444.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+445.776 ! connecting
+445.781 ! disconnected (unreachable)
+449.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+454.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+455.783 ! connecting
+455.790 ! disconnected (unreachable)
+459.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+464.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+465.791 ! connecting
+465.797 ! disconnected (unreachable)
+469.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+474.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+475.798 ! connecting
+475.804 ! disconnected (unreachable)
+479.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+484.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+485.806 ! connecting
+485.812 ! disconnected (unreachable)
+489.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+494.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+495.813 ! connecting
+495.819 ! disconnected (unreachable)
+499.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+504.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+505.820 ! connecting
+505.827 ! disconnected (unreachable)
+509.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+514.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+515.828 ! connecting
+515.834 ! disconnected (unreachable)
+519.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+524.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+525.835 ! connecting
+525.842 ! disconnected (unreachable)
+529.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+534.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+535.843 ! connecting
+535.851 ! disconnected (unreachable)
+539.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+544.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+545.852 ! connecting
+545.858 ! disconnected (unreachable)
+549.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+554.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+555.859 ! connecting
+555.866 ! disconnected (unreachable)
+559.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+564.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+565.868 ! connecting
+565.875 ! disconnected (unreachable)
+569.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+574.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+575.876 ! connecting
+575.883 ! disconnected (unreachable)
+579.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+584.972 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+585.885 ! connecting
+585.887 ! disconnected (unreachable)
+589.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+594.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+595.888 ! connecting
+595.894 ! disconnected (unreachable)
+599.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+604.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+605.895 ! connecting
+605.902 ! disconnected (unreachable)
+609.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+614.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+615.903 ! connecting
+615.911 ! disconnected (unreachable)
+619.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+624.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+625.913 ! connecting
+625.919 ! disconnected (unreachable)
+629.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+634.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+635.921 ! connecting
+635.928 ! disconnected (unreachable)
+639.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+644.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+645.929 ! connecting
+645.939 ! disconnected (unreachable)
+649.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+654.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+655.942 ! connecting
+655.949 ! disconnected (unreachable)
+659.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+664.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+665.950 ! connecting
+665.958 ! disconnected (unreachable)
+669.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+674.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+675.960 ! connecting
+675.966 ! disconnected (unreachable)
+679.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+684.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+685.967 ! connecting
+685.975 ! disconnected (unreachable)
+689.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+694.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+695.976 ! connecting
+695.982 ! disconnected (unreachable)
+699.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+704.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+705.984 ! connecting
+705.991 ! disconnected (unreachable)
+709.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+714.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+715.992 ! connecting
+715.999 ! disconnected (unreachable)
+719.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+724.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+726.000 ! connecting
+726.006 ! disconnected (unreachable)
+729.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+734.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+736.008 ! connecting
+736.014 ! disconnected (unreachable)
+739.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+744.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+746.015 ! connecting
+746.021 ! disconnected (unreachable)
+749.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+754.973 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+756.022 ! connecting
+756.028 ! disconnected (unreachable)
+759.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+764.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+766.029 ! connecting
+766.035 ! disconnected (unreachable)
+769.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+774.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+776.036 ! connecting
+776.042 ! disconnected (unreachable)
+779.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+784.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+786.043 ! connecting
+786.049 ! disconnected (unreachable)
+789.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+794.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+796.050 ! connecting
+796.057 ! disconnected (unreachable)
+799.972 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+804.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+806.058 ! connecting
+806.065 ! disconnected (unreachable)
+809.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+814.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+816.067 ! connecting
+816.074 ! disconnected (unreachable)
+819.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+824.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+826.075 ! connecting
+826.083 ! disconnected (unreachable)
+829.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+834.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+836.085 ! connecting
+836.087 ! disconnected (unreachable)
+839.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+844.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+846.089 ! connecting
+846.095 ! disconnected (unreachable)
+849.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+854.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+856.098 ! connecting
+856.105 ! disconnected (unreachable)
+859.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+864.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+866.106 ! connecting
+866.114 ! disconnected (unreachable)
+869.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+874.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+876.115 ! connecting
+876.125 ! disconnected (unreachable)
+879.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+884.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+886.128 ! connecting
+886.137 ! disconnected (unreachable)
+889.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+894.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+896.139 ! connecting
+896.141 ! disconnected (unreachable)
+899.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+904.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+906.144 ! connecting
+906.151 ! disconnected (unreachable)
+909.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+914.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+916.153 ! connecting
+916.159 ! disconnected (unreachable)
+919.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+924.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+926.161 ! connecting
+926.168 ! disconnected (unreachable)
+929.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+934.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+936.169 ! connecting
+936.176 ! disconnected (unreachable)
+939.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+944.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+946.177 ! connecting
+946.184 ! disconnected (unreachable)
+949.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+954.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+956.185 ! connecting
+956.192 ! disconnected (unreachable)
+959.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+964.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+966.193 ! connecting
+966.199 ! disconnected (unreachable)
+969.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+974.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+976.201 ! connecting
+976.203 ! disconnected (unreachable)
+979.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+984.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+986.205 ! connecting
+986.211 ! disconnected (unreachable)
+989.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+994.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+996.213 ! connecting
+996.219 ! disconnected (unreachable)
+999.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1004.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1006.220 ! connecting
+1006.226 ! disconnected (unreachable)
+1009.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1014.972 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1016.227 ! connecting
+1016.233 ! disconnected (unreachable)
+1019.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1024.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1026.235 ! connecting
+1026.241 ! disconnected (unreachable)
+1029.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1034.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1036.242 ! connecting
+1036.248 ! disconnected (unreachable)
+1039.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1044.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1046.249 ! connecting
+1046.255 ! disconnected (unreachable)
+1049.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1054.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1056.257 ! connecting
+1056.263 ! disconnected (unreachable)
+1059.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1064.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1066.265 ! connecting
+1066.271 ! disconnected (unreachable)
+1069.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1074.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1076.273 ! connecting
+1076.279 ! disconnected (unreachable)
+1079.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1084.972 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1086.280 ! connecting
+1086.283 ! disconnected (unreachable)
+1089.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1094.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1096.285 ! connecting
+1096.290 ! disconnected (unreachable)
+1099.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1104.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1106.293 ! connecting
+1106.299 ! disconnected (unreachable)
+1109.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1114.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1116.300 ! connecting
+1116.307 ! disconnected (unreachable)
+1119.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1124.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1126.309 ! connecting
+1126.315 ! disconnected (unreachable)
+1129.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1134.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1136.316 ! connecting
+1136.322 ! disconnected (unreachable)
+1139.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1144.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1146.323 ! connecting
+1146.326 ! disconnected (unreachable)
+1149.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1154.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1156.327 ! connecting
+1156.334 ! disconnected (unreachable)
+1159.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1164.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1166.336 ! connecting
+1166.342 ! disconnected (unreachable)
+1169.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1174.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1176.345 ! connecting
+1176.352 ! disconnected (unreachable)
+1179.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1184.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1186.353 ! connecting
+1186.359 ! disconnected (unreachable)
+1189.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1194.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1196.361 ! connecting
+1196.367 ! disconnected (unreachable)
+1199.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1204.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1206.368 ! connecting
+1206.375 ! disconnected (unreachable)
+1209.972 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1214.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1216.376 ! connecting
+1216.383 ! disconnected (unreachable)
+1219.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1224.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1226.385 ! connecting
+1226.391 ! disconnected (unreachable)
+1229.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1234.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1236.392 ! connecting
+1236.398 ! disconnected (unreachable)
+1239.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1244.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1246.401 ! connecting
+1246.408 ! disconnected (unreachable)
+1249.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1254.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1256.409 ! connecting
+1256.417 ! disconnected (unreachable)
+1259.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1264.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1266.418 ! connecting
+1266.427 ! disconnected (unreachable)
+1269.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1274.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1276.429 ! connecting
+1276.438 ! disconnected (unreachable)
+1279.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1284.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1286.439 ! connecting
+1286.445 ! disconnected (unreachable)
+1289.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1294.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1296.447 ! connecting
+1296.454 ! disconnected (unreachable)
+1299.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1304.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1306.455 ! connecting
+1306.461 ! disconnected (unreachable)
+1309.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1314.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1316.464 ! connecting
+1316.470 ! disconnected (unreachable)
+1319.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1324.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1326.471 ! connecting
+1326.479 ! disconnected (unreachable)
+1329.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1334.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1336.480 ! connecting
+1336.487 ! disconnected (unreachable)
+1339.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1344.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1346.488 ! connecting
+1346.494 ! disconnected (unreachable)
+1349.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1354.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1356.495 ! connecting
+1356.497 ! disconnected (unreachable)
+1359.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1364.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1366.498 ! connecting
+1366.506 ! disconnected (unreachable)
+1369.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1374.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1376.507 ! connecting
+1376.513 ! disconnected (unreachable)
+1379.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1384.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1386.514 ! connecting
+1386.520 ! disconnected (unreachable)
+1389.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1394.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1396.521 ! connecting
+1396.527 ! disconnected (unreachable)
+1399.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1404.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1406.528 ! connecting
+1406.534 ! disconnected (unreachable)
+1409.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1414.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1416.535 ! connecting
+1416.542 ! disconnected (unreachable)
+1419.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1424.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1426.545 ! connecting
+1426.550 ! disconnected (unreachable)
+1429.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1434.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1436.553 ! connecting
+1436.559 ! disconnected (unreachable)
+1439.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1444.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1446.561 ! connecting
+1446.567 ! disconnected (unreachable)
+1449.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1454.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1456.569 ! connecting
+1456.576 ! disconnected (unreachable)
+1459.972 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1464.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1466.577 ! connecting
+1466.584 ! disconnected (unreachable)
+1469.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1474.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1476.585 ! connecting
+1476.591 ! disconnected (unreachable)
+1479.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1484.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1486.592 ! connecting
+1486.598 ! disconnected (unreachable)
+1489.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1494.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1496.599 ! connecting
+1496.602 ! disconnected (unreachable)
+1499.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1504.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1506.604 ! connecting
+1506.610 ! disconnected (unreachable)
+1509.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1514.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1516.611 ! connecting
+1516.617 ! disconnected (unreachable)
+1519.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1524.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1526.620 ! connecting
+1526.622 ! disconnected (unreachable)
+1529.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1534.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1536.623 ! connecting
+1536.630 ! disconnected (unreachable)
+1539.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1544.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1546.632 ! connecting
+1546.638 ! disconnected (unreachable)
+1549.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1554.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1556.639 ! connecting
+1556.646 ! disconnected (unreachable)
+1559.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1564.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1566.648 ! connecting
+1566.654 ! disconnected (unreachable)
+1569.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1574.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1576.655 ! connecting
+1576.657 ! disconnected (unreachable)
+1579.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1584.972 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1586.659 ! connecting
+1586.667 ! disconnected (unreachable)
+1589.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1594.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1596.669 ! connecting
+1596.675 ! disconnected (unreachable)
+1599.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1604.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1606.676 ! connecting
+1606.682 ! disconnected (unreachable)
+1609.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1614.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1616.683 ! connecting
+1616.691 ! disconnected (unreachable)
+1619.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1624.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1626.693 ! connecting
+1626.698 ! disconnected (unreachable)
+1629.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1634.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1636.700 ! connecting
+1636.707 ! disconnected (unreachable)
+1639.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1644.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1646.708 ! connecting
+1646.716 ! disconnected (unreachable)
+1649.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1654.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1656.717 ! connecting
+1656.723 ! disconnected (unreachable)
+1659.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1664.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1666.724 ! connecting
+1666.730 ! disconnected (unreachable)
+1669.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1674.972 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1676.731 ! connecting
+1676.737 ! disconnected (unreachable)
+1679.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1684.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1686.738 ! connecting
+1686.745 ! disconnected (unreachable)
+1689.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1694.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1696.747 ! connecting
+1696.753 ! disconnected (unreachable)
+1699.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1704.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1706.754 ! connecting
+1706.760 ! disconnected (unreachable)
+1709.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1714.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1716.762 ! connecting
+1716.764 ! disconnected (unreachable)
+1719.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1724.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1726.766 ! connecting
+1726.772 ! disconnected (unreachable)
+1729.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1734.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1736.774 ! connecting
+1736.776 ! disconnected (unreachable)
+1739.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1744.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1746.777 ! connecting
+1746.786 ! disconnected (unreachable)
+1749.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1754.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1756.788 ! connecting
+1756.795 ! disconnected (unreachable)
+1759.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1764.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1766.796 ! connecting
+1766.803 ! disconnected (unreachable)
+1769.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1774.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1776.804 ! connecting
+1776.810 ! disconnected (unreachable)
+1779.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1784.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1786.811 ! connecting
+1786.817 ! disconnected (unreachable)
+1789.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1794.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1796.818 ! connecting
+1796.821 ! disconnected (unreachable)
+1799.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1804.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1806.822 ! connecting
+1806.829 ! disconnected (unreachable)
+1809.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1814.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1816.830 ! connecting
+1816.836 ! disconnected (unreachable)
+1819.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1824.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1826.837 ! connecting
+1826.839 ! disconnected (unreachable)
+1829.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1834.972 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1836.841 ! connecting
+1836.850 ! disconnected (unreachable)
+1839.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1844.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1846.851 ! connecting
+1846.858 ! disconnected (unreachable)
+1849.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1854.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1856.860 ! connecting
+1856.867 ! disconnected (unreachable)
+1859.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1864.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1866.869 ! connecting
+1866.875 ! disconnected (unreachable)
+1869.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1874.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1876.877 ! connecting
+1876.882 ! disconnected (unreachable)
+1879.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1884.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1886.885 ! connecting
+1886.890 ! disconnected (unreachable)
+1889.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1894.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1896.892 ! connecting
+1896.899 ! disconnected (unreachable)
+1899.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1904.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1906.901 ! connecting
+1906.903 ! disconnected (unreachable)
+1909.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1914.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1916.905 ! connecting
+1916.910 ! disconnected (unreachable)
+1919.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1924.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1926.911 ! connecting
+1926.918 ! disconnected (unreachable)
+1929.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1934.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1936.919 ! connecting
+1936.922 ! disconnected (unreachable)
+1939.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1944.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1946.924 ! connecting
+1946.931 ! disconnected (unreachable)
+1949.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1954.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1956.933 ! connecting
+1956.935 ! disconnected (unreachable)
+1959.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1964.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1966.937 ! connecting
+1966.944 ! disconnected (unreachable)
+1969.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1974.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1976.946 ! connecting
+1976.953 ! disconnected (unreachable)
+1979.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1984.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1986.954 ! connecting
+1986.960 ! disconnected (unreachable)
+1989.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1994.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+1996.961 ! connecting
+1996.969 ! disconnected (unreachable)
+1999.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2004.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2006.971 ! connecting
+2006.976 ! disconnected (unreachable)
+2009.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2014.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2016.978 ! connecting
+2016.980 ! disconnected (unreachable)
+2019.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2024.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2026.983 ! connecting
+2026.990 ! disconnected (unreachable)
+2029.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2034.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2036.992 ! connecting
+2036.998 ! disconnected (unreachable)
+2039.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2044.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2046.999 ! connecting
+2047.006 ! disconnected (unreachable)
+2049.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2054.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2057.007 ! connecting
+2057.014 ! disconnected (unreachable)
+2059.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2064.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2067.015 ! connecting
+2067.021 ! disconnected (unreachable)
+2069.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2074.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2077.022 ! connecting
+2077.028 ! disconnected (unreachable)
+2079.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2084.972 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2087.029 ! connecting
+2087.035 ! disconnected (unreachable)
+2089.971 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2094.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+2097.037 ! connecting
+2097.040 ! disconnected (unreachable)
+2099.970 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000

@@ -1,0 +1,33 @@
+# tapedash-session v1
+# app: tapedash 0.5.0-sim
+# adapter: OBDBLE
+# kind: ble
+# address: 81:23:45:67:89:BA
+# started: 2026-10-16T17:00:39.124004Z
+# compatibility: false
+0.006 @ status searching
+0.011 ! connecting
+1.058 @ sound not started: no car audio to play on
+1.714 ! disconnected (unreachable)
+2.720 ! connecting
+4.220 ! connected
+4.526 > ATZ\r
+4.919 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+8.635 > ATZ\r
+9.917 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+12.737 > ATZ\r
+14.917 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+16.750 ! disconnected
+18.750 ! connecting
+19.260 ! disconnected (unreachable)
+19.917 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+22.583 @ sound not started: no car audio to play on
+23.261 ! connecting
+24.332 ! disconnected (unreachable)
+24.918 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+29.917 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+32.231 @ sound off
+32.333 ! connecting
+32.910 ! disconnected (unreachable)
+34.918 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
+39.918 @ vitals kmh=- rpm=- volts=- maf=- src=NONE lph=- km=0.00 litres=0.000 idle_s=0 idle_l=0.000
