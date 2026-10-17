@@ -134,7 +134,7 @@ void main() {
   Finder button(String label) => find.widgetWithText(TapeButton, label);
 
   for (final size in const [Size(640, 360), Size(720, 360), Size(800, 360)]) {
-    testWidgets('fits ${size.width.toInt()}x360 before, during and after', (
+    testWidgets('fits ${size.width.toInt()}x360 in every state', (
       tester,
     ) async {
       build(surveyScenario(idleFirst: 3000));
@@ -142,9 +142,29 @@ void main() {
       expect(tester.takeException(), isNull);
 
       drive.start();
-      await run(tester, 60);
+      await run(tester, 3);
+      expect(find.text('Getting ready'), findsOneWidget);
       expect(tester.takeException(), isNull);
+
+      await run(tester, 40);
+      expect(button('BEGIN CHECKS'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(button('BEGIN CHECKS'));
+      await run(tester, 2);
+      expect(find.text('Everything off'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      // A step with the longest instruction.
+      await run(tester, 15 + 15 + 10 + 12 + 12 + 10 + 25 + 12 + 15 + 10 + 15);
+      await run(tester, 10 + 20 + 10 + 2);
+      expect(find.text('Gentle revs (optional)'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(button('STOP CHECKS'));
+      await run(tester, 2);
       expect(button('FINISH SURVEY'), findsOneWidget);
+      expect(tester.takeException(), isNull);
 
       await tester.tap(button('FINISH SURVEY'));
       await run(tester, 3);
@@ -160,6 +180,7 @@ void main() {
     expect(find.text('Find out what your car can report'), findsOneWidget);
     expect(find.textContaining('It only reads'), findsOneWidget);
     expect(find.textContaining('does not clear codes'), findsOneWidget);
+    expect(find.textContaining('It leads you'), findsOneWidget);
     expect(button('START SURVEY'), findsOneWidget);
     expect(button('NOT NOW'), findsOneWidget);
     // Nothing has touched the adapter.
@@ -178,7 +199,7 @@ void main() {
     expect(drive.stage.value, SurveyStage.ready);
   });
 
-  testWidgets('START SURVEY begins, and the screen follows the phases', (
+  testWidgets('START SURVEY gets ready, then offers the checks', (
     tester,
   ) async {
     build(surveyScenario(idleFirst: 3000));
@@ -187,19 +208,130 @@ void main() {
     await tester.tap(button('START SURVEY'));
     await tester.pump();
     expect(drive.stage.value, SurveyStage.running);
+    expect(find.text('Getting ready'), findsOneWidget);
     expect(find.textContaining('Connecting'), findsOneWidget);
 
-    await run(tester, 60);
-    expect(find.textContaining('Drive as you usually do'), findsOneWidget);
-    expect(find.text('2 answering'), findsOneWidget);
-    expect(find.textContaining('a second'), findsOneWidget);
+    await run(tester, 45);
+    expect(find.text('Parked checks'), findsOneWidget);
+    expect(button('BEGIN CHECKS'), findsOneWidget);
+    expect(button('SKIP CHECKS'), findsOneWidget);
+  });
+
+  testWidgets('the checks lead, one step at a time, with a countdown', (
+    tester,
+  ) async {
+    build(surveyScenario(idleFirst: 3000));
+    await show(tester);
+    await tester.tap(button('START SURVEY'));
+    await run(tester, 45);
+
+    await tester.tap(button('BEGIN CHECKS'));
+    await run(tester, 2);
+    expect(find.text('Everything off'), findsOneWidget);
+    expect(find.text('STEP 1 OF 16'), findsOneWidget);
+    expect(find.text('13'), findsOneWidget, reason: '15 s, two gone');
+
+    await run(tester, 14);
+    expect(find.text('Headlights on'), findsOneWidget);
+    expect(find.text('STEP 2 OF 16'), findsOneWidget);
+    expect(find.textContaining('Switch the headlights on'), findsOneWidget);
+
+    await tester.tap(button('NEXT STEP'));
+    await run(tester, 1);
+    expect(find.text('Headlights off'), findsOneWidget);
+  });
+
+  testWidgets('each switch it asks for is written in the log by itself', (
+    tester,
+  ) async {
+    build(surveyScenario(idleFirst: 3000));
+    await show(tester);
+    await tester.tap(button('START SURVEY'));
+    await run(tester, 45);
+    await tester.tap(button('BEGIN CHECKS'));
+    await run(tester, 15 + 15 + 12);
+
+    await tester.tap(button('STOP CHECKS'));
+    await run(tester, 1);
+    await tester.tap(button('FINISH SURVEY'));
+    await run(tester, 3);
+
+    final marks = SurveyLogReader.read(
+      SessionLog.parse(sink.files.values.single),
+    ).marks;
+    expect(marks.map((m) => '${m.id}:${m.on}').take(2), [
+      'headlights:true',
+      'headlights:false',
+    ]);
+    expect(marks.every((m) => m.pass == 1), isTrue);
+  });
+
+  testWidgets(
+    'SKIP CHECKS goes to the drive; the checks come back at the end',
+    (tester) async {
+      build(surveyScenario(idleFirst: 3000));
+      await show(tester);
+      await tester.tap(button('START SURVEY'));
+      await run(tester, 45);
+
+      await tester.tap(button('SKIP CHECKS'));
+      await run(tester, 2);
+
+      // Skipped, so they are offered again now as well as at the end.
+      expect(
+        find.textContaining('Pull away when you are ready'),
+        findsOneWidget,
+      );
+      expect(button('DO THE CHECKS NOW'), findsOneWidget);
+      expect(button('FINISH SURVEY'), findsOneWidget);
+    },
+  );
+
+  testWidgets('after the first checks it says what the drive should be', (
+    tester,
+  ) async {
+    build(surveyScenario(idleFirst: 3000));
+    await show(tester);
+    await tester.tap(button('START SURVEY'));
+    await run(tester, 45);
+    await tester.tap(button('BEGIN CHECKS'));
+    await run(tester, 2);
+    await tester.tap(button('STOP CHECKS'));
+    await run(tester, 2);
+
+    expect(find.textContaining('Pull away when you are ready'), findsOneWidget);
+    expect(find.textContaining('twenty minutes or more'), findsOneWidget);
+    // Stopped part way: they can be done now.
+    expect(button('DO THE CHECKS NOW'), findsOneWidget);
+  });
+
+  testWidgets('checks gone through are not offered again until it has driven', (
+    tester,
+  ) async {
+    build(surveyScenario(idleFirst: 5000));
+    await show(tester);
+    await tester.tap(button('START SURVEY'));
+    await run(tester, 45);
+    await tester.tap(button('BEGIN CHECKS'));
+    await run(tester, 240);
+
+    expect(drive.guide.state.value.passesDone, 1);
+    expect(button('REPEAT THE CHECKS'), findsNothing);
+    expect(button('DO THE CHECKS NOW'), findsNothing);
+    expect(button('FINISH SURVEY'), findsOneWidget);
+
+    await run(tester, 800);
+    expect(button('REPEAT THE CHECKS'), findsOneWidget);
+    expect(find.textContaining('with the engine warm'), findsOneWidget);
   });
 
   testWidgets('the clock counts the time since the start', (tester) async {
     build(surveyScenario(idleFirst: 3000));
     await show(tester);
     await tester.tap(button('START SURVEY'));
-    await run(tester, 75);
+    await run(tester, 45);
+    await tester.tap(button('SKIP CHECKS'));
+    await run(tester, 30);
 
     expect(find.text('01:15'), findsOneWidget);
   });
@@ -213,46 +345,37 @@ void main() {
     expect(drive.progress.value.speedKmh, greaterThan(0));
     expect(find.textContaining('Nothing to do while driving'), findsOneWidget);
     expect(button('FINISH SURVEY'), findsNothing);
-    expect(button('HEADLIGHTS'), findsNothing);
+    expect(button('BEGIN CHECKS'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('parked, the marks and the finish button appear', (tester) async {
-    build(surveyScenario(idleFirst: 3000));
-    await show(tester);
-    await tester.tap(button('START SURVEY'));
-    await run(tester, 60);
-
-    expect(find.textContaining('Nothing to do while driving'), findsNothing);
-    expect(button('FINISH SURVEY'), findsOneWidget);
-    for (final (_, label) in surveyMarks) {
-      expect(button(label.toUpperCase()), findsOneWidget, reason: label);
-    }
-  });
-
-  testWidgets('a mark is noted in the log with its time, on and then off', (
-    tester,
-  ) async {
-    build(surveyScenario(idleFirst: 3000));
-    await show(tester);
-    await tester.tap(button('START SURVEY'));
-    await run(tester, 60);
-
-    await tester.tap(button('HEADLIGHTS'));
-    await run(tester, 5);
-    await tester.tap(button('HEADLIGHTS'));
-    await run(tester, 25);
-
-    final notes = SurveyLogReader.read(
-      SessionLog.parse(sink.files.values.single),
-    ).notes.map((n) => n.$2).toList();
-    expect(
-      notes,
-      containsAllInOrder([
-        'mark id=headlights state=on',
-        'mark id=headlights state=off',
-      ]),
+  testWidgets('the checks stop at once if the car moves', (tester) async {
+    build(
+      DriveScenario(
+        name: 'survey_late_move',
+        description: 'idle, then away',
+        route: SimRoute.straight(20000),
+        engineRunningAtStart: true,
+        startCoolantC: 85,
+        driverBuilder: () =>
+            ScriptedDriver([IdleFor(75), GoToSpeed(40, holdSeconds: 3000)]),
+      ),
     );
+    await show(tester);
+    await tester.tap(button('START SURVEY'));
+    await run(tester, 45);
+    await tester.tap(button('BEGIN CHECKS'));
+    await run(tester, 60);
+
+    expect(drive.guide.state.value.active, isFalse);
+    expect(
+      find.text(
+        'Nothing to do while driving. When you stop, the next step '
+        'appears here.',
+      ),
+      findsOneWidget,
+    );
+    expect(button('NEXT STEP'), findsNothing);
   });
 
   testWidgets('FINISH SURVEY saves, says where, and the dashboard comes back', (
@@ -261,7 +384,9 @@ void main() {
     build(surveyScenario(idleFirst: 3000));
     await show(tester);
     await tester.tap(button('START SURVEY'));
-    await run(tester, 60);
+    await run(tester, 45);
+    await tester.tap(button('SKIP CHECKS'));
+    await run(tester, 3);
 
     await tester.tap(button('FINISH SURVEY'));
     await run(tester, 3);
@@ -289,7 +414,9 @@ void main() {
     );
     await show(tester);
     await tester.tap(button('START SURVEY'));
-    await run(tester, 60);
+    await run(tester, 45);
+    await tester.tap(button('SKIP CHECKS'));
+    await run(tester, 3);
 
     await tester.tap(button('FINISH SURVEY'));
     await run(tester, 3);

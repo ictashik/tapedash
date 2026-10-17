@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../../../app/survey_drive.dart';
+import '../../../obd/survey/survey_guide.dart';
 import '../../../obd/survey/survey_runner.dart';
 import '../../design/components/controls/tape_button.dart';
 import '../../design/components/tape_label.dart';
@@ -12,12 +13,13 @@ import '../../design/tokens/spacing.dart';
 /// The survey drive (Garage → Survey drive): a plain, glanceable screen for a
 /// drive whose point is the file it leaves behind (docs/SURVEY.md).
 ///
-/// Three states. Before: what it will do and what it will not. During: how it is
-/// going, in numbers big enough to see on the dash, and nothing to touch while
-/// the car moves; when the car has stood still for a few seconds, the marks
-/// (headlights, A/C... each noted in the log with its time, to tell later what
-/// each one did to the battery voltage) and the button that ends it. After:
-/// where the file is.
+/// **It leads.** Before: what it will do and will not do. Then, once the car
+/// answers and stands still, the parked checks: one step at a time, a big title,
+/// what to do, a countdown, and the log noting each switch as it is asked for,
+/// so nothing is tapped or remembered. Then the drive, which asks for nothing
+/// and shows nothing to touch while the car moves. When the car stops again, the
+/// same checks can be run a second time, and then the survey ended. After: where
+/// the file is.
 ///
 /// The numbers change once a second, so this page rebuilds once a second. That
 /// is a decision for this screen only: it is not a driving screen (DESIGN.md
@@ -43,18 +45,6 @@ class SurveyPage extends StatefulWidget {
   State<SurveyPage> createState() => SurveyPageState();
 }
 
-/// Things the user does that load the electrics, to note with a time in the
-/// log. All but the last are switches; steering is turning the wheel lock to
-/// lock, marked on while it is done.
-const List<(String, String)> surveyMarks = [
-  ('headlights', 'Headlights'),
-  ('blower', 'Blower'),
-  ('ac', 'A/C'),
-  ('defogger', 'Defogger'),
-  ('wipers', 'Wipers'),
-  ('steering', 'Steering'),
-];
-
 class SurveyPageState extends State<SurveyPage> {
   late final ObservableListenable<SurveyStage> _stage = ObservableListenable(
     widget.drive.stage,
@@ -67,9 +57,10 @@ class SurveyPageState extends State<SurveyPage> {
   late final ObservableListenable<bool> _saveFailed = ObservableListenable(
     widget.drive.saveFailed,
   );
+  late final ObservableListenable<GuideState> _guide = ObservableListenable(
+    widget.drive.guide.state,
+  );
 
-  /// Which marks are on.
-  final Set<String> _marked = {};
   bool _finishing = false;
 
   @override
@@ -78,13 +69,8 @@ class SurveyPageState extends State<SurveyPage> {
     _progress.dispose();
     _canFinish.dispose();
     _saveFailed.dispose();
+    _guide.dispose();
     super.dispose();
-  }
-
-  void _toggle(String id) {
-    final on = !_marked.contains(id);
-    setState(() => on ? _marked.add(id) : _marked.remove(id));
-    widget.drive.mark(id, on);
   }
 
   Future<void> _finish() async {
@@ -107,6 +93,7 @@ class SurveyPageState extends State<SurveyPage> {
             _progress,
             _canFinish,
             _saveFailed,
+            _guide,
           ]),
           builder: (context, _) => switch (widget.drive.stage.value) {
             SurveyStage.ready => _ready(context),
@@ -118,54 +105,14 @@ class SurveyPageState extends State<SurveyPage> {
     );
   }
 
-  // ------------------------------------------------------------------- ready
+  // ------------------------------------------------------------------ layout
 
-  Widget _ready(BuildContext context) {
-    final palette = TapeTheme.of(context).palette;
-    Widget line(String text) => Padding(
-      padding: const EdgeInsets.only(bottom: TapeSpace.s2),
-      child: TapeText(text, style: TapeTextStyle.small, color: palette.inkMid),
-    );
+  /// Text on the left, buttons in a column on the right.
+  Widget _split({required Widget text, required List<Widget> buttons}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          flex: 3,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const TapeLabel('Survey drive', size: 11),
-                const SizedBox(height: TapeSpace.s2),
-                const TapeText(
-                  'Find out what your car can report',
-                  style: TapeTextStyle.title,
-                ),
-                const SizedBox(height: TapeSpace.s3),
-                line(
-                  'It asks every computer in the car for everything it will '
-                  'say, and writes the whole conversation to a file on this '
-                  'phone. From that we can see what TapeDash could show.',
-                ),
-                line(
-                  'It only reads. It does not clear codes or change anything '
-                  'in the car, and nothing leaves the phone.',
-                ),
-                line(
-                  'The dashboard is off while it runs. Start it, put the '
-                  'phone on the dash and drive as you usually do, for twenty '
-                  'minutes or more. Stop it when you are parked.',
-                ),
-                line(
-                  'Parked with the engine running, at the start and again at '
-                  'the end, switch the headlights, blower, A/C, rear '
-                  'defogger and wipers on and off, and turn the steering '
-                  'wheel lock to lock. Mark each one on the next screen.',
-                ),
-              ],
-            ),
-          ),
-        ),
+        Expanded(child: text),
         const SizedBox(width: TapeSpace.s6),
         SizedBox(
           width: 200,
@@ -173,17 +120,75 @@ class SurveyPageState extends State<SurveyPage> {
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TapeButton(
-                label: 'Start survey',
-                icon: TapeIcon.play,
-                primary: true,
-                onPressed: widget.drive.start,
-              ),
-              const SizedBox(height: TapeSpace.touchGap),
-              TapeButton(label: 'Not now', onPressed: widget.onClose),
+              for (var i = 0; i < buttons.length; i++) ...[
+                if (i > 0) const SizedBox(height: TapeSpace.touchGap),
+                buttons[i],
+              ],
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _para(BuildContext context, String text) {
+    final palette = TapeTheme.of(context).palette;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: TapeSpace.s2),
+      child: TapeText(text, style: TapeTextStyle.small, color: palette.inkMid),
+    );
+  }
+
+  // ------------------------------------------------------------------- ready
+
+  Widget _ready(BuildContext context) {
+    return _split(
+      text: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const TapeLabel('Survey drive', size: 11),
+            const SizedBox(height: TapeSpace.s2),
+            const TapeText(
+              'Find out what your car can report',
+              style: TapeTextStyle.title,
+            ),
+            const SizedBox(height: TapeSpace.s3),
+            _para(
+              context,
+              'It asks every computer in the car for everything it will say, '
+              'and writes the whole conversation to a file on this phone. From '
+              'that we can see what TapeDash could show.',
+            ),
+            _para(
+              context,
+              'It only reads. It does not clear codes or change anything in '
+              'the car, and nothing leaves the phone. The dashboard is off '
+              'while it runs.',
+            ),
+            _para(
+              context,
+              'It leads you: first a few minutes of parked checks, switching '
+              'the lights, blower, A/C and wipers on and off as it asks. Then '
+              'you drive as usual, twenty minutes or more. Then, parked, the '
+              'checks once more and you are done.',
+            ),
+            _para(
+              context,
+              'Park with the engine running, the handbrake on, and the phone on '
+              'the dash.',
+            ),
+          ],
+        ),
+      ),
+      buttons: [
+        TapeButton(
+          label: 'Start survey',
+          icon: TapeIcon.play,
+          primary: true,
+          onPressed: widget.drive.start,
+        ),
+        TapeButton(label: 'Not now', onPressed: widget.onClose),
       ],
     );
   }
@@ -211,8 +216,162 @@ class SurveyPageState extends State<SurveyPage> {
   }
 
   Widget _running(BuildContext context) {
-    final palette = TapeTheme.of(context).palette;
+    final g = widget.drive.guide.state.value;
     final p = widget.drive.progress.value;
+    if (g.active) return _checks(context, g);
+    final starting =
+        p.phase == SurveyPhase.connecting ||
+        p.phase == SurveyPhase.starting ||
+        p.phase == SurveyPhase.discovering ||
+        p.phase == SurveyPhase.probing;
+    if (g.passesDone == 0 && starting) return _gettingReady(context, p);
+    if (g.passesDone == 0 && g.canBegin) return _offer(context);
+    return _driving(context, g, p);
+  }
+
+  /// The adapter is being set up and the car asked what it has.
+  Widget _gettingReady(BuildContext context, SurveyProgress p) {
+    final palette = TapeTheme.of(context).palette;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const TapeLabel('Survey drive', size: 11),
+        const SizedBox(height: TapeSpace.s2),
+        const TapeText('Getting ready', style: TapeTextStyle.title),
+        const SizedBox(height: TapeSpace.s3),
+        TapeText(
+          _phaseText(p.phase),
+          style: TapeTextStyle.body,
+          color: palette.inkMid,
+        ),
+        const SizedBox(height: TapeSpace.s2),
+        TapeText(
+          'Keep the engine running and the car where it is.',
+          style: TapeTextStyle.small,
+          color: palette.inkMid,
+        ),
+      ],
+    );
+  }
+
+  /// Ready, before the first checks.
+  Widget _offer(BuildContext context) {
+    return _split(
+      text: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const TapeLabel('Survey drive · before you drive', size: 11),
+            const SizedBox(height: TapeSpace.s2),
+            const TapeText('Parked checks', style: TapeTextStyle.title),
+            const SizedBox(height: TapeSpace.s3),
+            _para(
+              context,
+              'About four minutes. It tells you what to switch on and off, one '
+              'thing at a time, and keeps the time. Engine running, car in P '
+              'with the handbrake on.',
+            ),
+            _para(
+              context,
+              'There is a step that revs the engine a little. It says what to '
+              'do, and you can skip any step.',
+            ),
+          ],
+        ),
+      ),
+      buttons: [
+        TapeButton(
+          label: 'Begin checks',
+          icon: TapeIcon.play,
+          primary: true,
+          onPressed: widget.drive.guide.begin,
+        ),
+        TapeButton(label: 'Skip checks', onPressed: widget.drive.guide.skipAll),
+      ],
+    );
+  }
+
+  /// A step of the checks: what to do, and how long.
+  Widget _checks(BuildContext context, GuideState g) {
+    final palette = TapeTheme.of(context).palette;
+    final step = g.step!;
+    final fraction = step.seconds == 0
+        ? 1.0
+        : (1 - g.remaining / step.seconds).clamp(0.0, 1.0);
+    return _split(
+      text: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TapeLabel(
+            g.pass == 1
+                ? 'Checks · before the drive'
+                : 'Checks · after the drive',
+            size: 11,
+          ),
+          const SizedBox(height: TapeSpace.s1),
+          TapeLabel(
+            'Step ${g.stepIndex + 1} of ${g.stepCount}',
+            size: 10,
+            color: palette.inkDim,
+          ),
+          const SizedBox(height: TapeSpace.s3),
+          TapeText(step.title, style: TapeTextStyle.headline),
+          const SizedBox(height: TapeSpace.s2),
+          Expanded(
+            child: SingleChildScrollView(
+              child: TapeText(
+                step.instruction,
+                style: TapeTextStyle.body,
+                color: palette.inkMid,
+              ),
+            ),
+          ),
+          if (g.paused || g.message != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: TapeSpace.s2),
+              child: TapeText(
+                g.message ?? 'Waiting.',
+                style: TapeTextStyle.small,
+                color: palette.caution,
+              ),
+            ),
+          Row(
+            children: [
+              TapeText('${g.remaining}', style: TapeTextStyle.title),
+              const SizedBox(width: TapeSpace.s2),
+              TapeLabel('seconds', size: 10, color: palette.inkDim),
+              const SizedBox(width: TapeSpace.s3),
+              Expanded(
+                child: SizedBox(
+                  height: 6,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(child: ColoredBox(color: palette.track)),
+                      Positioned.fill(
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: fraction,
+                          child: ColoredBox(color: palette.accentCore),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      buttons: [
+        TapeButton(label: 'Next step', onPressed: widget.drive.guide.skipStep),
+        TapeButton(label: 'Stop checks', onPressed: widget.drive.guide.skipAll),
+      ],
+    );
+  }
+
+  /// Between the checks: the drive, and what to do when parked.
+  Widget _driving(BuildContext context, GuideState g, SurveyProgress p) {
+    final palette = TapeTheme.of(context).palette;
     final canFinish = widget.drive.canFinish.value;
     Widget fact(String label, String value) => SizedBox(
       height: 20,
@@ -231,6 +390,10 @@ class SurveyPageState extends State<SurveyPage> {
       ),
     );
     String volts(double? v) => v == null ? '—' : '${v.toStringAsFixed(1)} V';
+    final shortDrive = p.elapsed < SurveyDrive.shortDrive;
+    // The checks again: if the first were skipped or stopped, now; if they were
+    // gone through, once there has been a drive.
+    final showChecks = g.canBegin && (g.lastIncomplete || !shortDrive);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -280,58 +443,73 @@ class SurveyPageState extends State<SurveyPage> {
         const SizedBox(width: TapeSpace.s4),
         Expanded(
           flex: 4,
-          child: canFinish ? _parkedControls(context) : _drivingNote(context),
-        ),
-      ],
-    );
-  }
-
-  /// While the car moves there is nothing to press.
-  Widget _drivingNote(BuildContext context) {
-    final palette = TapeTheme.of(context).palette;
-    return Align(
-      alignment: Alignment.bottomLeft,
-      child: TapeText(
-        'Nothing to do while driving. When you stop, the marks and the '
-        'finish button appear.',
-        style: TapeTextStyle.caption,
-        color: palette.inkMid,
-      ),
-    );
-  }
-
-  Widget _parkedControls(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const TapeLabel('Mark what you switch on', size: 10),
-        const SizedBox(height: TapeSpace.s1),
-        Expanded(
-          child: Wrap(
-            spacing: TapeSpace.touchGap,
-            runSpacing: TapeSpace.touchGap,
-            children: [
-              for (final (id, label) in surveyMarks)
-                SizedBox(
-                  width: 128,
-                  child: TapeButton(
-                    label: label,
-                    dense: true,
-                    primary: _marked.contains(id),
-                    onPressed: () => _toggle(id),
+          child: canFinish
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (g.message != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: TapeSpace.s2),
+                        child: TapeText(
+                          g.message!,
+                          style: TapeTextStyle.small,
+                          color: palette.caution,
+                        ),
+                      ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: TapeText(
+                          _parkedAdvice(g, shortDrive),
+                          style: TapeTextStyle.small,
+                          color: palette.inkMid,
+                        ),
+                      ),
+                    ),
+                    if (showChecks) ...[
+                      TapeButton(
+                        label: g.lastIncomplete && g.passesDone == 1
+                            ? 'Do the checks now'
+                            : 'Repeat the checks',
+                        icon: TapeIcon.play,
+                        onPressed: widget.drive.guide.begin,
+                      ),
+                      const SizedBox(height: TapeSpace.touchGap),
+                    ],
+                    TapeButton(
+                      label: _finishing ? 'Saving…' : 'Finish survey',
+                      icon: TapeIcon.stop,
+                      primary: !showChecks,
+                      onPressed: _finishing ? null : _finish,
+                    ),
+                  ],
+                )
+              : Align(
+                  alignment: Alignment.bottomLeft,
+                  child: TapeText(
+                    'Nothing to do while driving. When you stop, the next step '
+                    'appears here.',
+                    style: TapeTextStyle.caption,
+                    color: palette.inkMid,
                   ),
                 ),
-            ],
-          ),
-        ),
-        TapeButton(
-          label: _finishing ? 'Saving…' : 'Finish survey',
-          icon: TapeIcon.stop,
-          primary: true,
-          onPressed: _finishing ? null : _finish,
         ),
       ],
     );
+  }
+
+  /// What to say when the car is standing between the checks.
+  static String _parkedAdvice(GuideState g, bool shortDrive) {
+    if (shortDrive && g.passesDone == 1) {
+      return 'Pull away when you are ready. Drive for twenty minutes or more, '
+          'as you usually do. If there is a clear, legal stretch, include a '
+          'steady 60 to 100 km/h, a firm (not flat-out) acceleration, and a '
+          'lift-off coast. Nothing is required.';
+    }
+    if (g.passesDone == 1) {
+      return 'Parked. Run the checks once more, with the engine warm, then '
+          'finish. Or finish now.';
+    }
+    return 'Both runs of the checks are done. Finish the survey.';
   }
 
   // ---------------------------------------------------------------- finished
@@ -342,70 +520,56 @@ class SurveyPageState extends State<SurveyPage> {
     final failed = p.phase == SurveyPhase.failed;
     final name = widget.drive.fileName ?? '';
     final saved = !widget.drive.saveFailed.value;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 3,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const TapeLabel('Survey drive', size: 11),
-              const SizedBox(height: TapeSpace.s2),
-              TapeText(
-                failed
-                    ? 'The survey could not run'
-                    : (saved ? 'Survey saved' : 'Could not save the survey'),
-                style: TapeTextStyle.title,
-              ),
-              const SizedBox(height: TapeSpace.s3),
-              if (failed && p.detail != null)
-                TapeText(
-                  p.detail!,
-                  style: TapeTextStyle.small,
-                  color: palette.inkMid,
-                ),
-              if (!failed && saved) ...[
-                TapeText(
-                  '${p.requests} requests in ${_clock(p.elapsed)}, '
-                  '${p.pidsSeen} different values read.',
-                  style: TapeTextStyle.small,
-                  color: palette.inkMid,
-                ),
-                const SizedBox(height: TapeSpace.s3),
-                TapeText(name, style: TapeTextStyle.body),
-                const SizedBox(height: TapeSpace.s1),
-                TapeText(
-                  'In ${SurveyDrive.where} on this phone. Copy it to a '
-                  'computer over USB and keep it: it is the whole survey.',
-                  style: TapeTextStyle.small,
-                  color: palette.inkMid,
-                ),
-              ],
-              if (!failed && !saved)
-                TapeText(
-                  'The phone would not take the file. Free some space and '
-                  'run the survey again.',
-                  style: TapeTextStyle.small,
-                  color: palette.inkMid,
-                ),
-            ],
+    return _split(
+      text: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const TapeLabel('Survey drive', size: 11),
+          const SizedBox(height: TapeSpace.s2),
+          TapeText(
+            failed
+                ? 'The survey could not run'
+                : (saved ? 'Survey saved' : 'Could not save the survey'),
+            style: TapeTextStyle.title,
           ),
-        ),
-        const SizedBox(width: TapeSpace.s6),
-        SizedBox(
-          width: 200,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TapeButton(
-                label: 'Dashboard',
-                primary: true,
-                onPressed: widget.onClose,
-              ),
-            ],
-          ),
+          const SizedBox(height: TapeSpace.s3),
+          if (failed && p.detail != null)
+            TapeText(
+              p.detail!,
+              style: TapeTextStyle.small,
+              color: palette.inkMid,
+            ),
+          if (!failed && saved) ...[
+            TapeText(
+              '${p.requests} requests in ${_clock(p.elapsed)}, '
+              '${p.pidsSeen} different values read.',
+              style: TapeTextStyle.small,
+              color: palette.inkMid,
+            ),
+            const SizedBox(height: TapeSpace.s3),
+            TapeText(name, style: TapeTextStyle.body),
+            const SizedBox(height: TapeSpace.s1),
+            TapeText(
+              'In ${SurveyDrive.where} on this phone. Copy it to a '
+              'computer over USB and keep it: it is the whole survey.',
+              style: TapeTextStyle.small,
+              color: palette.inkMid,
+            ),
+          ],
+          if (!failed && !saved)
+            TapeText(
+              'The phone would not take the file. Free some space and '
+              'run the survey again.',
+              style: TapeTextStyle.small,
+              color: palette.inkMid,
+            ),
+        ],
+      ),
+      buttons: [
+        TapeButton(
+          label: 'Dashboard',
+          primary: true,
+          onPressed: widget.onClose,
         ),
       ],
     );

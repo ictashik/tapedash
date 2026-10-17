@@ -172,11 +172,17 @@ Future<void> main() async {
     await tester.tap(find.widgetWithText(TapeButton, 'START SURVEY'));
     await run(tester, 60000);
 
-    expect(find.textContaining('Drive as you usually do'), findsOneWidget);
+    // Parked and read: the checks are offered, and they lead.
+    expect(find.text('Parked checks'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TapeButton, 'BEGIN CHECKS'));
+    await run(tester, 2000);
+    expect(find.text('Everything off'), findsOneWidget);
+    await run(tester, 18000);
+    expect(find.text('Headlights on'), findsOneWidget);
+    await run(tester, 8000);
+    await tester.tap(find.widgetWithText(TapeButton, 'STOP CHECKS'));
+    await run(tester, 2000);
     expect(find.text('2 answering'), findsOneWidget);
-    // Parked (the car is idling): the marks and the finish button are there.
-    await tester.tap(find.widgetWithText(TapeButton, 'WIPERS'));
-    await run(tester, 3000);
     await tester.tap(find.widgetWithText(TapeButton, 'FINISH SURVEY'));
     await run(tester, 3000);
     expect(find.text('Survey saved'), findsOneWidget);
@@ -190,7 +196,8 @@ Future<void> main() async {
     final text = sink.files[name]!;
     expect(text, contains('survey ecu id=18DAF110'));
     expect(text, contains('survey ecu id=18DAF111'));
-    expect(text, contains('survey mark id=wipers state=on'));
+    expect(text, contains('survey mark id=headlights state=on pass=1'));
+    expect(text, contains('survey mark id=headlights state=off pass=1'));
 
     await tester.tap(find.widgetWithText(TapeButton, 'DASHBOARD'));
     await run(tester, 30000);

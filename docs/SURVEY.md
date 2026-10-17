@@ -39,33 +39,39 @@ The file does name the adapter and its Bluetooth address, like any recording
 
 ## The drive
 
-1. **Parked, engine running.** Garage → Adapter → **Survey drive** → read the
-   screen → **Start survey**. After about 20 seconds it says *Reading the car.
-   Drive as you usually do.*
-2. **While parked (about two minutes), switch things on and off one at a time**
-   and tap its button on the screen when you do (the buttons appear when the car
-   has stood still for a few seconds). About ten seconds on, ten seconds off:
-   headlights (low beam), blower (low, then high), A/C, rear defogger, wipers,
-   and the steering wheel turned lock to lock twice (mark **Steering** on while
-   you do it). This is what lets us see what each load does to the battery
-   voltage.
-3. **Optional, only if you are comfortable doing it:** engine warm, in P with the
-   handbrake on, press the accelerator gently so the revs rise to about 2,000,
-   hold for three seconds and let go; three times. Not above 3,000 rpm. It shows
-   what the engine reports with nothing but itself to turn.
-4. **Drive as you normally do for twenty minutes or more.** City is fine. If
-   there is a clear, legal stretch, a firm (not flat-out) acceleration from 30 to
-   70 km/h once or twice, and a long lift-off coast, show things a gentle drive
-   never does. **Nothing is required**, and nothing on the screen needs touching
-   while the car moves; the buttons are not there.
-5. **Park.** Repeat the switches from step 2 (it is a second sample, warm).
-   Press **Finish survey**. It says *Survey saved* and the file name. Tap
-   **Dashboard** to go back.
-6. If the car is switched off during the survey it waits (*The car is off*) and
+**The app leads.** Nothing has to be remembered or tapped except the big buttons.
+
+1. **Parked, engine running, handbrake on.** Garage → Adapter → **Survey drive**
+   → read the screen → **Start survey**. About 20 seconds of *Getting ready*
+   while it sets up the adapter and asks the car what it has.
+2. **Parked checks (about four minutes).** The screen offers them: **Begin
+   checks**. Then, one step at a time, in big letters, it says what to do and
+   counts down: everything off; headlights on, off; blower low, high, off; A/C
+   on, off; rear defogger on, off; wipers on, off; the steering wheel lock to
+   lock; and, last, an optional gentle rev (in P with the handbrake on, to about
+   2,000 rpm, three times, not higher; **skip it if you are not comfortable**).
+   As each step begins the app writes the switch into the log with its time, so
+   you do not tap anything. **Next step** skips a step, **Stop checks** gives
+   them up (anything it had said was on is written as off). This is what lets us
+   see what each load does to the battery voltage.
+3. **Drive as you normally do, twenty minutes or more.** City is fine. If there
+   is a clear, legal stretch, a steady 60 to 100 km/h, a firm (not flat-out)
+   acceleration and a lift-off coast show things a gentle drive never does.
+   **Nothing is required**, and while the car moves the screen shows the time and
+   a few numbers and has **nothing to touch**. The checks never start, and stop
+   at once if they are running, when the car moves.
+4. **Park.** After five seconds standing, the screen offers the checks again
+   (**Repeat the checks**, with the engine warm) and **Finish survey**. Do the
+   second run if you can, then finish. It says *Survey saved* and the file name;
+   **Dashboard** goes back.
+5. If the car is switched off during the survey it waits (*The car is off*) and
    carries on when you start it. If it is off for 30 minutes the survey ends by
    itself and saves what it has. The file is also written to the phone every 20
    seconds while it runs, so a phone that dies or an app that is closed still
    leaves the last copy.
+
+If you skip the first checks, the screen offers them again as soon as you stop,
+and at the end.
 
 ## Getting the file
 
@@ -77,9 +83,10 @@ adb pull /sdcard/Android/data/io.github.ictashik.tapedash/files/recordings/ ./pu
 ```
 
 When you tell whoever reads it about the drive, include: the car (model, year,
-variant, petrol or hybrid), the order you switched things on and off (the file
-has when you tapped, not what), whether the A/C was on during the drive, and
-anything odd you saw on the phone.
+variant, petrol or hybrid), anything the checks asked for that you could not do
+or that the car does not have (no rear defogger, say), whether the A/C was on
+during the drive, and anything odd you saw on the phone. The file has what the
+app asked for and when; it cannot know what you actually did.
 
 ## Reading it at a desk
 

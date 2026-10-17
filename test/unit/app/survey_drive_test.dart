@@ -213,34 +213,107 @@ void main() {
     );
   });
 
-  group('marks', () {
-    test('a mark goes into the log with its time', () {
+  group('the guided checks', () {
+    test('are offered once the car is parked and being read, not before', () {
+      build();
+      expect(drive.guide.state.value.canBegin, isFalse);
+
+      drive.start();
+      run(5);
+      expect(drive.guide.state.value.canBegin, isFalse);
+
+      run(60);
+      expect(drive.guide.state.value.canBegin, isTrue);
+    });
+
+    test('write each switch into the log with its time and pass', () {
       build();
       drive.start();
       run(60);
 
-      drive.mark('headlights', true);
-      run(5);
-      drive.mark('headlights', false);
+      drive.guide.begin();
+      run(40);
+      drive.guide.skipAll();
       run(25);
 
       final notes = SurveyLogReader.read(
         SessionLog.parse(sink.files.values.single),
       ).notes.map((n) => n.$2).toList();
-      expect(notes, contains('mark id=headlights state=on'));
-      expect(notes, contains('mark id=headlights state=off'));
+      expect(notes, contains('mark id=headlights state=on pass=1'));
+      expect(notes, contains('mark id=headlights state=off pass=1'));
       expect(
-        notes.indexOf('mark id=headlights state=on'),
-        lessThan(notes.indexOf('mark id=headlights state=off')),
+        notes.indexOf('mark id=headlights state=on pass=1'),
+        lessThan(notes.indexOf('mark id=headlights state=off pass=1')),
       );
+      expect(notes.any((n) => n.startsWith('guide begin pass=1')), isTrue);
     });
 
-    test('before the survey has begun, a mark is ignored', () {
+    test('are read back as marks, with the pass', () {
+      build();
+      drive.start();
+      run(60);
+      drive.guide.begin();
+      run(40);
+      drive.guide.skipAll();
+      run(25);
+
+      final marks = SurveyLogReader.read(
+        SessionLog.parse(sink.files.values.single),
+      ).marks;
+
+      expect(marks.first.id, 'headlights');
+      expect(marks.first.on, isTrue);
+      expect(marks.first.pass, 1);
+    });
+
+    test('ending the survey in the middle writes off what is on', () async {
+      build();
+      drive.start();
+      run(60);
+      drive.guide.begin();
+      run(20);
+      expect(drive.guide.state.value.active, isTrue);
+
+      final done = drive.finish();
+      run(1);
+      await done;
+
+      final marks = SurveyLogReader.read(
+        SessionLog.parse(sink.files.values.single),
+      ).marks;
+      expect(marks.where((m) => m.on).length, marks.where((m) => !m.on).length);
+    });
+
+    test('are stopped the moment the car moves', () {
+      build(
+        scenario: DriveScenario(
+          name: 'survey_late_move',
+          description: 'idle, then away',
+          route: SimRoute.straight(20000),
+          engineRunningAtStart: true,
+          startCoolantC: 85,
+          driverBuilder: () =>
+              ScriptedDriver([IdleFor(75), GoToSpeed(40, holdSeconds: 2000)]),
+        ),
+      );
+      drive.start();
+      run(50);
+      drive.guide.begin();
+      expect(drive.guide.state.value.active, isTrue);
+
+      run(60);
+
+      expect(drive.guide.state.value.active, isFalse);
+      expect(drive.guide.state.value.message, contains('The car moved'));
+    });
+
+    test('nothing happens before the survey has begun', () {
       build();
 
-      drive.mark('ac', true);
+      drive.guide.begin();
 
       expect(factory.made, isEmpty);
+      expect(drive.guide.state.value.active, isFalse);
     });
   });
 

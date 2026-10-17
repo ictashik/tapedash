@@ -176,7 +176,10 @@ String summarize(SessionLog log, {String name = ''}) {
   if (s.marks.isNotEmpty) {
     out.writeln('Marks');
     for (final m in s.marks) {
-      out.writeln('  ${_clock(m.at)}  ${m.id} ${m.on ? 'on' : 'off'}');
+      out.writeln(
+        '  ${_clock(m.at)}  ${m.id} ${m.on ? 'on' : 'off'}'
+        '${m.pass == null ? '' : '  (checks run ${m.pass})'}',
+      );
     }
     out.writeln();
   }

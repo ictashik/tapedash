@@ -49,12 +49,21 @@ class SurveyOtherReply {
 /// Something the user switched on or off during the survey (headlights, A/C...),
 /// as they marked it on the screen.
 class SurveyMark {
-  const SurveyMark({required this.at, required this.id, required this.on});
+  const SurveyMark({
+    required this.at,
+    required this.id,
+    required this.on,
+    this.pass,
+  });
 
   final Duration at;
 
+  /// Which run through the guided checks (1 before the drive, 2 after), or null
+  /// for a mark made some other way.
+  final int? pass;
+
   /// What it was: `headlights`, `blower`, `ac`, `defogger`, `wipers`,
-  /// `steering`.
+  /// `steering`, `revs`.
   final String id;
   final bool on;
 }
@@ -234,7 +243,7 @@ abstract final class SurveyLogReader {
           if (text.startsWith('survey ')) {
             notes.add((e.at, text.substring(7)));
             final mark = RegExp(
-              r'^mark id=(\S+) state=(on|off)$',
+              r'^mark id=(\S+) state=(on|off)(?: pass=(\d+))?$',
             ).firstMatch(text.substring(7));
             if (mark != null) {
               marks.add(
@@ -242,6 +251,7 @@ abstract final class SurveyLogReader {
                   at: e.at,
                   id: mark.group(1)!,
                   on: mark.group(2) == 'on',
+                  pass: int.tryParse(mark.group(3) ?? ''),
                 ),
               );
             }
