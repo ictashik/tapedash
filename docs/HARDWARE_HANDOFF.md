@@ -114,6 +114,20 @@ With the phone mounted where it will live (the tape, or the holder):
 - **Music** playing from the phone at the same time should carry on under the engine (the engine asks for no audio focus).
 - **Leaving the app** (Home) should stop it; coming back should start it again.
 
+## 5c. Insights (parked, from the dock)
+
+Nine pictures from what the car and your trips already hold. Check each, parked, with the engine on, after a few real drives (some need trips, a full tank or a week of driving to show anything):
+
+1. **Current:** the volts of the last drive, the dips marked with how deep. Before starting the engine, switch the ignition on and wait ten seconds: that is a resting-voltage reading, kept once a day. Do it on three mornings and look at the small trend.
+2. **Powerflow:** the last drive's energy split. Check the wheel share is about 7 to 20%; a figure of 30% or more means the model has gone wrong, and the session log is what to send back.
+3. **Power:** the dyno chart. The highest seen should be under about 60 kW for the City, and the hatched part should start where you have not taken the revs.
+4. **Gears:** on the City (a CVT) it should say None and show a fan. If it finds lines, tell me.
+5. **Tank:** log a full tank at Pit Stop with FULL TANK on. After a drive, the litres left and the range should follow what the pump takes at the next full tank (tell me the difference). The Money page's fuel-left line should show "≈ KM LEFT".
+6. **Tolls:** after a week with the GPS on, the places you wait should be rings on your usual road. Tap one.
+7. **Cold start:** needs the coolant under 65 °C at the start and a fuel price set.
+8. **Ghost:** needs the same route twice with the GPS on.
+9. **Year, and Share:** the poster. Tap SHARE: the phone's share sheet should open with the picture. **This is the one piece of Android code in this round that has never run on a phone**; say what the sheet does, and whether the picture is 1920 x 1080 and sharp.
+
 ## 6. What to report back
 
 For each adapter you tried:

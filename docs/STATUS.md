@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-10-16, with the survey drive ("The survey drive" below). Before that, 2026-09-30, after the first real drives (see "First real drive" and "The second drives" below) and the replay and the engine sound ("After the map"). Before it, at the end of phase 6, **the app was ready for real-hardware testing** (CLAUDE.md 11). Phases 0 to 6 are built, tested and committed, on the simulator. The app opens on a cold open and a choice: **TRY A DEMO DRIVE** (a simulated car, no hardware) or **CONNECT MY CAR** (a WiFi, Bluetooth or BLE ELM327), and then drives, records trips, works out where the money goes, coaches, and shows Review, Coach, History, Garage and Diagnostics. **Nothing here has met a real phone, adapter or car.** The next step is yours: `docs/HARDWARE_HANDOFF.md`.
+Updated 2026-10-18, with the Insights ("Insights" below). Before that, 2026-10-16, with the survey drive ("The survey drive" below). Before that, 2026-09-30, after the first real drives (see "First real drive" and "The second drives" below) and the replay and the engine sound ("After the map"). Before it, at the end of phase 6, **the app was ready for real-hardware testing** (CLAUDE.md 11). Phases 0 to 6 are built, tested and committed, on the simulator. The app opens on a cold open and a choice: **TRY A DEMO DRIVE** (a simulated car, no hardware) or **CONNECT MY CAR** (a WiFi, Bluetooth or BLE ELM327), and then drives, records trips, works out where the money goes, coaches, and shows Review, Coach, History, Garage and Diagnostics. **Nothing here has met a real phone, adapter or car.** The next step is yours: `docs/HARDWARE_HANDOFF.md`.
 
 ## Where we are
 
@@ -17,6 +17,37 @@ Updated 2026-10-16, with the survey drive ("The survey drive" below). Before tha
 | 7. After hardware | **Started**: the first real drive is in; recordings, tuning and the fixes below are next |
 
 **Suggested tags, none created** (placing them is your call; none has been pushed): `v0.1.0-sim` on `d5016d6`, `v0.2.0-design` on `62fb1bb`, `v0.3.0-sim` on `57cd4e2`, `v0.4.0-sim` on `f0105e3`, `v0.5.0-sim` on `2db202f`, `v0.6.0-handoff` on the commit that adds `docs/HARDWARE_HANDOFF.md`.
+
+## Insights (2026-10-18)
+
+Nine ideas from the pitch, built, tested and committed: **Current, Powerflow, Power, Gears, Tank, Tolls, Cold start, Ghost and Year on Tape**, with a **Share** button on the last. They open from a new **Insights** button on the parked dock, as one full-screen form with a scrolling selector (DESIGN.md 7.14, 6.18); parked only, and it closes itself when the car moves. The Tank count also fills the Money page's fuel-left slot for a car that sends no level, marked "≈". Decisions and their reasons are in `docs/DECISIONS.md` ("Insights").
+
+| Idea | Where it lives | What it is made from |
+|---|---|---|
+| Current | `lib/insights/voltage_trace.dart`, `rest_voltage_log.dart` | module voltage of a trip; a log of the battery at rest (one a day) |
+| Powerflow | `powerflow.dart`, `wheel_power.dart` | speed, acceleration (no hills) and the trip's fuel |
+| Power curve | `power_curve.dart` | the same wheel power against revs |
+| Gearbox, found | `gearbox.dart` | revs against speed; a CVT is a fan |
+| Tank without a gauge | `lib/money/fuel_ledger.dart` (`litresLeft`), `tank_reading.dart` | last full fill-up, the estimate since, the calibration |
+| The Toll Map | `toll_map.dart`, `geo.dart` | stops with the engine on and a GPS fix |
+| Cold-start bill | `cold_start.dart` | coolant, speed and fuel of a trip |
+| Ghost commute | `ghost_commute.dart` | the GPS shapes of two trips |
+| Year on Tape + Share | `year_on_tape.dart`, `year_poster.dart`, `ShareChannel.kt` | every trip; the picture is drawn by the app |
+
+**Numbers:** `tool/verify.sh` green at 3,471 tests (with goldens excluded on this Mac). New: `test/unit/insights/` (the analyses, a made-up commute fixture, and a plausibility test against the real recordings), `test/design/insight_charts_test.dart`, `test/widget/insights/` (every tab at 640, 720 and 800 wide; the page in the shell), `test/unit/platform/image_sharer_test.dart`. Captures of every tab are in `test/design/capture/insights_capture_test.dart`, and frames 39 to 50 of the build video.
+
+**The real drives found two bugs in the first model**, which made-up drives never would have: one wrong speed reading (46 then 95 km/h) read as 100 kW, and noise counted only when it pulls looked like work. Fixed (a median of three, a fitted slope, impossible moments dropped, "highest seen" is the edge's peak). On the City's own recordings the gearbox comes out a fan (it is a CVT), the edge peaks at about 30 kW at 3,100 rpm, and the wheels get 7 to 17% of the fuel's energy.
+
+**Not verified, and why**
+- **The Android share sheet.** `ShareChannel.kt` compiles (a debug and a release APK built) and its Dart side is tested on a mocked channel, but nobody has seen the sheet open on a phone. It adds no permission: the strict offline check passed on a release build (`--split-per-abi`, armeabi-v7a 14.8 MB and arm64-v8a 17.4 MB, under the 20 MB budget).
+- **The counted tank on a real car.** Tested on the simulator and with hand-made ledgers. It starts only after a full tank is logged at Pit Stop with FULL TANK on, and it drifts if trips are missed. The City reports no fuel level, so this is the path it will take.
+- **The resting-voltage reading** (`RestVoltageWatcher`) has run only against the simulator: it needs the ignition on, the engine off and a settled voltage for 8 s, which the real adapter has not yet been asked for.
+- **Everything that needs GPS** (Tolls, Ghost) has been run on made-up routes with clean fixes, not on a phone's real scatter. The thresholds (150 m for a place, 180 m for a route) are guesses until a real week of driving is in.
+- **The Design Lab** has no pages for these charts. They are drawn from `ChartKit` and exercised in the capture tests on made-up driving, but CLAUDE.md 12 asks for the Lab first: that is owed.
+- **The gear digit** in a cluster (the pitch's "can sit in any cluster") is not built. `Gearbox.gearFor` and the learned ratios are there for it; the City is a CVT, so it would show nothing on this car.
+- **Names for places.** The Toll Map has no map under it, so a place is a numbered ring. The optional offline map (CLAUDE.md 13, phase 7) is where names would come from.
+- **Daylight, Night, VFD, EMBER and MONO** were captured for the Gears tab (ION and VFD) only. The golden matrix of DESIGN.md 14.1 does not exist yet for these pages, and goldens are CI-Linux-only.
+- **Fidelity tiers and frame timings** of the new pages were not measured (no emulator was run).
 
 ## Phase 3b so far: every component
 
