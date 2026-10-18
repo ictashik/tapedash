@@ -115,6 +115,7 @@ Before adding **any** package:
 - **OBD protocol:** our own pure-Dart ELM327 layer. The `obd2` package (MPL-2.0) may be studied for design ideas; any copied file stays MPL-2.0 with its header, so prefer writing our own.
 - **Engine sound:** synthesised in our own pure-Dart code (`lib/sound/`, no audio asset and so nothing to license), played through a thin Kotlin channel over `AudioTrack`. No audio library (Oboe, SoLoud) and no plugin. It runs in an isolate of its own. It plays on car audio only unless the user allows the speaker, asks for no audio focus, and stops with the screen (no foreground service, so no new permission). DESIGN.md §5.10.
 - **Device features** (keep screen on, window brightness, battery temperature, immersive mode, ambient light, accelerometer): small native calls on a `DeviceChannel` rather than plugins. Ambient light drives Daylight and Night modes; the accelerometer drives the road view's body roll (DESIGN.md §4.4, §6.11).
+- **Sharing a picture** (Year on Tape): a thin Kotlin `ShareChannel` that writes the PNG the app drew to its own cache and opens Android's share sheet through a `FileProvider` (`androidx.core`, Apache-2.0, already in the app through the Flutter embedding). No permission, no network code, no plugin; what the person picks in the sheet is their choice. Parked only, a button on the Year insight.
 - **Storage:** `sqflite` for trips, samples, fill-ups and events. `shared_preferences` for settings.
 - **State:** no heavy frameworks and no code generation. Use `ValueNotifier`/`ValueListenable` and streams, with constructor-injected services. Live data must never trigger widget rebuilds (DESIGN.md §9.3).
 - **Time:** all time-dependent code takes an injected `Clock` (our own small interface, with `SystemClock` and `FakeClock`). Never call `DateTime.now()` or create `Timer`s directly in domain code; use the injected clock or scheduler. This is what makes the simulator tests deterministic and fast. UI animation runs on DESIGN.md's `MotionClock` (a vsync ticker), which tests drive through the fake clock.
@@ -154,7 +155,7 @@ lib/
     pages/             # Drive (clusters), Money, Review, Coach, History: composed only from design/ components
     hud/               # HUD layouts and the alignment pattern (DESIGN.md §8)
     onboarding/ garage/ pit_stop/ diagnostics/
-android/app/src/main/kotlin/.../  # GpsChannel, BtClassicChannel, DeviceChannel
+android/app/src/main/kotlin/.../  # GpsChannel, BtClassicChannel, DeviceChannel, ShareChannel
 assets/fonts/ assets/dtc/
 tool/                  # check_offline.sh, sim_server.dart, record/replay helpers, font subsetting script
 test/                  # unit/, e2e/, widget/, design/ (goldens + design lint)

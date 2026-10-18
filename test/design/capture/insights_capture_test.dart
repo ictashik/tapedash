@@ -7,8 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/core/key_value_store.dart';
 import 'package:tapedash/money/fill_up.dart';
 import 'package:tapedash/money/fuel_ledger.dart';
+import 'package:tapedash/ui/design/components/insights/year_poster.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
+import 'package:tapedash/ui/design/theme/palette.dart';
 import 'package:tapedash/ui/design/theme/tape_theme.dart';
 import 'package:tapedash/ui/design/tokens/livery.dart';
 import 'package:tapedash/ui/pages/insights/insights_page.dart';
@@ -116,6 +118,25 @@ void main() {
 
   testWidgets('ghost', (tester) async {
     await capture(tester, InsightTab.ghost, 'insights-ghost');
+  }, skip: !enabled);
+
+  testWidgets('year', (tester) async {
+    await capture(tester, InsightTab.year, 'insights-year', year: true);
+  }, skip: !enabled);
+
+  testWidgets('the picture Share hands over, at 1920x1080', (tester) async {
+    final data = madeInsightData(year: true);
+    final png = await tester.runAsync(
+      () => YearPosterPainter.toPng(
+        data.year(2026),
+        TapePalette(livery: Liveries.ion),
+        sweetSpot:
+            '${data.sweetSpot.range?.from ?? 30}–${data.sweetSpot.range?.to ?? 50}',
+      ),
+    );
+    File(
+      '${captureDirectory().path}/insights-year-export.png',
+    ).writeAsBytesSync(png!);
   }, skip: !enabled);
 
   testWidgets('current', (tester) async {

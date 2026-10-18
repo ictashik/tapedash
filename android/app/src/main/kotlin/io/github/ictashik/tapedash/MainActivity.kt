@@ -10,6 +10,7 @@ class MainActivity : FlutterActivity() {
     private var btClassic: BtClassicChannel? = null
     private var ble: BleChannel? = null
     private var engineAudio: EngineAudioChannel? = null
+    private var share: ShareChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -21,6 +22,7 @@ class MainActivity : FlutterActivity() {
         btClassic = BtClassicChannel(this, messenger, permissions)
         ble = BleChannel(this, messenger, permissions)
         engineAudio = EngineAudioChannel(this, messenger)
+        share = ShareChannel(this, messenger)
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
@@ -34,6 +36,8 @@ class MainActivity : FlutterActivity() {
         ble = null
         engineAudio?.dispose()
         engineAudio = null
+        share?.dispose()
+        share = null
         bluetoothPermissions?.dispose()
         bluetoothPermissions = null
         super.cleanUpFlutterEngine(flutterEngine)

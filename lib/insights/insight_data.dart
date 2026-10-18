@@ -1,3 +1,4 @@
+import '../coach/efficiency_curve.dart';
 import '../trips/trip.dart';
 import 'cold_start.dart';
 import 'gearbox.dart';
@@ -87,6 +88,16 @@ class InsightData {
     withSamples,
     fallbackPrice: fallbackPrice,
   );
+
+  /// The car's sweet spot, from the trips that have samples.
+  late final SweetSpot sweetSpot = SweetSpot.fromTrips([
+    for (final (_, s) in withSamples) s,
+  ]);
+
+  /// The years that have trips, newest first.
+  List<int> get years =>
+      ({for (final t in trips) t.startedAt.year}.toList()
+        ..sort((a, b) => b.compareTo(a)));
 
   /// The year with the most trips, or [now]'s when there are none.
   int yearFor(DateTime now) => YearOnTape.defaultYear(trips, now);

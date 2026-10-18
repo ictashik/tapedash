@@ -15,6 +15,7 @@ import '../location/location_status.dart';
 import '../money/pit_stop_form.dart';
 import '../obd/dtc/dtc_descriptions.dart';
 import '../obd/session_diagnostics.dart';
+import '../platform/image_sharer.dart';
 import '../platform/native_location_source.dart';
 import '../sound/voice_host.dart';
 import '../trips/trip.dart';
@@ -83,12 +84,17 @@ class DriveShell extends StatefulWidget {
     this.debugRows = const [],
     this.onOpenLab,
     this.soundHost,
+    this.sharer,
   });
 
   /// Makes the engine sound's voice (lib/sound). Null uses the real one, which plays
   /// on the phone's audio output from an isolate of its own; tests give one in
   /// memory.
   final VoiceHost Function()? soundHost;
+
+  /// Hands Year on Tape's picture to the phone's share sheet. Null uses the real
+  /// one; tests give one in memory.
+  final ImageSharer? sharer;
 
   final Clock clock;
   final Scheduler scheduler;
@@ -154,6 +160,7 @@ class _DriveShellState extends State<DriveShell> {
   /// The money of this drive: the real one for a real car, the demo's own for
   /// the demo (CLAUDE.md 7.6).
   late final AppServices _driveApp = _feed.isDemo ? _demoApp : _app;
+  late final ImageSharer _sharer = widget.sharer ?? NativeImageSharer();
   late final HudSettings _hud = _app.settings.hud;
   final GlobalKey<DrivePageState> _driveKey = GlobalKey();
   SessionDiagnostics? _diagnostics;
@@ -458,6 +465,8 @@ class _DriveShellState extends State<DriveShell> {
           ),
           selected: () => _library.selected.value,
           rest: () => _driveApp.restVoltage.readings,
+          sharer: _sharer,
+          now: widget.clock.now,
           mode: signals.mode,
           width: w,
           height: h,

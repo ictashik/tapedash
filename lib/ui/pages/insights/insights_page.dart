@@ -6,6 +6,7 @@ import '../../../insights/insight_data.dart';
 import '../../../insights/rest_voltage_log.dart';
 import '../../../insights/tank_reading.dart';
 import '../../../insights/voltage_trace.dart';
+import '../../../platform/image_sharer.dart';
 import '../../../trips/trip.dart';
 import '../../../vehicle/vehicle_state.dart' show DrivingMode;
 import '../../design/components/controls/tape_button.dart';
@@ -23,6 +24,7 @@ import 'power_panel.dart';
 import 'powerflow_panel.dart';
 import 'tank_panel.dart';
 import 'tolls_panel.dart';
+import 'year_panel.dart';
 
 /// The pages of Insights (DESIGN.md 7.14), in the order of the selector.
 enum InsightTab {
@@ -33,7 +35,8 @@ enum InsightTab {
   tank('Tank'),
   tolls('Tolls'),
   cold('Cold start'),
-  ghost('Ghost');
+  ghost('Ghost'),
+  year('Year');
 
   const InsightTab(this.label);
   final String label;
@@ -55,6 +58,8 @@ class InsightsPage extends StatefulWidget {
     required this.onClose,
     required this.selected,
     required this.rest,
+    required this.sharer,
+    required this.now,
     this.initial = InsightTab.current,
   });
 
@@ -66,6 +71,12 @@ class InsightsPage extends StatefulWidget {
 
   /// The trip Review is showing, for the panels that are about one trip.
   final Trip? Function() selected;
+
+  /// Hands a picture to the phone's share sheet (Year on Tape).
+  final ImageSharer sharer;
+
+  /// The time, for the year the poster opens on.
+  final DateTime Function() now;
 
   /// The battery's resting voltage, reading by reading.
   final List<RestReading> Function() rest;
@@ -178,6 +189,12 @@ class InsightsPageState extends State<InsightsPage> {
     return data.trips.isEmpty ? null : data.trips.first;
   }
 
+  /// The sweet spot as "55–70", or null until the car has one.
+  String? _sweetSpot(InsightData data) {
+    final r = data.sweetSpot.range;
+    return r == null ? null : '${r.from}–${r.to}';
+  }
+
   /// The earlier drive of the chosen trip's route, or, if it has none, of the
   /// latest trip that has one.
   GhostMatch? _ghost(InsightData data, Trip? chosen) {
@@ -235,6 +252,15 @@ class InsightsPageState extends State<InsightsPage> {
       InsightTab.tank => TankPanel(reading: widget.tank(data.trips)),
       InsightTab.cold => _cold(data, trip),
       InsightTab.ghost => GhostPanel(match: _ghost(data, trip)),
+      InsightTab.year => YearPanel(
+        // A fresh panel for a fresh snapshot: the years it offers are the data's.
+        key: ValueKey(data),
+        years: data.years,
+        build: data.year,
+        sweetSpot: _sweetSpot(data),
+        initialYear: data.yearFor(widget.now()),
+        sharer: widget.sharer,
+      ),
       InsightTab.tolls => TollsPanel(
         map: data.tollMap,
         since: data.trips.isEmpty ? null : data.trips.last.startedAt,

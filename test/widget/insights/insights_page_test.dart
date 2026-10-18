@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/core/fake_clock.dart';
@@ -6,6 +8,7 @@ import 'package:tapedash/core/observable.dart';
 import 'package:tapedash/insights/insight_data.dart';
 import 'package:tapedash/money/fill_up.dart';
 import 'package:tapedash/money/fuel_ledger.dart';
+import 'package:tapedash/platform/image_sharer.dart';
 import 'package:tapedash/trips/trip.dart';
 import 'package:tapedash/ui/design/components/insights/toll_map_chart.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
@@ -13,6 +16,7 @@ import 'package:tapedash/ui/design/render/render_kit.dart';
 import 'package:tapedash/ui/pages/insights/ghost_panel.dart';
 import 'package:tapedash/ui/pages/insights/insights_page.dart';
 import 'package:tapedash/ui/pages/insights/tolls_panel.dart';
+import 'package:tapedash/ui/pages/insights/year_panel.dart';
 import 'package:tapedash/vehicle/vehicle_state.dart';
 
 import '../../design/support/harness.dart';
@@ -50,6 +54,7 @@ void main() {
     WidgetTester tester, {
     Size size = const Size(640, 360),
     InsightTab? tab,
+    ImageSharer? sharer,
   }) async {
     setWindow(tester, size);
     final clock = FakeClock();
@@ -63,6 +68,7 @@ void main() {
           mode: _Listenable(mode),
           size: size,
           tab: tab,
+          sharer: sharer,
           onClose: () => closed++,
         ),
       ),
@@ -274,6 +280,76 @@ void main() {
     expect(GhostPanel.hardWords(5), '5 fewer hard starts');
     expect(GhostPanel.hardWords(-1), '1 more hard start');
     expect(GhostPanel.hardWords(0), isNull);
+  });
+
+  group('Year', () {
+    // The poster is drawn into an image, which needs a real event loop.
+    Future<void> settle(WidgetTester tester) async {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 400)),
+      );
+      await tester.pump();
+    }
+
+    testWidgets('Share draws the poster at 1920x1080 and hands it over', (
+      tester,
+    ) async {
+      data = madeInsightData(year: true);
+      final sharer = MemoryImageSharer();
+      await show(tester, tab: InsightTab.year, sharer: sharer);
+      await tester.tap(find.text('SHARE'));
+      await settle(tester);
+
+      expect(sharer.shared, hasLength(1));
+      final shot = sharer.shared.single;
+      expect(shot.name, 'tapedash-2026');
+      final b = shot.png;
+      // The PNG signature, then the width and height in the IHDR chunk.
+      expect(b.sublist(0, 8), [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      final head = ByteData.sublistView(b);
+      expect(head.getUint32(16), 1920);
+      expect(head.getUint32(20), 1080);
+      expect(find.textContaining('Handed to your share sheet'), findsOneWidget);
+      expect(
+        tester.state<YearPanelState>(find.byType(YearPanel)).status,
+        ShareStatus.shared,
+      );
+    });
+
+    testWidgets('a phone with nothing to share to says so', (tester) async {
+      data = madeInsightData(year: true);
+      await show(
+        tester,
+        tab: InsightTab.year,
+        sharer: MemoryImageSharer(succeed: false),
+      );
+      await tester.tap(find.text('SHARE'));
+      await settle(tester);
+      expect(find.textContaining('Nothing on this phone'), findsOneWidget);
+    });
+
+    testWidgets('a year with no trips has nothing to share', (tester) async {
+      data = madeInsightData(days: 0, now: DateTime(2026, 10, 17));
+      final sharer = MemoryImageSharer();
+      await show(tester, tab: InsightTab.year, sharer: sharer);
+      expect(find.text('NO TRIPS THIS YEAR YET'), findsOneWidget);
+      await tester.tap(find.text('SHARE'), warnIfMissed: false);
+      await settle(tester);
+      expect(sharer.shared, isEmpty);
+    });
+
+    testWidgets('it opens on this year and offers the others', (tester) async {
+      final last = madeInsightData(now: DateTime(2026, 1, 9, 9), days: 8);
+      final older = madeInsightData(now: DateTime(2025, 11, 14, 9), days: 8);
+      data = InsightData.of([...last.withSamples, ...older.withSamples]);
+      await show(tester, tab: InsightTab.year);
+      final panel = tester.state<YearPanelState>(find.byType(YearPanel));
+      expect(panel.year, 2026);
+      expect(find.text('2025'), findsOneWidget);
+      await tester.tap(find.text('2025'));
+      await tester.pump();
+      expect(panel.year, 2025);
+    });
   });
 
   testWidgets('the tank says what fills it in when nothing is counted', (

@@ -4,6 +4,7 @@ import 'package:tapedash/insights/insight_data.dart';
 import 'package:tapedash/insights/rest_voltage_log.dart';
 import 'package:tapedash/insights/tank_reading.dart';
 import 'package:tapedash/money/fuel_ledger.dart';
+import 'package:tapedash/platform/image_sharer.dart';
 import 'package:tapedash/trips/trip.dart';
 import 'package:tapedash/ui/pages/insights/insights_page.dart';
 import 'package:tapedash/vehicle/vehicle_state.dart';
@@ -19,11 +20,15 @@ Widget insightsPageFor({
   List<RestReading> rest = const [],
   Trip? selected,
   VoidCallback? onClose,
+  ImageSharer? sharer,
+  DateTime? now,
 }) => InsightsPage(
   load: () async => data,
   tank: (trips) => TankReading.of(ledger: ledger, tankLitres: 40, trips: trips),
   selected: () => selected,
   rest: () => rest,
+  sharer: sharer ?? MemoryImageSharer(),
+  now: () => now ?? DateTime(2026, 10, 17, 9),
   mode: mode,
   width: size.width,
   height: size.height,
