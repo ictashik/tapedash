@@ -146,6 +146,7 @@ lib/
   fuel/                # fuel-flow estimators (5E / MAF / MAP), calibration
   money/               # fuel price, fill-up log, live trip cost, attribution
   coach/               # event detection, sweet-spot learning, tips
+  insights/            # what the trips add up to: powerflow, power curve, gearbox, voltage, toll map, cold start, ghost commute, year on tape
   trips/               # trip lifecycle, sample recording, sqflite repositories
   ui/
     design/            # the design system: tokens, theme, fidelity, motion, render caches, icons, components (DESIGN.md §13)
@@ -163,7 +164,7 @@ docs/                  # DECISIONS.md, STATUS.md, DEV_SETUP.md, HARDWARE_HANDOFF
 ```
 
 ### Layering rules
-- `sim/`, `obd/`, `vehicle/`, `fuel/`, `money/`, `coach/`, `sound/` and `trips/` (except the sqflite adapter) are **pure Dart with no Flutter imports**. They're tested headlessly.
+- `sim/`, `obd/`, `vehicle/`, `fuel/`, `money/`, `coach/`, `insights/`, `sound/` and `trips/` (except the sqflite adapter) are **pure Dart with no Flutter imports**. They're tested headlessly.
 - `ui/` only reads `ValueListenable`s and streams from services. It never touches transports or the database directly.
 - Pages are composed only from `ui/design/` components and tokens. No Material widgets and no raw colours, text styles, durations or spring constants anywhere in `ui/` outside `ui/design/tokens/` (enforced by the design-lint test).
 - `Transport` interface: `connect()`, `disconnect()`, `write(String)`, `Stream<String> incoming`, `Stream<TransportState> state`.

@@ -32,6 +32,11 @@ class FuelLedger {
 
   double _estimatedSinceFull = 0;
   double _unsaved = 0;
+
+  // The tank count (see [litresLeft]): whether a full tank has ever been logged,
+  // and the litres put in by part-fills since the last one.
+  bool _hasFullTank = false;
+  double _topUpSinceFull = 0;
   late final ObservableValue<CalibrationConfidence> _confidence =
       ObservableValue(calibration.confidence);
 
@@ -45,7 +50,9 @@ class FuelLedger {
   Future<void> load() async {
     _estimatedSinceFull = await store.getDouble(_estimateKey) ?? 0;
     final rebuilt = Calibration();
-    for (final f in await fills.all()) {
+    final all = await fills.all();
+    _countTank(all);
+    for (final f in all) {
       if (f.factor != null) rebuilt.add(f.factor!);
     }
     for (final f in rebuilt.factors) {
@@ -64,8 +71,34 @@ class FuelLedger {
     _confidence.value = calibration.confidence;
     _estimatedSinceFull = 0;
     _unsaved = 0;
+    _hasFullTank = false;
+    _topUpSinceFull = 0;
     await store.setDouble(_estimateKey, 0);
   }
+
+  void _countTank(List<FillUp> all) {
+    final lastFull = all.where((f) => f.fullTank).toList();
+    _hasFullTank = lastFull.isNotEmpty;
+    _topUpSinceFull = _hasFullTank
+        ? all
+              .where((f) => !f.fullTank && f.at.isAfter(lastFull.last.at))
+              .fold<double>(0, (a, f) => a + f.litres)
+        : 0;
+  }
+
+  /// The litres in a tank of [tankLitres], counted and not sensed: the tank as it
+  /// was at the last full fill-up, less what the app has estimated since (with the
+  /// calibration), plus any part-fills since. Null until a full tank has been
+  /// logged, since there is nothing to count from. An estimate, and it drifts as
+  /// trips are missed; every full tank sets it right again.
+  double? litresLeft(double tankLitres) {
+    if (!_hasFullTank) return null;
+    final used = _estimatedSinceFull * calibration.factor;
+    return (tankLitres - used + _topUpSinceFull).clamp(0.0, tankLitres);
+  }
+
+  /// The litres the app has used since the last full tank, calibrated.
+  double get usedSinceFull => _estimatedSinceFull * calibration.factor;
 
   /// Counts [litres] of raw estimate.
   void addEstimate(double litres) {
@@ -108,7 +141,11 @@ class FuelLedger {
       // A full tank starts the count again, whether or not it made a factor.
       _estimatedSinceFull = 0;
       _unsaved = 0;
+      _hasFullTank = true;
+      _topUpSinceFull = 0;
       await store.setDouble(_estimateKey, 0);
+    } else if (_hasFullTank) {
+      _topUpSinceFull += litres;
     }
     return fills.add(
       FillUp(

@@ -62,6 +62,7 @@ class MoneySignals {
     trip.costPerKm.addListener(_onAvailability);
     _bind(remainingKm, trip.remainingKm);
     trip.remainingLitres.addListener(_onRemaining);
+    trip.remainingCounted.addListener(_onRemaining);
     trip.blockCount.addListener(_onBlocks);
     trip.onBlocksReset(_onBlocks);
     settings.price.addListener(_onPrice);
@@ -120,6 +121,7 @@ class MoneySignals {
     MoneyConfidence.uncalibrated,
   );
   final ValueNotifier<bool> _hasRemaining = ValueNotifier(false);
+  final ValueNotifier<bool> _remainingCounted = ValueNotifier(false);
   final ValueNotifier<List<MoneyBlock>> _blocks = ValueNotifier(const []);
   final ValueNotifier<Duration> _tripTime = ValueNotifier(Duration.zero);
   final ValueNotifier<bool> _lowConfidence = ValueNotifier(false);
@@ -138,6 +140,10 @@ class MoneySignals {
 
   /// Whether the car reports its fuel level, so the fuel left can be shown.
   ValueListenable<bool> get hasRemaining => _hasRemaining;
+
+  /// Whether the fuel left is counted from the last full tank and not read from
+  /// the car, so that the screen marks it as an estimate.
+  ValueListenable<bool> get remainingCounted => _remainingCounted;
 
   /// The Money Tape's blocks, in order (DESIGN.md 6.8).
   ValueListenable<List<MoneyBlock>> get blocks => _blocks;
@@ -203,6 +209,7 @@ class MoneySignals {
   void _onRemaining() {
     final litres = trip.remainingLitres.value;
     _hasRemaining.value = litres != null;
+    _remainingCounted.value = trip.remainingCounted.value;
     final price = settings.price.value;
     if (litres != null && price != null) {
       final now = clock.monotonic();
@@ -303,6 +310,7 @@ class MoneySignals {
     trip.kmPerLitre.removeListener(_onAverage);
     trip.distanceKm.removeListener(_onAverage);
     trip.remainingLitres.removeListener(_onRemaining);
+    trip.remainingCounted.removeListener(_onRemaining);
     trip.blockCount.removeListener(_onBlocks);
     settings.price.removeListener(_onPrice);
     trip.fuelKnown.removeListener(_onView);
@@ -327,6 +335,7 @@ class MoneySignals {
     _view.dispose();
     _confidence.dispose();
     _hasRemaining.dispose();
+    _remainingCounted.dispose();
     _tripTime.dispose();
     _lowConfidence.dispose();
     _ecoAverage.dispose();

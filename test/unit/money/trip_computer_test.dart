@@ -13,7 +13,7 @@ import 'package:tapedash/vehicle/sensor.dart';
 import 'package:tapedash/vehicle/vehicle_state.dart';
 
 class Rig {
-  Rig({double? price = 100, this.factor = 1}) {
+  Rig({double? price = 100, this.factor = 1, this.counted}) {
     clock = FakeClock()..advance(const Duration(seconds: 100));
     vehicle = VehicleState(clock: clock, scheduler: clock);
     estimator = FuelEstimator(vehicle: vehicle, setup: const VehicleSetup());
@@ -25,6 +25,7 @@ class Rig {
       hardEvents: hard,
       calibrationFactor: () => factor,
       price: this.price,
+      countedRemaining: counted == null ? null : () => counted!(),
     );
   }
 
@@ -35,6 +36,7 @@ class Rig {
   late final ObservableValue<double?> price;
   late final TripComputer trip;
   double factor;
+  final double? Function()? counted;
 
   void feed(Sensor s, double v) {
     final now = clock.monotonic();
@@ -369,6 +371,31 @@ void main() {
       make().drive(20, speed: (_) => 60);
       expect(rig.trip.remainingLitres.value, isNull);
       expect(rig.trip.remainingKm.value, isNull);
+      expect(rig.trip.remainingCounted.value, isFalse);
+    });
+
+    test('a car that does not report its level shows the count, as one', () {
+      double? left = 16;
+      rig = Rig(counted: () => left);
+      rig.drive(120, speed: (_) => 60);
+      expect(rig.trip.remainingLitres.value, 16);
+      expect(rig.trip.remainingCounted.value, isTrue);
+      expect(
+        rig.trip.remainingKm.value,
+        closeTo(16 * rig.trip.kmPerLitre.value!, 1e-6),
+      );
+      left = null; // no full tank logged any more
+      rig.drive(5, speed: (_) => 60);
+      expect(rig.trip.remainingLitres.value, isNull);
+      expect(rig.trip.remainingCounted.value, isFalse);
+    });
+
+    test('the car\'s own level wins over the count', () {
+      rig = Rig(counted: () => 5);
+      rig.drive(20, speed: (_) => 60);
+      rig.feed(Sensor.fuelLevel, 50);
+      expect(rig.trip.remainingLitres.value, closeTo(20, 1e-9));
+      expect(rig.trip.remainingCounted.value, isFalse);
     });
   });
 }

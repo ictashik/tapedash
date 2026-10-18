@@ -325,7 +325,8 @@ class _TapeFlank extends StatelessWidget {
   }
 }
 
-/// The fuel left, as ₹ and km, when the car reports its level.
+/// The fuel left, as ₹ and km: the car's own level when it reports one, else the
+/// count from the last full tank, marked as the estimate it is.
 class _FuelLeft extends StatelessWidget {
   const _FuelLeft({required this.money, required this.height});
 
@@ -339,34 +340,38 @@ class _FuelLeft extends StatelessWidget {
       valueListenable: money.hasRemaining,
       builder: (context, has, _) => !has
           ? const SizedBox.shrink()
-          : ValueListenableBuilder<MoneyView>(
-              valueListenable: money.view,
-              builder: (context, view, _) => Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (view == MoneyView.rupees) ...[
-                    LabeledNumeral(
-                      source: money.remainingCost,
-                      format: const NumeralFormat(
-                        integerDigits: 4,
-                        grouping: DigitGrouping.indian,
-                      ),
-                      size: type.secondary * 0.7,
-                      prefix: '₹',
-                      unit: 'LEFT',
-                      role: NumeralRole.money,
+          : ValueListenableBuilder<bool>(
+              valueListenable: money.remainingCounted,
+              builder: (context, counted, _) =>
+                  ValueListenableBuilder<MoneyView>(
+                    valueListenable: money.view,
+                    builder: (context, view, _) => Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (view == MoneyView.rupees) ...[
+                          LabeledNumeral(
+                            source: money.remainingCost,
+                            format: const NumeralFormat(
+                              integerDigits: 4,
+                              grouping: DigitGrouping.indian,
+                            ),
+                            size: type.secondary * 0.7,
+                            prefix: '₹',
+                            unit: counted ? '≈ LEFT' : 'LEFT',
+                            role: NumeralRole.money,
+                          ),
+                          const SizedBox(width: TapeSpace.s6),
+                        ],
+                        LabeledNumeral(
+                          source: money.remainingKm,
+                          format: const NumeralFormat(integerDigits: 4),
+                          size: type.secondary * 0.7,
+                          unit: counted ? '≈ KM LEFT' : 'KM LEFT',
+                          role: NumeralRole.mid,
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: TapeSpace.s6),
-                  ],
-                  LabeledNumeral(
-                    source: money.remainingKm,
-                    format: const NumeralFormat(integerDigits: 4),
-                    size: type.secondary * 0.7,
-                    unit: 'KM LEFT',
-                    role: NumeralRole.mid,
                   ),
-                ],
-              ),
             ),
     );
   }

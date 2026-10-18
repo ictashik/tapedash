@@ -20,6 +20,7 @@ const _pureDirs = [
   'fuel',
   'money',
   'coach',
+  'insights',
   'trips',
   'sound',
 ];

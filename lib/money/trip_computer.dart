@@ -75,6 +75,7 @@ class TripComputer {
     this.thresholds = CoachThresholds.normal,
     this.location,
     this.onEstimate,
+    this.countedRemaining,
     FuelIntegrator? integrator,
   }) : _integrator = integrator ?? FuelIntegrator() {
     estimator.flow.addListener(_onFlow);
@@ -101,6 +102,11 @@ class TripComputer {
 
   /// Told the raw litres of each stretch, for the fill-up ledger.
   final void Function(double uncalibratedLitres)? onEstimate;
+
+  /// The litres left in the tank as counted from the last full fill-up, for a car
+  /// that does not report its fuel level; null while there is no full tank to
+  /// count from. Used only when the car reports no level of its own.
+  final double? Function()? countedRemaining;
 
   final FuelIntegrator _integrator;
 
@@ -133,6 +139,7 @@ class TripComputer {
   final ObservableValue<double?> _idleCost = ObservableValue(null);
   final ObservableValue<double?> _remainingLitres = ObservableValue(null);
   final ObservableValue<double?> _remainingKm = ObservableValue(null);
+  final ObservableValue<bool> _remainingCounted = ObservableValue(false);
   final ObservableValue<int> _blockCount = ObservableValue(0);
   final ObservableValue<bool> _fuelKnown = ObservableValue(false);
 
@@ -194,11 +201,16 @@ class TripComputer {
   /// What idling has cost.
   Observable<double?> get idleCost => _idleCost;
 
-  /// Fuel left in the tank, in litres, if the car reports its level.
+  /// Fuel left in the tank, in litres: the car's own level when it reports one,
+  /// else the count from the last full tank ([remainingCounted]).
   Observable<double?> get remainingLitres => _remainingLitres;
 
   /// The distance that fuel should take, at this trip's economy.
   Observable<double?> get remainingKm => _remainingKm;
+
+  /// Whether the fuel left is counted from the last full tank and not read from
+  /// the car: the screens then mark it as an estimate.
+  Observable<bool> get remainingCounted => _remainingCounted;
 
   /// How many rupee blocks there are.
   Observable<int> get blockCount => _blockCount;
@@ -481,12 +493,14 @@ class TripComputer {
 
   void _publishRemaining() {
     final level = vehicle.fuelLevel.value;
-    if (level == null) {
+    final counted = level == null ? countedRemaining?.call() : null;
+    _remainingCounted.value = counted != null;
+    if (level == null && counted == null) {
       _remainingLitres.value = null;
       _remainingKm.value = null;
       return;
     }
-    final litres = level.value / 100 * setup.tankLitres;
+    final litres = counted ?? level!.value / 100 * setup.tankLitres;
     _remainingLitres.value = litres;
     final kmPerL = _kmPerLitre.value;
     _remainingKm.value = kmPerL == null ? null : litres * kmPerL;

@@ -49,6 +49,7 @@ class DriveServices {
       thresholds: thresholds,
       location: location,
       onEstimate: app.ledger.addEstimate,
+      countedRemaining: () => app.ledger.litresLeft(app.setup.value.tankLitres),
     );
     recorder = TripRecorder(
       vehicle: vehicle,
