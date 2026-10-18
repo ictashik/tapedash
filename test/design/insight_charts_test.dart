@@ -1,6 +1,12 @@
 // The insight charts' own arithmetic (DESIGN.md 6.18): what a painter keeps of a
 // long trace, so that a short dip is never averaged away.
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tapedash/insights/power_curve.dart';
+import 'package:tapedash/insights/powerflow.dart';
+import 'package:tapedash/trips/trip.dart';
+import 'package:tapedash/ui/design/components/insights/power_curve_chart.dart';
+import 'package:tapedash/ui/design/components/insights/powerflow_chart.dart';
 import 'package:tapedash/ui/design/components/insights/voltage_chart.dart';
 
 void main() {
@@ -29,5 +35,108 @@ void main() {
       final points = [for (var t = 0; t < 50; t++) (t.toDouble(), 14.0)];
       expect(VoltageChartPainter.decimate(points, 300), points);
     });
+  });
+
+  group('PowerflowLayout', () {
+    const flow = Powerflow(
+      fuelKwh: 12,
+      idleShare: 0.08,
+      wheelShare: 0.22,
+      heatShare: 0.70,
+      tyreShare: 0.4,
+      airShare: 0.35,
+      brakeShare: 0.25,
+    );
+
+    for (final size in const [Size(380, 262), Size(420, 262), Size(300, 240)]) {
+      test('every node is inside the panel and none touch, at $size', () {
+        final l = PowerflowLayout(flow, size);
+        final nodes = [
+          l.fuel,
+          l.wheels,
+          l.idle,
+          l.heat,
+          l.tyres,
+          l.air,
+          l.brakes,
+        ];
+        for (final n in nodes) {
+          expect(n.left, greaterThanOrEqualTo(0));
+          expect(n.bottom, lessThanOrEqualTo(size.height));
+          expect(
+            n.right,
+            lessThanOrEqualTo(size.width - 80),
+            reason: 'room for the labels',
+          );
+        }
+        for (final (a, b) in [
+          (l.wheels, l.idle),
+          (l.idle, l.heat),
+          (l.tyres, l.air),
+          (l.air, l.brakes),
+        ]) {
+          expect(a.bottom, lessThan(b.top));
+        }
+      });
+    }
+
+    test('a node is as tall as its share of the fuel', () {
+      final l = PowerflowLayout(flow, const Size(380, 262));
+      expect(l.wheels.height / l.fuel.height, closeTo(0.22, 0.01));
+      expect(l.heat.height / l.fuel.height, closeTo(0.70, 0.01));
+      expect(l.idle.height / l.fuel.height, closeTo(0.08, 0.01));
+    });
+
+    test('the brake discs, in rupees, follow the share', () {
+      const priced = Powerflow(
+        fuelKwh: 12,
+        idleShare: 0.08,
+        wheelShare: 0.22,
+        heatShare: 0.70,
+        tyreShare: 0.4,
+        airShare: 0.35,
+        brakeShare: 0.25,
+        cost: 175,
+      );
+      expect(
+        priced.rupees(priced.brakeOfFuel),
+        closeTo(175 * 0.22 * 0.25, 1e-9),
+      );
+    });
+  });
+
+  group('PowerCurvePainter axes', () {
+    List<TripSample> pull(double toRpm) => [
+      for (var i = 0; i < 40; i++)
+        TripSample(
+          seconds: i.toDouble(),
+          speedKmh: 30.0 + i * 2,
+          rpm: 1500 + (toRpm - 1500) * i / 39,
+          throttle: 70,
+          litresPerHour: 8,
+        ),
+    ];
+
+    test(
+      'the rev axis reaches 7,000 and goes past the revs the car reached',
+      () {
+        expect(PowerCurvePainter.rpmMax(PowerCurve.from([pull(3000)])), 7000);
+        expect(PowerCurvePainter.rpmMax(PowerCurve.from([pull(7200)])), 8000);
+        expect(PowerCurvePainter.rpmMax(PowerCurve.from(const [])), 7000);
+      },
+    );
+
+    test(
+      'the power axis is in steps of 20 kW, 40 at least, above the highest',
+      () {
+        expect(PowerCurvePainter.kwMax(PowerCurve.from(const [])), 40);
+        final c = PowerCurve.from([pull(5000)]);
+        final top = c.highest!.kw;
+        final m = PowerCurvePainter.kwMax(c);
+        expect(m % 20, 0);
+        expect(m, greaterThan(top));
+        expect(m, greaterThanOrEqualTo(40));
+      },
+    );
   });
 }

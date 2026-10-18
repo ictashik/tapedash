@@ -30,6 +30,7 @@ void main() {
     Livery? livery,
     bool manual = true,
     bool year = false,
+    bool pulls = false,
   }) async {
     setWindow(tester, size);
     final kit = TapeRenderKit();
@@ -53,7 +54,7 @@ void main() {
       fullTank: true,
     );
     ledger.addEstimate(23.6);
-    final data = madeInsightData(manual: manual, year: year);
+    final data = madeInsightData(manual: manual, year: year, pulls: pulls);
     final mode = ValueNotifier(DrivingMode.parked);
     addTearDown(mode.dispose);
     await tester.pumpWidget(
@@ -81,6 +82,14 @@ void main() {
 
   testWidgets('tank', (tester) async {
     await capture(tester, InsightTab.tank, 'insights-tank');
+  }, skip: !enabled);
+
+  testWidgets('powerflow', (tester) async {
+    await capture(tester, InsightTab.powerflow, 'insights-powerflow');
+  }, skip: !enabled);
+
+  testWidgets('power', (tester) async {
+    await capture(tester, InsightTab.power, 'insights-power', pulls: true);
   }, skip: !enabled);
 
   testWidgets('current', (tester) async {

@@ -109,6 +109,24 @@ void main() {
     expect(find.textContaining('14.0'), findsWidgets);
   });
 
+  testWidgets('Powerflow: the wheels, the brakes and the caveat', (
+    tester,
+  ) async {
+    await show(tester, tab: InsightTab.powerflow);
+    expect(find.text('TO THE WHEELS'), findsOneWidget);
+    expect(find.textContaining('no hills'), findsOneWidget);
+    expect(find.textContaining('≈'), findsWidgets);
+  });
+
+  testWidgets('Power: the highest wheel power and the revs it covers', (
+    tester,
+  ) async {
+    await show(tester, tab: InsightTab.power);
+    expect(find.text('HIGHEST SEEN'), findsOneWidget);
+    expect(find.text('REVS REACHED'), findsOneWidget);
+    expect(find.textContaining('kW'), findsWidgets);
+  });
+
   testWidgets('the tank says what fills it in when nothing is counted', (
     tester,
   ) async {

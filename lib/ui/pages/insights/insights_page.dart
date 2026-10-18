@@ -15,11 +15,15 @@ import '../../design/icons/icons.dart';
 import '../../design/theme/tape_theme.dart';
 import '../../design/tokens/spacing.dart';
 import 'current_panel.dart';
+import 'power_panel.dart';
+import 'powerflow_panel.dart';
 import 'tank_panel.dart';
 
 /// The pages of Insights (DESIGN.md 7.14), in the order of the selector.
 enum InsightTab {
   current('Current'),
+  powerflow('Powerflow'),
+  power('Power'),
   tank('Tank');
 
   const InsightTab(this.label);
@@ -175,6 +179,11 @@ class InsightsPageState extends State<InsightsPage> {
             : data.voltageOf(trip),
         rest: widget.rest(),
       ),
+      InsightTab.powerflow => PowerflowPanel(
+        trip: trip,
+        flow: trip == null ? null : data.powerflowOf(trip),
+      ),
+      InsightTab.power => PowerPanel(curve: data.powerCurve),
       InsightTab.tank => TankPanel(reading: widget.tank(data.trips)),
     };
   }

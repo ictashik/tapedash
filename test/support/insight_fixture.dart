@@ -257,6 +257,62 @@ MadeCommute madeCommute({
   return MadeCommute(trip, samples);
 }
 
+/// A Sunday of pulls: second, third and fourth gear taken hard to 5,800 rpm, with
+/// a lift between, on a road with no route to speak of.
+MadeCommute madePulls({
+  required int id,
+  required DateTime start,
+  int seed = 3,
+}) {
+  final rng = math.Random(seed);
+  const ratios = [76.0, 52.0, 39.0];
+  const from = [20.0, 28.0, 38.0];
+  final samples = <TripSample>[];
+  var t = 0;
+  void add(double kmh, double rpm, double throttle, double lph) {
+    samples.add(
+      TripSample(
+        seconds: (t++).toDouble(),
+        speedKmh: kmh.roundToDouble(),
+        rpm: rpm,
+        throttle: throttle,
+        litresPerHour: lph,
+        coolantC: 90,
+        voltage: 14.0 + (rng.nextDouble() - 0.5) * 0.06,
+      ),
+    );
+  }
+
+  for (var k = 0; k < 12; k++) {
+    final g = k % 3;
+    var v = from[g];
+    while (ratios[g] * v < 5800 && v < 120) {
+      add(
+        v,
+        ratios[g] * v * (1 + (rng.nextDouble() - 0.5) * 0.01),
+        78 + rng.nextDouble() * 22,
+        11 + rng.nextDouble() * 5,
+      );
+      v += 4;
+    }
+    // A lift to the next pull.
+    for (var j = 0; j < 8; j++) {
+      add(v - j * 6, ratios[g] * (v - j * 6), 0, 0.5);
+    }
+  }
+  final trip = Trip(
+    id: id,
+    startedAt: start,
+    endedAt: start.add(Duration(seconds: samples.length)),
+    distanceKm: 4,
+    litres: 0.7,
+    cost: 0.7 * _price,
+    pricePerLitre: _price,
+    engineSeconds: samples.length.toDouble(),
+  );
+  return MadeCommute(trip, samples);
+}
+
 /// A trip with only its totals, for a year's bars.
 Trip summaryTrip(int id, DateTime at, math.Random rng, {bool highway = false}) {
   final km = highway ? 60 + rng.nextDouble() * 140 : 8 + rng.nextDouble() * 14;
@@ -291,6 +347,7 @@ InsightData madeInsightData({
   int days = 14,
   bool manual = true,
   bool year = false,
+  bool pulls = false,
 }) {
   final today = now ?? DateTime(2026, 10, 17, 9);
   final rows = <(Trip, List<TripSample>)>[];
@@ -334,6 +391,13 @@ InsightData madeInsightData({
       );
       rows.add((c.trip, c.samples));
     }
+  }
+  if (pulls) {
+    final p = madePulls(
+      id: id++,
+      start: today.subtract(const Duration(days: 4)),
+    );
+    rows.add((p.trip, p.samples));
   }
   rows.sort((a, b) => b.$1.startedAt.compareTo(a.$1.startedAt));
   return InsightData.of(rows, fallbackPrice: _price);
