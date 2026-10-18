@@ -106,6 +106,10 @@ void main() {
     );
   }, skip: !enabled);
 
+  testWidgets('tolls', (tester) async {
+    await capture(tester, InsightTab.tolls, 'insights-tolls');
+  }, skip: !enabled);
+
   testWidgets('current', (tester) async {
     await capture(tester, InsightTab.current, 'insights-current');
   }, skip: !enabled);

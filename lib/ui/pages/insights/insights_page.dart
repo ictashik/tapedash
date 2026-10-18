@@ -19,6 +19,7 @@ import 'gears_panel.dart';
 import 'power_panel.dart';
 import 'powerflow_panel.dart';
 import 'tank_panel.dart';
+import 'tolls_panel.dart';
 
 /// The pages of Insights (DESIGN.md 7.14), in the order of the selector.
 enum InsightTab {
@@ -26,7 +27,8 @@ enum InsightTab {
   powerflow('Powerflow'),
   power('Power'),
   gears('Gears'),
-  tank('Tank');
+  tank('Tank'),
+  tolls('Tolls');
 
   const InsightTab(this.label);
   final String label;
@@ -188,6 +190,10 @@ class InsightsPageState extends State<InsightsPage> {
       InsightTab.power => PowerPanel(curve: data.powerCurve),
       InsightTab.gears => GearsPanel(gearbox: data.gearbox),
       InsightTab.tank => TankPanel(reading: widget.tank(data.trips)),
+      InsightTab.tolls => TollsPanel(
+        map: data.tollMap,
+        since: data.trips.isEmpty ? null : data.trips.last.startedAt,
+      ),
     };
   }
 }

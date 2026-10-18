@@ -9,7 +9,11 @@ import 'package:tapedash/trips/trip.dart';
 import 'package:tapedash/ui/design/components/insights/gear_chart.dart';
 import 'package:tapedash/ui/design/components/insights/power_curve_chart.dart';
 import 'package:tapedash/ui/design/components/insights/powerflow_chart.dart';
+import 'package:tapedash/ui/design/components/insights/toll_map_chart.dart';
 import 'package:tapedash/ui/design/components/insights/voltage_chart.dart';
+import 'package:tapedash/ui/pages/insights/tolls_panel.dart';
+
+import '../support/insight_fixture.dart';
 
 void main() {
   group('VoltageChartPainter.decimate', () {
@@ -158,6 +162,56 @@ void main() {
         ],
       ]);
       expect(GearChartPainter.kmhMax(fast), 160);
+    });
+  });
+
+  group('TollMapPainter', () {
+    final map = madeInsightData().tollMap;
+
+    test('every spot is inside the panel, its ring too', () {
+      const size = Size(380, 262);
+      final at = TollMapPainter.positions(map, size);
+      expect(at.length, map.spots.length);
+      for (var i = 0; i < at.length; i++) {
+        final r = TollMapPainter.radiusOf(map, i);
+        expect(at[i].dx - r, greaterThanOrEqualTo(0));
+        expect(at[i].dx + r, lessThanOrEqualTo(size.width));
+        expect(at[i].dy - r, greaterThanOrEqualTo(0));
+        expect(at[i].dy + r, lessThanOrEqualTo(size.height));
+      }
+    });
+
+    test('the dearest place has the widest ring, the least the smallest', () {
+      final r = [
+        for (var i = 0; i < map.spots.length; i++)
+          TollMapPainter.radiusOf(map, i),
+      ];
+      expect(r.first, TollMapPainter.maxRadius);
+      for (var i = 1; i < r.length; i++) {
+        expect(r[i], lessThanOrEqualTo(r[i - 1]));
+        expect(r[i], greaterThanOrEqualTo(TollMapPainter.minRadius));
+      }
+    });
+
+    test('north is up: a spot further north is higher on the panel', () {
+      const size = Size(380, 262);
+      final at = TollMapPainter.positions(map, size);
+      for (var i = 0; i < at.length; i++) {
+        for (var j = 0; j < at.length; j++) {
+          if (map.spots[i].at.lat > map.spots[j].at.lat + 1e-4) {
+            expect(at[i].dy, lessThan(at[j].dy));
+          }
+        }
+      }
+    });
+  });
+
+  group('TollsPanelState.duration', () {
+    test('seconds, minutes, and hours with their minutes', () {
+      expect(TollsPanelState.duration(40), '40 s');
+      expect(TollsPanelState.duration(125), '2 min');
+      expect(TollsPanelState.duration(3600), '1 h');
+      expect(TollsPanelState.duration(6600), '1 h 50 min');
     });
   });
 }

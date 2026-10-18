@@ -41,7 +41,7 @@ class TollMap {
   static const double minStopSeconds = 15;
 
   /// Stops this close are one place.
-  static const double clusterMetres = 70;
+  static const double clusterMetres = 150;
 
   /// Places that cost less than this many seconds in all are left off the map.
   static const double minSpotSeconds = 40;

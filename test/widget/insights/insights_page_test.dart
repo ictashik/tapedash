@@ -6,9 +6,12 @@ import 'package:tapedash/core/observable.dart';
 import 'package:tapedash/insights/insight_data.dart';
 import 'package:tapedash/money/fill_up.dart';
 import 'package:tapedash/money/fuel_ledger.dart';
+import 'package:tapedash/trips/trip.dart';
+import 'package:tapedash/ui/design/components/insights/toll_map_chart.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
 import 'package:tapedash/ui/pages/insights/insights_page.dart';
+import 'package:tapedash/ui/pages/insights/tolls_panel.dart';
 import 'package:tapedash/vehicle/vehicle_state.dart';
 
 import '../../design/support/harness.dart';
@@ -142,6 +145,52 @@ void main() {
     expect(state.data!.gearbox.isFan, isTrue);
     expect(find.text('None'), findsOneWidget);
     expect(find.textContaining('looks like a CVT'), findsOneWidget);
+  });
+
+  testWidgets(
+    'Tolls: the dearest place first, and a tap on a ring chooses it',
+    (tester) async {
+      final state = await show(tester, tab: InsightTab.tolls);
+      final panel = tester.state<TollsPanelState>(find.byType(TollsPanel));
+      expect(panel.selected, 0);
+      expect(find.textContaining('PLACE 1 OF'), findsOneWidget);
+
+      final map = state.data!.tollMap;
+      final box = tester.getRect(find.byType(TollMapChart));
+      final at = TollMapPainter.positions(map, box.size);
+      await tester.tapAt(box.topLeft + at[2]);
+      await tester.pump();
+      expect(panel.selected, 2);
+      expect(find.textContaining('PLACE 3 OF'), findsOneWidget);
+
+      // A tap on empty ground changes nothing.
+      await tester.tapAt(box.topLeft + const Offset(4, 4));
+      await tester.pump();
+      expect(panel.selected, 2);
+    },
+  );
+
+  testWidgets('Tolls: with no GPS trail it says what fills it in', (
+    tester,
+  ) async {
+    data = InsightData.of([
+      for (final (t, s) in data.withSamples)
+        (
+          t,
+          [
+            for (final x in s)
+              TripSample(
+                seconds: x.seconds,
+                speedKmh: x.speedKmh,
+                rpm: x.rpm,
+                throttle: x.throttle,
+                litresPerHour: x.litresPerHour,
+              ),
+          ],
+        ),
+    ]);
+    await show(tester, tab: InsightTab.tolls);
+    expect(find.text('NOWHERE YET'), findsOneWidget);
   });
 
   testWidgets('the tank says what fills it in when nothing is counted', (
