@@ -84,6 +84,7 @@ class Rig {
     double kmh = 60,
     double maf = 8,
     double rpm = 1800,
+    bool fuelLevel = true,
   }) {
     for (var i = 0; i < seconds * 5; i++) {
       clock.advance(const Duration(milliseconds: 200));
@@ -93,7 +94,7 @@ class Rig {
         feed(Sensor.rpm, rpm);
         feed(Sensor.throttle, 25);
         feed(Sensor.airFlow, maf);
-        feed(Sensor.fuelLevel, 60);
+        if (fuelLevel) feed(Sensor.fuelLevel, 60);
       }
     }
   }
@@ -132,6 +133,35 @@ void main() {
       expect(rig.money.view.value, MoneyView.litres);
       rig.app.money.setPrice(100);
       expect(rig.money.view.value, MoneyView.rupees);
+    });
+
+    test(
+      'a car with no fuel level shows the count from the last full tank',
+      () async {
+        final rig = make();
+        rig.drive(5, fuelLevel: false);
+        expect(rig.money.hasRemaining.value, isFalse);
+
+        await rig.app.saveFillUp(
+          at: rig.clock.now(),
+          litres: 38,
+          amount: 3800,
+          fullTank: true,
+        );
+        rig.drive(120, fuelLevel: false);
+        expect(rig.money.hasRemaining.value, isTrue);
+        expect(rig.money.remainingCounted.value, isTrue);
+        // 40 L less what the two minutes used: close to full.
+        expect(rig.services.computer.remainingLitres.value, closeTo(40, 1));
+        expect(rig.services.computer.remainingLitres.value!, lessThan(40));
+      },
+    );
+
+    test('a car that reports its level is not counted', () {
+      final rig = make();
+      rig.drive(20);
+      expect(rig.money.hasRemaining.value, isTrue);
+      expect(rig.money.remainingCounted.value, isFalse);
     });
 
     test('the cost signal follows the trip', () {

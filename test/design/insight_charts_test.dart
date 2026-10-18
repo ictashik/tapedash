@@ -137,7 +137,7 @@ void main() {
       'the power axis is in steps of 20 kW, 40 at least, above the highest',
       () {
         expect(PowerCurvePainter.kwMax(PowerCurve.from(const [])), 40);
-        final c = PowerCurve.from([pull(5000)]);
+        final c = PowerCurve.from([for (var i = 0; i < 8; i++) pull(5000)]);
         final top = c.highest!.kw;
         final m = PowerCurvePainter.kwMax(c);
         expect(m % 20, 0);

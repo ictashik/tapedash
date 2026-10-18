@@ -36,7 +36,8 @@ class PowerCurve {
   /// (rpm, kW) from the lowest bin with data to the highest.
   final List<(double, double)> edge;
 
-  /// The highest wheel power seen, and the revs it was seen at.
+  /// The highest wheel power seen, and the revs it was seen at: the peak of the
+  /// edge, which a single bad reading cannot make.
   final PowerDot? highest;
 
   /// The highest revs the car has been taken to while pulling.
@@ -77,9 +78,11 @@ class PowerCurve {
       final c = raw[math.min(raw.length - 1, i + 1)].$2;
       edge.add((raw[i].$1, (a + b + c) / 3));
     }
+    // The highest is the peak of the edge, not the single highest dot: one wrong
+    // speed reading makes one absurd dot, and a headline must not stand on it.
     PowerDot? highest;
-    for (final d in dots) {
-      if (highest == null || d.kw > highest.kw) highest = d;
+    for (final (rpm, kw) in edge) {
+      if (highest == null || kw > highest.kw) highest = PowerDot(rpm, kw, 0);
     }
     final covered = dots.fold<double>(0, (m, d) => math.max(m, d.rpm));
     return PowerCurve._(dots, edge, highest, covered);

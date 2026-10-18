@@ -19,6 +19,40 @@ void main() {
     expect(m.brakingKw, 0);
   });
 
+  test('one wrong speed reading is not a pull', () {
+    // A real drive shows 46 then 95 km/h on a 40 km/h road, for one reading.
+    final moments = WheelPower.moments(
+      madeDrive(60, kmh: (t) => t == 30 ? 95 : 50),
+    );
+    final top = moments
+        .map((m) => m.tractionKw)
+        .reduce((a, b) => a > b ? a : b);
+    // 50 km/h steady asks 3.1 kW; the spike must not ask a hundred.
+    expect(top, lessThan(12));
+  });
+
+  test('a hard-working engine is not what noise in the speed looks like', () {
+    // 50 km/h with a whole km/h of jitter either way: the work is the steady
+    // 3.1 kW, and the jitter must not add much of its own by being rectified.
+    final jitter = madeDrive(300, kmh: (t) => 50.0 + (t.isEven ? 1 : -1));
+    final steady = madeDrive(300, kmh: (_) => 50);
+    double mean(List<WheelMoment> m) =>
+        m.fold<double>(0, (a, x) => a + x.tractionKw) / m.length;
+    final noisy = mean(WheelPower.moments(jitter));
+    final clean = mean(WheelPower.moments(steady));
+    expect(noisy, lessThan(clean * 1.25));
+  });
+
+  test('a moment that asks more than a car can give is dropped', () {
+    final moments = WheelPower.moments(
+      madeDrive(20, kmh: (t) => t < 10 ? 20.0 : 20.0 + (t - 10) * 40),
+    );
+    for (final m in moments) {
+      expect(m.tractionKw, lessThan(200));
+    }
+    expect(moments.length, lessThan(20));
+  });
+
   test('speeding up asks more, and slowing down hands it to the brakes', () {
     final up = WheelPower.moments(madeDrive(10, kmh: (t) => 20.0 + 3 * t));
     // 3 km/h a second is 0.83 m/s2: 1250 * 0.83 * v.

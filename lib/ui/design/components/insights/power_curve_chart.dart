@@ -49,10 +49,12 @@ class PowerCurvePainter extends CustomPainter {
   static double rpmMax(PowerCurve curve) =>
       math.max(7000, ((curve.coveredRpm + 500) / 1000).ceil() * 1000.0);
 
-  /// The power axis, in steps of 20 kW above the highest seen, 40 at least.
+  /// The power axis, in steps of 20 kW, room over the edge's peak for the dots
+  /// above it, 40 at least. A dot beyond it is drawn on the top line: the axis
+  /// is set by the edge, which a wrong reading cannot move.
   static double kwMax(PowerCurve curve) {
     final top = curve.highest?.kw ?? 0;
-    return math.max(40, ((top * 1.15) / 20).ceil() * 20.0);
+    return math.max(40, ((top * 1.5) / 20).ceil() * 20.0);
   }
 
   @override
