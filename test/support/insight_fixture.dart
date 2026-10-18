@@ -35,6 +35,7 @@ const _route = <(double, double)>[
   double lat0,
   double lon0,
   bool outbound,
+  List<(double, double)> route,
 ) {
   final total = cum.last;
   final d = (outbound ? km : total - km).clamp(0.0, total);
@@ -43,8 +44,8 @@ const _route = <(double, double)>[
     i++;
   }
   final f = ((d - cum[i - 1]) / (cum[i] - cum[i - 1])).clamp(0.0, 1.0);
-  final x = _route[i - 1].$1 + (_route[i].$1 - _route[i - 1].$1) * f;
-  final y = _route[i - 1].$2 + (_route[i].$2 - _route[i - 1].$2) * f;
+  final x = route[i - 1].$1 + (route[i].$1 - route[i - 1].$1) * f;
+  final y = route[i - 1].$2 + (route[i].$2 - route[i - 1].$2) * f;
   return (
     lat: lat0 + y / _kmPerDegLat,
     lon: lon0 + x / (_kmPerDegLat * math.cos(lat0 * math.pi / 180)),
@@ -65,12 +66,18 @@ MadeCommute madeCommute({
   double lat0 = 12.9352,
   double lon0 = 77.6245,
   bool isDemo = false,
+  bool detour = false,
 }) {
   final rng = math.Random(seed);
+  // A detour takes another way round the fifth waypoint.
+  final route = [
+    for (final (i, w) in _route.indexed)
+      i == 4 && detour ? (w.$1 + 0.3, w.$2 - 0.3) : w,
+  ];
   final cum = <double>[0];
-  for (var i = 1; i < _route.length; i++) {
-    final dx = _route[i].$1 - _route[i - 1].$1;
-    final dy = _route[i].$2 - _route[i - 1].$2;
+  for (var i = 1; i < route.length; i++) {
+    final dx = route[i].$1 - route[i - 1].$1;
+    final dy = route[i].$2 - route[i - 1].$2;
     cum.add(cum.last + math.sqrt(dx * dx + dy * dy));
   }
   final totalKm = cum.last;
@@ -170,12 +177,15 @@ MadeCommute madeCommute({
         ? 0.0
         : (14 + acc * 22 + kmh * 0.12).clamp(8.0, 95.0);
     final cold = 1 + math.max(0, 80 - coolant) / 80 * 0.45;
+    // A hard pull runs the engine rich, which is what makes a hard drive cost more.
+    final rich = 1 + math.max(0, throttle - 50) / 100 * 2.2;
     final lph =
         (kmh < 1
             ? 0.85
-            : 1.1 + 0.052 * kmh + math.max(0, acc) * 3.2 * (kmh / 40)) *
+            : (1.1 + 0.052 * kmh + math.max(0, acc) * 3.2 * (kmh / 40)) *
+                  rich) *
         cold;
-    final pos = _at(s / 1000, cum, lat0, lon0, outbound);
+    final pos = _at(s / 1000, cum, lat0, lon0, outbound, route);
     samples.add(
       TripSample(
         seconds: t.toDouble(),
@@ -385,7 +395,8 @@ InsightData madeInsightData({
         start: day.add(Duration(hours: out ? 8 : 18, minutes: out ? 10 : 20)),
         seed: id,
         outbound: out,
-        gentle: k % 3 == 0,
+        gentle: k == 1 || k == 4 || k == 8,
+        detour: day.day.isOdd,
         manual: manual,
         coldStart: out,
       );

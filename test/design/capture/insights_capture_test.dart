@@ -114,6 +114,10 @@ void main() {
     await capture(tester, InsightTab.cold, 'insights-cold');
   }, skip: !enabled);
 
+  testWidgets('ghost', (tester) async {
+    await capture(tester, InsightTab.ghost, 'insights-ghost');
+  }, skip: !enabled);
+
   testWidgets('current', (tester) async {
     await capture(tester, InsightTab.current, 'insights-current');
   }, skip: !enabled);

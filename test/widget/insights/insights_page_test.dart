@@ -10,6 +10,7 @@ import 'package:tapedash/trips/trip.dart';
 import 'package:tapedash/ui/design/components/insights/toll_map_chart.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
+import 'package:tapedash/ui/pages/insights/ghost_panel.dart';
 import 'package:tapedash/ui/pages/insights/insights_page.dart';
 import 'package:tapedash/ui/pages/insights/tolls_panel.dart';
 import 'package:tapedash/vehicle/vehicle_state.dart';
@@ -245,6 +246,34 @@ void main() {
     ]);
     await show(tester, tab: InsightTab.cold);
     expect(find.text('NO COLD START TO BILL YET'), findsOneWidget);
+  });
+
+  testWidgets('Ghost: this drive beside the earlier one, in rupees', (
+    tester,
+  ) async {
+    await show(tester, tab: InsightTab.ghost);
+    expect(find.text('SAME ROUTE, TWO DAYS'), findsOneWidget);
+    expect(find.textContaining('never in minutes'), findsOneWidget);
+    expect(find.textContaining('₹'), findsWidgets);
+  });
+
+  testWidgets('Ghost: one drive of a route has nothing to be compared with', (
+    tester,
+  ) async {
+    // One Friday's two commutes: one each way, which are not the same route.
+    data = madeInsightData(now: DateTime(2026, 10, 16, 9), days: 0);
+    expect(data.trips.length, 2);
+    await show(tester, tab: InsightTab.ghost);
+    expect(find.text('NO EARLIER DRIVE OF THIS ROUTE'), findsOneWidget);
+  });
+
+  test('Ghost: the words for what separates two drives', () {
+    expect(GhostPanel.idleWords(540), '9 min less standing still');
+    expect(GhostPanel.idleWords(-200), '3 min more standing still');
+    expect(GhostPanel.idleWords(20), isNull);
+    expect(GhostPanel.hardWords(5), '5 fewer hard starts');
+    expect(GhostPanel.hardWords(-1), '1 more hard start');
+    expect(GhostPanel.hardWords(0), isNull);
   });
 
   testWidgets('the tank says what fills it in when nothing is counted', (

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../../insights/ghost_commute.dart';
 import '../../../insights/insight_data.dart';
 import '../../../insights/rest_voltage_log.dart';
 import '../../../insights/tank_reading.dart';
@@ -17,6 +18,7 @@ import '../../design/tokens/spacing.dart';
 import 'cold_panel.dart';
 import 'current_panel.dart';
 import 'gears_panel.dart';
+import 'ghost_panel.dart';
 import 'power_panel.dart';
 import 'powerflow_panel.dart';
 import 'tank_panel.dart';
@@ -30,7 +32,8 @@ enum InsightTab {
   gears('Gears'),
   tank('Tank'),
   tolls('Tolls'),
-  cold('Cold start');
+  cold('Cold start'),
+  ghost('Ghost');
 
   const InsightTab(this.label);
   final String label;
@@ -175,6 +178,18 @@ class InsightsPageState extends State<InsightsPage> {
     return data.trips.isEmpty ? null : data.trips.first;
   }
 
+  /// The earlier drive of the chosen trip's route, or, if it has none, of the
+  /// latest trip that has one.
+  GhostMatch? _ghost(InsightData data, Trip? chosen) {
+    final own = chosen == null ? null : data.ghostOf(chosen);
+    if (own != null) return own;
+    for (final t in data.trips) {
+      final g = data.ghostOf(t);
+      if (g != null) return g;
+    }
+    return null;
+  }
+
   /// The cold start to show: the chosen trip's if it started cold, else the
   /// latest trip that did.
   Widget _cold(InsightData data, Trip? chosen) {
@@ -219,6 +234,7 @@ class InsightsPageState extends State<InsightsPage> {
       InsightTab.gears => GearsPanel(gearbox: data.gearbox),
       InsightTab.tank => TankPanel(reading: widget.tank(data.trips)),
       InsightTab.cold => _cold(data, trip),
+      InsightTab.ghost => GhostPanel(match: _ghost(data, trip)),
       InsightTab.tolls => TollsPanel(
         map: data.tollMap,
         since: data.trips.isEmpty ? null : data.trips.last.startedAt,
