@@ -21,7 +21,14 @@ class Gearbox {
   /// The fewest moments a crowd needs, and the share of all moments it needs to
   /// be a gear and not a stray.
   static const int minCrowd = 40;
-  static const double minShare = 0.04;
+  static const double minShare = 0.008;
+
+  /// A moment is sweeping if the speed changed by this much in two seconds, and
+  /// there have to be this many of them, this share of them near a gear's ratio,
+  /// before the sweep says anything.
+  static const double sweepKmh = 2;
+  static const int minSweeping = 100;
+  static const double minSweepNear = 0.5;
 
   /// How many times the usual bin a crowd's tallest bin must be.
   static const double crowdOverMedian = 3;
@@ -64,14 +71,23 @@ class Gearbox {
   factory Gearbox.from(Iterable<List<TripSample>> trips) {
     final points = <(double, double)>[];
     final counts = <int, int>{};
+    // The ratios of the moments the speed was changing, which tell a gearbox from
+    // a CVT: a gear holds its ratio as the speed climbs, a CVT lets it fall.
+    final sweeping = <double>[];
     for (final samples in trips) {
-      for (final s in samples) {
+      for (var i = 0; i < samples.length; i++) {
+        final s = samples[i];
         // Pulling or cruising, not idling or coasting down with the fuel cut: the
         // clutch is the thing, and a coast keeps the ratio too, but a stop does not.
         if (s.speedKmh < minKmh || s.rpm < minRpm) continue;
         points.add((s.speedKmh, s.rpm));
         final bin = (s.rpm / s.speedKmh / binWidth).floor();
         counts[bin] = (counts[bin] ?? 0) + 1;
+        if (i >= 2 &&
+            samples[i].seconds - samples[i - 2].seconds <= 3 &&
+            (s.speedKmh - samples[i - 2].speedKmh).abs() >= sweepKmh) {
+          sweeping.add(s.rpm / s.speedKmh);
+        }
       }
     }
     if (points.isEmpty) return Gearbox._(const [], false, const [], 0);
@@ -91,12 +107,14 @@ class Gearbox {
     for (final k in keys) {
       final here = counts[k]!;
       if (here < median * crowdOverMedian) continue;
-      // And above the bins around it, a few away: a crowd is a spike.
-      var around = 0;
+      // And a spike: well above the bins a few away on at least one side. On a
+      // fan both sides are as full as the middle.
+      var left = 0, right = 0;
       for (final d in [3, 4, 5, 6]) {
-        around += (counts[k - d] ?? 0) + (counts[k + d] ?? 0);
+        left += counts[k - d] ?? 0;
+        right += counts[k + d] ?? 0;
       }
-      if (here < crowdOverMedian * around / 8) continue;
+      if (here < crowdOverMedian * math.min(left, right) / 4) continue;
       final crowd = here + (counts[k - 1] ?? 0) + (counts[k + 1] ?? 0);
       if (crowd < minCrowd || crowd / total < minShare) continue;
       if (here < (counts[k - 1] ?? 0) || here < (counts[k + 1] ?? 0)) continue;
@@ -121,7 +139,14 @@ class Gearbox {
       final r = p.$2 / p.$1;
       if (ratios.any((g) => (g - r).abs() <= binWidth * 1.5)) near++;
     }
-    final fan = ratios.length < 2 || near / total < 0.55;
+    // And while the speed is changing: a gearbox's moments stay at its ratios.
+    final sweepNear = sweeping
+        .where((r) => ratios.any((g) => (g - r).abs() <= binWidth * 1.5))
+        .length;
+    final cvt =
+        sweeping.length >= minSweeping &&
+        sweepNear / sweeping.length < minSweepNear;
+    final fan = ratios.length < 2 || near / total < 0.55 || cvt;
     return Gearbox._(fan ? const [] : ratios, fan, points, total);
   }
 

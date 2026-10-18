@@ -37,6 +37,7 @@ class FuelLedger {
   // and the litres put in by part-fills since the last one.
   bool _hasFullTank = false;
   double _topUpSinceFull = 0;
+  DateTime? _lastFullAt;
   late final ObservableValue<CalibrationConfidence> _confidence =
       ObservableValue(calibration.confidence);
 
@@ -72,6 +73,7 @@ class FuelLedger {
     _estimatedSinceFull = 0;
     _unsaved = 0;
     _hasFullTank = false;
+    _lastFullAt = null;
     _topUpSinceFull = 0;
     await store.setDouble(_estimateKey, 0);
   }
@@ -79,6 +81,7 @@ class FuelLedger {
   void _countTank(List<FillUp> all) {
     final lastFull = all.where((f) => f.fullTank).toList();
     _hasFullTank = lastFull.isNotEmpty;
+    _lastFullAt = _hasFullTank ? lastFull.last.at : null;
     _topUpSinceFull = _hasFullTank
         ? all
               .where((f) => !f.fullTank && f.at.isAfter(lastFull.last.at))
@@ -96,6 +99,9 @@ class FuelLedger {
     final used = _estimatedSinceFull * calibration.factor;
     return (tankLitres - used + _topUpSinceFull).clamp(0.0, tankLitres);
   }
+
+  /// When the tank was last filled to the top, or null if never.
+  DateTime? get lastFullAt => _lastFullAt;
 
   /// The litres the app has used since the last full tank, calibrated.
   double get usedSinceFull => _estimatedSinceFull * calibration.factor;
@@ -142,6 +148,7 @@ class FuelLedger {
       _estimatedSinceFull = 0;
       _unsaved = 0;
       _hasFullTank = true;
+      _lastFullAt = at;
       _topUpSinceFull = 0;
       await store.setDouble(_estimateKey, 0);
     } else if (_hasFullTank) {

@@ -39,6 +39,7 @@ class ParkedDock extends StatefulWidget {
     this.onPitStop,
     this.onGarage,
     this.onDiagnostics,
+    this.onInsights,
     this.onEndTrip,
     this.endTripAvailable,
   });
@@ -56,6 +57,9 @@ class ParkedDock extends StatefulWidget {
 
   /// Called by the Diagnostics button (DESIGN.md 7.10). Null leaves it disabled.
   final VoidCallback? onDiagnostics;
+
+  /// Called by the Insights button (DESIGN.md 7.14). Null leaves it disabled.
+  final VoidCallback? onInsights;
 
   /// Called by the Pit Stop button (DESIGN.md 7.9). Null leaves it disabled.
   final VoidCallback? onPitStop;
@@ -145,6 +149,7 @@ class ParkedDockState extends State<ParkedDock> {
       (TapeIcon.garage, 'Garage', widget.onGarage),
       (TapeIcon.pitStop, 'Pit Stop', widget.onPitStop),
       (TapeIcon.checkEngine, 'Diagnostics', widget.onDiagnostics),
+      (TapeIcon.insights, 'Insights', widget.onInsights),
       (TapeIcon.hud, 'HUD', widget.onHud),
       if (widget.onEndTrip != null && widget.endTripAvailable?.value == true)
         (TapeIcon.endTrip, 'End trip', widget.onEndTrip),

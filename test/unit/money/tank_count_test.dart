@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/core/key_value_store.dart';
+import 'package:tapedash/insights/tank_reading.dart';
 import 'package:tapedash/money/fill_up.dart';
 import 'package:tapedash/money/fuel_ledger.dart';
+import 'package:tapedash/trips/trip.dart';
 
 void main() {
   FuelLedger ledger() =>
@@ -88,5 +90,77 @@ void main() {
     await fill(l, 1, 30);
     await l.clear();
     expect(l.litresLeft(40), isNull);
+  });
+
+  group('TankReading', () {
+    Trip trip(int day, double km, double litres, {bool demo = false}) => Trip(
+      startedAt: DateTime(2026, 10, day, 12),
+      distanceKm: km,
+      litres: litres,
+      isDemo: demo,
+    );
+
+    test('litres, range at the economy since the last full tank', () async {
+      final l = ledger();
+      await fill(l, 2, 30);
+      l.addEstimate(24);
+      final r = TankReading.of(
+        ledger: l,
+        tankLitres: 40,
+        trips: [trip(3, 150, 10), trip(4, 130, 14), trip(1, 400, 20)],
+      )!;
+      expect(r.litres, 16);
+      expect(r.usedLitres, 24);
+      expect(r.kmSinceFull, 280);
+      // 280 km on 24 L, from the trips since the fill-up, not the older 20 km/L.
+      expect(r.rangeKm, closeTo(16 * 280 / 24, 1e-9));
+      expect(r.level, closeTo(0.4, 1e-9));
+      expect(r.inReserve, isFalse);
+    });
+
+    test(
+      'with little driving since, the car\'s whole record gives the economy',
+      () async {
+        final l = ledger();
+        await fill(l, 5, 30);
+        final r = TankReading.of(
+          ledger: l,
+          tankLitres: 40,
+          trips: [trip(2, 300, 20), trip(6, 5, 1)],
+        )!;
+        expect(r.rangeKm, closeTo(40 * 305 / 21, 1e-9));
+      },
+    );
+
+    test(
+      'no driving at all gives no range, and demo trips do not count',
+      () async {
+        final l = ledger();
+        await fill(l, 1, 30);
+        final r = TankReading.of(
+          ledger: l,
+          tankLitres: 40,
+          trips: [trip(2, 300, 20, demo: true)],
+        )!;
+        expect(r.rangeKm, isNull);
+      },
+    );
+
+    test('no full tank, no reading', () {
+      expect(
+        TankReading.of(ledger: ledger(), tankLitres: 40, trips: const []),
+        isNull,
+      );
+    });
+
+    test('an almost empty tank is in its reserve', () async {
+      final l = ledger();
+      await fill(l, 1, 30);
+      l.addEstimate(36);
+      expect(
+        TankReading.of(ledger: l, tankLitres: 40, trips: const [])!.inReserve,
+        isTrue,
+      );
+    });
   });
 }

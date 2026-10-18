@@ -108,6 +108,8 @@ enum TapeIcon {
   pause('M8 5 L8 19 M16 5 L16 19'),
   stop('M6 6 L18 6 L18 18 L6 18 Z'),
   north('M6 18 L6 6 L18 18 L18 6'),
+  insights('M4 4 L4 20 L20 20 M9 17 L9 12 M13 17 L13 8 M17 17 L17 11'),
+  share('M12 15 L12 4 M7 9 L12 4 L17 9 M5 14 L5 20 L19 20 L19 14'),
   heading('M12 20 L12 5 M6 11 L12 5 L18 11');
 
   const TapeIcon(this.path);

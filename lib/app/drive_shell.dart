@@ -7,6 +7,8 @@ import 'package:flutter/widgets.dart';
 import '../core/clock.dart';
 import '../core/observable.dart';
 import '../core/scheduler.dart';
+import '../insights/insight_data.dart';
+import '../insights/tank_reading.dart';
 import '../location/location_source.dart';
 import '../location/location_status.dart';
 import '../money/pit_stop_form.dart';
@@ -29,6 +31,7 @@ import '../ui/pages/drive/drive_page.dart';
 import '../ui/pages/drive/drive_signals.dart';
 import '../ui/pages/garage/garage_page.dart';
 import '../ui/pages/history/history_page.dart';
+import '../ui/pages/insights/insights_page.dart';
 import '../ui/pages/money/money_page.dart';
 import '../ui/pages/money/money_signals.dart';
 import '../ui/pages/pitstop/pit_stop_page.dart';
@@ -47,7 +50,7 @@ import 'engine_sound_sources.dart';
 import 'live_drive.dart';
 
 /// Which full-screen form is over the Strip.
-enum _Form { none, pitStop, price, realPrice, garage, diagnostics }
+enum _Form { none, pitStop, price, realPrice, garage, diagnostics, insights }
 
 /// The app's driving surface: the Strip with its five pages, the parked dock,
 /// Pit Stop, and the HUD over all of them, fed by Demo Mode's simulated car
@@ -142,7 +145,10 @@ class _DriveShellState extends State<DriveShell> {
   /// Where the drive screens read from: the adapter's car, or the simulated one.
   late final DriveFeed _feed = widget.live ?? _demo!;
   late final AppServices _app = widget.app ?? AppServices.inMemory();
-  late final AppServices _demoApp = AppServices.demo(_app.trips);
+  late final AppServices _demoApp = AppServices.demo(
+    _app.trips,
+    now: widget.clock.now(),
+  );
 
   /// The money of this drive: the real one for a real car, the demo's own for
   /// the demo (CLAUDE.md 7.6).
@@ -431,6 +437,23 @@ class _DriveShellState extends State<DriveShell> {
           onClose: _close,
           descriptions: _descriptions,
         );
+      case _Form.insights:
+        return InsightsPage(
+          load: () => InsightData.load(
+            _app.trips,
+            demo: _feed.isDemo,
+            fallbackPrice: _driveApp.money.price.value,
+          ),
+          tank: (trips) => TankReading.of(
+            ledger: _driveApp.ledger,
+            tankLitres: _driveApp.setup.value.tankLitres,
+            trips: trips,
+          ),
+          mode: signals.mode,
+          width: w,
+          height: h,
+          onClose: _close,
+        );
       case _Form.none:
       case _Form.pitStop:
       case _Form.price:
@@ -569,6 +592,7 @@ class _DriveShellState extends State<DriveShell> {
             onPitStop: () => _open(_Form.pitStop),
             onGarage: () => _open(_Form.garage),
             onDiagnostics: () => _open(_Form.diagnostics),
+            onInsights: () => _open(_Form.insights),
             onEndTrip: () => _services?.recorder.endNow(),
             endTripAvailable: _tripRunning,
           ),

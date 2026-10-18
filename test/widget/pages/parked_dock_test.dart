@@ -55,7 +55,7 @@ void main() {
     );
   }
 
-  testWidgets('the dock is risen while parked, its four buttons visible', (
+  testWidgets('the dock is risen while parked, its five buttons visible', (
     tester,
   ) async {
     await show(tester);
@@ -119,6 +119,7 @@ void main() {
             onGarage: () {},
             onPitStop: () {},
             onDiagnostics: () {},
+            onInsights: () {},
             onHud: () {},
             onEndTrip: () => ended++,
             endTripAvailable: running,
@@ -145,7 +146,7 @@ void main() {
     ) async {
       await showAt(tester, const Size(720, 360));
       expect(find.text('END TRIP'), findsNothing);
-      expect(find.byType(TapeButton), findsNWidgets(4));
+      expect(find.byType(TapeButton), findsNWidgets(5));
 
       running.value = true;
       run(const Duration(milliseconds: 800));
@@ -159,7 +160,7 @@ void main() {
 
     for (final size in const [Size(640, 360), Size(720, 360), Size(800, 360)]) {
       testWidgets(
-        'all five buttons are on the screen at ${size.width.toInt()}x360',
+        'all six buttons are on the screen at ${size.width.toInt()}x360',
         (tester) async {
           running.value = true;
           await showAt(tester, size);
@@ -170,7 +171,7 @@ void main() {
             expect(r.left, greaterThanOrEqualTo(0));
             expect(r.right, lessThanOrEqualTo(size.width));
           }
-          expect(find.byType(TapeButton), findsNWidgets(5));
+          expect(find.byType(TapeButton), findsNWidgets(6));
         },
       );
     }
@@ -194,7 +195,7 @@ void main() {
 
   for (final width in [640.0, 720.0, 800.0]) {
     testWidgets(
-      'the four buttons fit ${width.toInt()} lp, no overflow, 48 lp+',
+      'the five buttons fit ${width.toInt()} lp, no overflow, 48 lp+',
       (tester) async {
         setWindow(tester, Size(width, 360));
         await tester.pumpWidget(

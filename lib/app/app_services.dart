@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:sqflite/sqflite.dart';
 
@@ -169,8 +171,28 @@ class AppServices {
   /// are the demo's own, in memory, so nothing a demo does touches the real
   /// numbers. The demo has an example price so the money screens have something
   /// to show; the DEMO badge is always on.
-  factory AppServices.demo(TripRepository trips) =>
-      AppServices.inMemory(price: demoPricePerLitre, trips: trips);
+  ///
+  /// With [now], the demo's tank starts full as of then, so that the counted fuel
+  /// left (and the Tank insight) have something to show.
+  factory AppServices.demo(TripRepository trips, {DateTime? now}) {
+    final services = AppServices.inMemory(
+      price: demoPricePerLitre,
+      trips: trips,
+    );
+    if (now != null) {
+      final tank = services.setup.value.tankLitres;
+      // In memory, so this completes before anything can look.
+      unawaited(
+        services.ledger.recordFillUp(
+          at: now,
+          litres: tank,
+          amount: tank * demoPricePerLitre,
+          fullTank: true,
+        ),
+      );
+    }
+    return services;
+  }
 
   /// The example price a demo drive uses, in rupees a litre.
   static const double demoPricePerLitre = 102.5;

@@ -89,15 +89,21 @@ class MoneyReadout extends StatelessWidget {
         Baseline(
           baseline: TapeMoney.confidencePipSize,
           baselineType: TextBaseline.alphabetic,
-          child: _ConfidencePips(confidence: confidence, palette: palette),
+          child: ConfidencePips(confidence: confidence, palette: palette),
         ),
       ],
     );
   }
 }
 
-class _ConfidencePips extends StatelessWidget {
-  const _ConfidencePips({required this.confidence, required this.palette});
+/// The three pips beside a money figure (DESIGN.md 6.8): one lit is uncalibrated,
+/// two calibrating, three calibrated.
+class ConfidencePips extends StatelessWidget {
+  const ConfidencePips({
+    super.key,
+    required this.confidence,
+    required this.palette,
+  });
 
   final MoneyConfidence confidence;
   final TapePalette palette;

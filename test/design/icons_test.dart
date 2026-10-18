@@ -52,6 +52,8 @@ const _required = [
   'stop',
   'north',
   'heading',
+  'insights',
+  'share',
 ];
 
 void main() {
@@ -65,9 +67,9 @@ void main() {
       );
     });
 
-    test('has 36 icons, each different from the others', () {
-      expect(TapeIcon.values, hasLength(36));
-      expect({for (final i in TapeIcon.values) i.path}, hasLength(36));
+    test('has 38 icons, each different from the others', () {
+      expect(TapeIcon.values, hasLength(38));
+      expect({for (final i in TapeIcon.values) i.path}, hasLength(38));
     });
 
     test('every icon has marks to draw, and parses without an error', () {

@@ -209,7 +209,7 @@ Parked UI uses fixed sizes and honours system font scale up to 1.3×: headline 3
 
 ### 4.8 Iconography
 - Custom glyphs drawn in code on a 24-unit grid: stroke 1.75, square caps, 45° chamfers, no free curves except circles. One file, `icons.dart`. No icon fonts and no Material icons.
-- Required set: adapter, bluetooth, wifi, gps, check-engine, coolant, voltage, fuel pump, clock, lock, back, close, chevron, garage, history, coach, review, rupee, idle (hollow square with a dot), hard accel (double chevron up), hard brake (double bar), speed, phone hot, demo, HUD (windshield), flip, pit stop, end trip (a flag), zoom in, zoom out, fit, play, pause, stop, north (an N: the map is north up) and heading (an arrow up: the map turns with the car).
+- Required set: adapter, bluetooth, wifi, gps, check-engine, coolant, voltage, fuel pump, clock, lock, back, close, chevron, garage, history, coach, review, rupee, idle (hollow square with a dot), hard accel (double chevron up), hard brake (double bar), speed, phone hot, demo, HUD (windshield), flip, pit stop, end trip (a flag), zoom in, zoom out, fit, play, pause, stop, north (an N: the map is north up), heading (an arrow up: the map turns with the car), insights (bars on two axes) and share (an arrow out of a tray).
 
 ### 4.9 Light and glow
 - Every luminous element has a crisp **core** (L2) and an optional **halo** (L3). A halo is a pre-rendered blurred sprite composited with `BlendMode.plus`. **Never blur at runtime.**
@@ -471,6 +471,10 @@ A cached radial glow sprite at the touch point: scale 0.6 → 1.4 and alpha 0.35
 - Covers 0–9, minus, decimal point, and a ₹ built from segments plus a bar.
 - Each segment has its own phosphor decay, so digit changes crossfade segment by segment like a real VFD.
 
+### 6.18 Insight charts
+Drawn by `ChartKit` (`lib/ui/design/components/insights/`): text in the design's fonts, a line with its halo (a wider, fainter stroke under it; nothing is blurred at run time), dashes, hatching for "no data", L-shaped brackets. Each chart is a painter that takes an analysis result and a palette, and is exercised in the capture tests on made-up driving.
+- **Tank gauge:** a chamfered column (bottom corners cut 10 lp), `carbon.700` track, a `money.deep` fill with a `money.core` surface line and a faint glow above it, ticks at every eighth (longer at the quarters), F, ½ and E labels. The reserve is hatched in `caution` at 14% under the fill.
+
 ---
 
 ## 7. Screens
@@ -485,7 +489,7 @@ The app is one continuous horizontal panel of five pages, with Drive at home in 
 - **Double-tap** on Drive or Money toggles the HUD (§8).
 - **Page tape:** a thin row of five ticks in the bottom 8 lp of the floor; the current page is lit.
 - **Motion lock:** while moving, only Money and Drive are reachable. Swiping towards a locked page rubber-bands back and shows a small lock glyph for 800 ms; locked ticks on the page tape show the lock too.
-- **Parked dock:** in Parked mode, a dock rises into the floor zone with Garage, Pit Stop, Diagnostics and HUD (chamfer buttons, glyph plus label). The eco bar hides while parked.
+- **Parked dock:** in Parked mode, a dock rises into the floor zone with Garage, Pit Stop, Diagnostics, Insights and HUD (chamfer buttons, glyph plus label). The eco bar hides while parked.
 - **Shared elements:** moving from Drive to Money, the hero speed shrinks and flies to the Money page's status corner while the floor's ₹ grows and flies to the Money page's centre. The number you were watching never disappears; it travels.
 
 ### 7.2 Motion ↔ Parked
@@ -591,6 +595,14 @@ Never a blank screen. Never a spinner.
 Subtle runs steps 3 and 4 only. The sequence must never delay live data; values arriving mid-sequence simply retarget.
 
 **Shutdown** (ignition off): the needle falls to 0 on `spring.needle`, segments decay, halos fade, and the Debrief begins (§7.5).
+
+### 7.14 Insights
+What the car and the trips add up to, one picture at a time (docs/DECISIONS.md, "Insights"). **Parked only**, from the dock's Insights button; it closes itself when the car moves, like Diagnostics.
+- **Layout:** the scrolling selector (§6.14) across the top with CLOSE at its right; under it one panel, filling the screen. A panel is a chart on the left and, on the right, a bracketed column of facts (a label, a Saira figure, a line of plain words), about a third of the width.
+- **Tabs:** CURRENT, POWERFLOW, POWER, GEARS, TANK, TOLLS, COLD START, GHOST, YEAR.
+- **Every figure is an estimate and says so:** "≈" before it, the shares in whole percents, ₹ in whole rupees, a range to the nearest 5 km. A chart that has no data for part of its range hatches that part and says "no data yet"; it never draws a line across it.
+- **Empty states** say the one thing that fills them in ("Fill the tank to the top, log it at Pit Stop with FULL TANK on, and the dash counts the litres from there.").
+- **Tank** (§6.18): a column that drains from the top, its surface a champagne line, the reserve (the last eighth) hatched in `caution`; beside it the litres left in Saira at display size and the range. The same count fills the Money page's fuel-left slot for a car that sends no level, marked "≈".
 
 ---
 

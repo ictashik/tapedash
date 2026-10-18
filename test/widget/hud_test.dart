@@ -491,7 +491,7 @@ void main() {
       await tester.tap(find.text('GARAGE'));
       await tester.pump();
       expect(hud, 1);
-      expect(find.byType(TapeButton), findsNWidgets(4));
+      expect(find.byType(TapeButton), findsNWidgets(5));
     });
   });
 }
