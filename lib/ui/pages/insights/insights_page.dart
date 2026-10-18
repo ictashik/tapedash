@@ -14,6 +14,7 @@ import '../../design/components/tape_label.dart';
 import '../../design/icons/icons.dart';
 import '../../design/theme/tape_theme.dart';
 import '../../design/tokens/spacing.dart';
+import 'cold_panel.dart';
 import 'current_panel.dart';
 import 'gears_panel.dart';
 import 'power_panel.dart';
@@ -28,7 +29,8 @@ enum InsightTab {
   power('Power'),
   gears('Gears'),
   tank('Tank'),
-  tolls('Tolls');
+  tolls('Tolls'),
+  cold('Cold start');
 
   const InsightTab(this.label);
   final String label;
@@ -173,6 +175,32 @@ class InsightsPageState extends State<InsightsPage> {
     return data.trips.isEmpty ? null : data.trips.first;
   }
 
+  /// The cold start to show: the chosen trip's if it started cold, else the
+  /// latest trip that did.
+  Widget _cold(InsightData data, Trip? chosen) {
+    Trip? shown = chosen;
+    var cold = shown == null ? null : data.coldStartOf(shown);
+    if (cold == null) {
+      for (final t in data.trips) {
+        final c = data.coldStartOf(t);
+        if (c != null) {
+          shown = t;
+          cold = c;
+          break;
+        }
+      }
+    }
+    final (month, n) = shown == null
+        ? (0.0, 0)
+        : data.coldMonth(shown.startedAt);
+    return ColdPanel(
+      trip: cold == null ? null : shown,
+      cold: cold,
+      month: month,
+      monthTrips: n,
+    );
+  }
+
   Widget _panel(InsightData data) {
     final trip = _trip(data);
     return switch (_tab) {
@@ -190,6 +218,7 @@ class InsightsPageState extends State<InsightsPage> {
       InsightTab.power => PowerPanel(curve: data.powerCurve),
       InsightTab.gears => GearsPanel(gearbox: data.gearbox),
       InsightTab.tank => TankPanel(reading: widget.tank(data.trips)),
+      InsightTab.cold => _cold(data, trip),
       InsightTab.tolls => TollsPanel(
         map: data.tollMap,
         since: data.trips.isEmpty ? null : data.trips.last.startedAt,

@@ -193,6 +193,60 @@ void main() {
     expect(find.text('NOWHERE YET'), findsOneWidget);
   });
 
+  testWidgets('Cold start: the bill for this drive and the month', (
+    tester,
+  ) async {
+    await show(tester, tab: InsightTab.cold);
+    expect(find.text('COLD RUNNING, THIS DRIVE'), findsOneWidget);
+    expect(find.text('THIS MONTH'), findsOneWidget);
+    expect(find.textContaining('started cold'), findsOneWidget);
+  });
+
+  testWidgets(
+    'Cold start: an evening drive began warm, so the latest cold one is shown',
+    (tester) async {
+      final evening = data.trips.firstWhere((t) => t.startedAt.hour == 18);
+      setWindow(tester, const Size(640, 360));
+      await tester.pumpWidget(
+        tapeHarness(
+          kit: kit,
+          motion: motion,
+          child: insightsPageFor(
+            data: data,
+            ledger: ledger,
+            mode: _Listenable(mode),
+            size: const Size(640, 360),
+            tab: InsightTab.cold,
+            selected: evening,
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('COLD RUNNING, THIS DRIVE'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Cold start: with no price there is nothing to bill', (
+    tester,
+  ) async {
+    data = InsightData.of([
+      for (final (t, s) in data.withSamples)
+        (
+          Trip(
+            id: t.id,
+            startedAt: t.startedAt,
+            endedAt: t.endedAt,
+            distanceKm: t.distanceKm,
+            litres: t.litres,
+          ),
+          s,
+        ),
+    ]);
+    await show(tester, tab: InsightTab.cold);
+    expect(find.text('NO COLD START TO BILL YET'), findsOneWidget);
+  });
+
   testWidgets('the tank says what fills it in when nothing is counted', (
     tester,
   ) async {

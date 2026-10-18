@@ -110,6 +110,10 @@ void main() {
     await capture(tester, InsightTab.tolls, 'insights-tolls');
   }, skip: !enabled);
 
+  testWidgets('cold start', (tester) async {
+    await capture(tester, InsightTab.cold, 'insights-cold');
+  }, skip: !enabled);
+
   testWidgets('current', (tester) async {
     await capture(tester, InsightTab.current, 'insights-current');
   }, skip: !enabled);

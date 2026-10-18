@@ -6,6 +6,7 @@ import 'package:tapedash/insights/gearbox.dart';
 import 'package:tapedash/insights/power_curve.dart';
 import 'package:tapedash/insights/powerflow.dart';
 import 'package:tapedash/trips/trip.dart';
+import 'package:tapedash/ui/design/components/insights/cold_start_chart.dart';
 import 'package:tapedash/ui/design/components/insights/gear_chart.dart';
 import 'package:tapedash/ui/design/components/insights/power_curve_chart.dart';
 import 'package:tapedash/ui/design/components/insights/powerflow_chart.dart';
@@ -212,6 +213,38 @@ void main() {
       expect(TollsPanelState.duration(125), '2 min');
       expect(TollsPanelState.duration(3600), '1 h');
       expect(TollsPanelState.duration(6600), '1 h 50 min');
+    });
+  });
+
+  group('ColdStartPainter axes', () {
+    final cold = madeInsightData().coldStartOf(
+      madeInsightData().trips.firstWhere((t) => t.startedAt.hour == 8),
+    )!;
+
+    test('the rupee axis is in fives, 15 at least, above the warm cost', () {
+      final m = ColdStartPainter.rupeesMax(cold);
+      expect(m % 5, 0);
+      expect(m, greaterThanOrEqualTo(15));
+      expect(m, greaterThan(cold.warmPerKm));
+    });
+
+    test(
+      'a few seconds of stop-start do not stretch the axis off the page',
+      () {
+        expect(
+          ColdStartPainter.rupeesMax(cold),
+          lessThanOrEqualTo(
+            (cold.warmPerKm * ColdStartPainter.clip / 5).ceil() * 5.0 + 5,
+          ),
+        );
+      },
+    );
+
+    test('the minute axis reaches the last window, in fives, 10 at least', () {
+      final m = ColdStartPainter.minutesMax(cold);
+      expect(m % 5, 0);
+      expect(m, greaterThanOrEqualTo(cold.windows.last.minutes));
+      expect(m, greaterThanOrEqualTo(10));
     });
   });
 }

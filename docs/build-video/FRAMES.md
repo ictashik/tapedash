@@ -50,3 +50,4 @@ screen at 2x) unless it says otherwise. `tool/build_frame.sh` adds one.
 | 43 | [043-insights-power.jpg](frames/043-insights-power.jpg) | `3ce5eff` | Insights, Power: a dyno chart built from ordinary driving, dots by throttle, the highest seen as a line, and the revs the car has never reached hatched as no data yet. |
 | 44 | [044-insights-gears.jpg](frames/044-insights-gears.jpg) | `e72666c` | Insights, Gears: a gearbox found from the driving, each gear a ray of rpm against speed labelled by its ratio, with the speeds it was held between. |
 | 45 | [045-insights-gears-cvt.jpg](frames/045-insights-gears-cvt.jpg) | `e72666c` | Insights, Gears on a CVT in the VFD livery: no rays, only a fan, and the page says so. |
+| 46 | [046-insights-tolls.jpg](frames/046-insights-tolls.jpg) | `2a470fc` | Insights, The Toll Map: the roads driven and a hollow ring wherever the car stood with the engine running, sized by what the standing cost; a tap chooses a ring. |
