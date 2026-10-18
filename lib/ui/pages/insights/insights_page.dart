@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../insights/insight_data.dart';
+import '../../../insights/rest_voltage_log.dart';
 import '../../../insights/tank_reading.dart';
+import '../../../insights/voltage_trace.dart';
 import '../../../trips/trip.dart';
 import '../../../vehicle/vehicle_state.dart' show DrivingMode;
 import '../../design/components/controls/tape_button.dart';
@@ -12,10 +14,12 @@ import '../../design/components/tape_label.dart';
 import '../../design/icons/icons.dart';
 import '../../design/theme/tape_theme.dart';
 import '../../design/tokens/spacing.dart';
+import 'current_panel.dart';
 import 'tank_panel.dart';
 
 /// The pages of Insights (DESIGN.md 7.14), in the order of the selector.
 enum InsightTab {
+  current('Current'),
   tank('Tank');
 
   const InsightTab(this.label);
@@ -36,7 +40,9 @@ class InsightsPage extends StatefulWidget {
     required this.width,
     required this.height,
     required this.onClose,
-    this.initial = InsightTab.tank,
+    required this.selected,
+    required this.rest,
+    this.initial = InsightTab.current,
   });
 
   /// Reads the trips the panels draw from, when the page opens.
@@ -44,6 +50,12 @@ class InsightsPage extends StatefulWidget {
 
   /// The counted tank, given the trips to work the economy from.
   final TankReading? Function(Iterable<Trip> trips) tank;
+
+  /// The trip Review is showing, for the panels that are about one trip.
+  final Trip? Function() selected;
+
+  /// The battery's resting voltage, reading by reading.
+  final List<RestReading> Function() rest;
 
   final ValueListenable<DrivingMode> mode;
   final double width;
@@ -143,7 +155,27 @@ class InsightsPageState extends State<InsightsPage> {
     );
   }
 
-  Widget _panel(InsightData data) => switch (_tab) {
-    InsightTab.tank => TankPanel(reading: widget.tank(data.trips)),
-  };
+  /// The trip the per-trip panels are about: the one Review is on, if the data
+  /// has it, else the latest.
+  Trip? _trip(InsightData data) {
+    final wanted = widget.selected();
+    for (final t in data.trips) {
+      if (wanted != null && t.id == wanted.id) return t;
+    }
+    return data.trips.isEmpty ? null : data.trips.first;
+  }
+
+  Widget _panel(InsightData data) {
+    final trip = _trip(data);
+    return switch (_tab) {
+      InsightTab.current => CurrentPanel(
+        trip: trip,
+        trace: trip == null
+            ? VoltageTrace.from(const [])
+            : data.voltageOf(trip),
+        rest: widget.rest(),
+      ),
+      InsightTab.tank => TankPanel(reading: widget.tank(data.trips)),
+    };
+  }
 }

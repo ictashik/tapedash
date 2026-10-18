@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:sqflite/sqflite.dart';
 
+import '../core/clock.dart';
 import '../core/fuel_blend.dart';
 import '../core/key_value_store.dart';
 import '../core/observable.dart';
 import '../fuel/fuel_constants.dart';
+import '../insights/rest_voltage_log.dart';
 import '../money/fill_up.dart';
 import '../money/fuel_ledger.dart';
 import '../money/money_settings.dart';
@@ -32,7 +34,11 @@ class AppServices {
     required this.ledger,
     VehicleSetup setup = const VehicleSetup(),
     this.recordByDefault = false,
+    this.clock = const SystemClock(),
   }) : _setup = ObservableValue(setup);
+
+  /// The time of the readings the app keeps; the real clock outside a test.
+  final Clock clock;
 
   /// Whether adapter sessions are recorded until Garage says otherwise (see
   /// `AdapterStore.recordByDefault`).
@@ -54,6 +60,12 @@ class AppServices {
   /// The look, the HUD, the coach and the demo: what the user sets in Garage
   /// (`AppSettings`), saved to [store] as it changes.
   late final AppSettings settings = AppSettings(store);
+
+  /// The battery's resting voltage, a reading a day at most (Insights, Current).
+  late final RestVoltageLog restVoltage = RestVoltageLog(
+    store: store,
+    clock: clock,
+  );
 
   /// The adapter the user chose, and how it is used (`AdapterStore`).
   late final AdapterStore adapters = AdapterStore(
@@ -98,6 +110,7 @@ class AppServices {
       await trips.delete(t.id!);
     }
     await ledger.clear();
+    await restVoltage.clear();
     await money.setPrice(null);
   }
 
@@ -106,6 +119,7 @@ class AppServices {
     await adapters.load();
     await money.load();
     await ledger.load();
+    await restVoltage.load();
     final type = await store.getString(_fuelTypeKey);
     final blend = await store.getString(_blendKey);
     _setup.value = VehicleSetup(

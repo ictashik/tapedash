@@ -473,6 +473,7 @@ A cached radial glow sprite at the touch point: scale 0.6 → 1.4 and alpha 0.35
 
 ### 6.18 Insight charts
 Drawn by `ChartKit` (`lib/ui/design/components/insights/`): text in the design's fonts, a line with its halo (a wider, fainter stroke under it; nothing is blurred at run time), dashes, hatching for "no data", L-shaped brackets. Each chart is a painter that takes an analysis result and a palette, and is exercised in the capture tests on made-up driving.
+- **Voltage chart:** 11.5 to 15 V, grid at each volt, the charging band `accent.core` at 5%, the trace in `accent.core` with its halo, decimated to the lowest and highest of each pixel column so that a dip a second or two long survives; dip marks are `caution` diamonds with a `caution` label. **Rest trend:** a 28 lp sparkline of the battery at rest, at least a fifth of a volt tall so that a steady battery looks steady, the last point `ink.hot`.
 - **Tank gauge:** a chamfered column (bottom corners cut 10 lp), `carbon.700` track, a `money.deep` fill with a `money.core` surface line and a faint glow above it, ticks at every eighth (longer at the quarters), F, ½ and E labels. The reserve is hatched in `caution` at 14% under the fill.
 
 ---
@@ -602,6 +603,7 @@ What the car and the trips add up to, one picture at a time (docs/DECISIONS.md, 
 - **Tabs:** CURRENT, POWERFLOW, POWER, GEARS, TANK, TOLLS, COLD START, GHOST, YEAR.
 - **Every figure is an estimate and says so:** "≈" before it, the shares in whole percents, ₹ in whole rupees, a range to the nearest 5 km. A chart that has no data for part of its range hatches that part and says "no data yet"; it never draws a line across it.
 - **Empty states** say the one thing that fills them in ("Fill the tank to the top, log it at Pit Stop with FULL TANK on, and the dash counts the litres from there.").
+- **Current** (§6.18): the drive's steady voltage in Saira at 44 lp with CHARGING or ON THE BATTERY, the trace under it inside a tinted charging band (13.6 V and up) with a mark and "−1.5 V" under each of the five deepest dips (never two within 44 lp), the minutes along the bottom. In the facts: the share of the drive charging, the dips (count, typical depth and length), and the battery's resting voltage as a small trend with its last reading lit. What made a dip is not claimed: the car reports no battery current.
 - **Tank** (§6.18): a column that drains from the top, its surface a champagne line, the reserve (the last eighth) hatched in `caution`; beside it the litres left in Saira at display size and the range. The same count fills the Money page's fuel-left slot for a car that sends no level, marked "≈".
 
 ---

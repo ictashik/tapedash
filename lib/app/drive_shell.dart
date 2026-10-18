@@ -8,6 +8,7 @@ import '../core/clock.dart';
 import '../core/observable.dart';
 import '../core/scheduler.dart';
 import '../insights/insight_data.dart';
+import '../insights/rest_voltage_log.dart';
 import '../insights/tank_reading.dart';
 import '../location/location_source.dart';
 import '../location/location_status.dart';
@@ -156,6 +157,7 @@ class _DriveShellState extends State<DriveShell> {
   late final HudSettings _hud = _app.settings.hud;
   final GlobalKey<DrivePageState> _driveKey = GlobalKey();
   SessionDiagnostics? _diagnostics;
+  RestVoltageWatcher? _restWatcher;
   DtcDescriptions _descriptions = DtcDescriptions.empty;
   late final TripLibrary _library = TripLibrary(_app.trips);
   final DebriefRequest _debrief = DebriefRequest();
@@ -245,6 +247,10 @@ class _DriveShellState extends State<DriveShell> {
         sessions: _feed.sessions,
         estimator: services.estimator,
         vehicle: _feed.vehicle,
+      );
+      _restWatcher = RestVoltageWatcher(
+        vehicle: _feed.vehicle,
+        log: _driveApp.restVoltage,
       );
       _feed.start(); // a no-op if it is already running
       unawaited(_startLocation(location));
@@ -359,6 +365,7 @@ class _DriveShellState extends State<DriveShell> {
     settings.cluster.removeListener(_onCluster);
     _debrief.dispose();
     _diagnostics?.dispose();
+    _restWatcher?.dispose();
     for (final source in _debugSources) {
       source.dispose();
     }
@@ -449,6 +456,8 @@ class _DriveShellState extends State<DriveShell> {
             tankLitres: _driveApp.setup.value.tankLitres,
             trips: trips,
           ),
+          selected: () => _library.selected.value,
+          rest: () => _driveApp.restVoltage.readings,
           mode: signals.mode,
           width: w,
           height: h,

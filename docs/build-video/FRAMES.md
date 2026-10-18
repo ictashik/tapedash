@@ -43,3 +43,5 @@ screen at 2x) unless it says otherwise. `tool/build_frame.sh` adds one.
 | 36 | [036-demo-shell.jpg](frames/036-demo-shell.jpg) | `bd5696c` | The app opens on a live simulated drive: the cluster, the clock and the DEMO badge, the page tape beneath. |
 | 37 | [037-onboarding.jpg](frames/037-onboarding.jpg) | `09b7a6d` | First launch: the wordmark over its tape line, and the choice beneath it. |
 | 38 | [038-brand.jpg](frames/038-brand.jpg) | `c98471c` | The app icon: a fragment of the tach arc with its last segment lit, above the tape. |
+| 39 | [039-insights-tank.jpg](frames/039-insights-tank.jpg) | `5459bd9` | Insights, Tank without a gauge: the City sends no fuel level, so the dash counts the litres from the last full tank; the column drains, the reserve is hatched, the range is to the nearest 5 km. |
+| 40 | [040-dock-insights.jpg](frames/040-dock-insights.jpg) | `5459bd9` | The parked dock at 640 lp with its new Insights button, End trip showing: six buttons still fit. |

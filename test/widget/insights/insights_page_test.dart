@@ -4,7 +4,6 @@ import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/core/key_value_store.dart';
 import 'package:tapedash/core/observable.dart';
 import 'package:tapedash/insights/insight_data.dart';
-import 'package:tapedash/insights/tank_reading.dart';
 import 'package:tapedash/money/fill_up.dart';
 import 'package:tapedash/money/fuel_ledger.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
@@ -14,6 +13,7 @@ import 'package:tapedash/vehicle/vehicle_state.dart';
 
 import '../../design/support/harness.dart';
 import '../../support/insight_fixture.dart';
+import '../../support/insights_rig.dart';
 
 void main() {
   setUpAll(loadTapeFonts);
@@ -53,15 +53,13 @@ void main() {
       tapeHarness(
         kit: kit,
         motion: motion,
-        child: InsightsPage(
-          load: () async => data,
-          tank: (trips) =>
-              TankReading.of(ledger: ledger, tankLitres: 40, trips: trips),
+        child: insightsPageFor(
+          data: data,
+          ledger: ledger,
           mode: _Listenable(mode),
-          width: size.width,
-          height: size.height,
+          size: size,
+          tab: tab,
           onClose: () => closed++,
-          initial: tab ?? InsightTab.values.first,
         ),
       ),
     );
@@ -99,6 +97,16 @@ void main() {
     await show(tester);
     mode.value = DrivingMode.motion;
     expect(closed, 1);
+  });
+
+  testWidgets('Current: the volts, the dips and an empty battery log', (
+    tester,
+  ) async {
+    await show(tester, tab: InsightTab.current);
+    expect(find.text('CHARGING'), findsWidgets);
+    expect(find.text('DIPS'), findsOneWidget);
+    expect(find.text('None yet'), findsOneWidget);
+    expect(find.textContaining('14.0'), findsWidgets);
   });
 
   testWidgets('the tank says what fills it in when nothing is counted', (

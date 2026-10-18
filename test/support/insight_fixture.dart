@@ -91,9 +91,12 @@ MadeCommute madeCommute({
   var coolant = coldStart ? 32.0 : 86.0;
   var t = 0;
   var prevV = 0.0;
-  final dipAt = <int>[
-    for (var k = 0; k < 30; k++) 40 + k * 23 + rng.nextInt(9),
-  ];
+  // Loads that dent the voltage: a start, a length and a depth, the gaps random.
+  final dips = <(int, int, double)>[];
+  for (var at = 30 + rng.nextInt(30); at < 1800; at += 40 + rng.nextInt(70)) {
+    dips.add((at, 3 + rng.nextInt(10), 0.5 + rng.nextDouble() * 1.1));
+  }
+  var depth = 0.0;
   var dipLeft = 0;
   while (s / 1000 < totalKm - 0.02 && t < 3600) {
     final km0 = s / 1000;
@@ -138,7 +141,12 @@ MadeCommute madeCommute({
     prevV = v;
     coolant = math.min(90, coolant + (90 - coolant) * 0.0062 + 0.01);
     if (dipLeft > 0) dipLeft--;
-    if (dipAt.contains(t)) dipLeft = 4 + rng.nextInt(8);
+    for (final d in dips) {
+      if (d.$1 == t) {
+        dipLeft = d.$2;
+        depth = d.$3;
+      }
+    }
 
     // Revs: a five-speed's gear for the speed, a little more under load.
     double rpm;
@@ -180,7 +188,7 @@ MadeCommute madeCommute({
         load: 25 + kmh * 0.4,
         coolantC: coolant,
         voltage:
-            (dipLeft > 0 ? 13.1 - dipLeft * 0.02 : 14.0) +
+            (dipLeft > 0 ? 14.0 - depth : 14.0) +
             (rng.nextDouble() - 0.5) * 0.06,
       ),
     );

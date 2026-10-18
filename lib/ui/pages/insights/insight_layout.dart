@@ -80,7 +80,7 @@ class InsightFact extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = TapeTheme.of(context).palette;
     return Padding(
-      padding: const EdgeInsets.only(bottom: TapeSpace.s3),
+      padding: const EdgeInsets.only(bottom: TapeSpace.s2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

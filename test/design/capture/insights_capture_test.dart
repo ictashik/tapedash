@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/core/key_value_store.dart';
-import 'package:tapedash/insights/tank_reading.dart';
 import 'package:tapedash/money/fill_up.dart';
 import 'package:tapedash/money/fuel_ledger.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
@@ -16,6 +15,7 @@ import 'package:tapedash/ui/pages/insights/insights_page.dart';
 import 'package:tapedash/vehicle/vehicle_state.dart';
 
 import '../../support/insight_fixture.dart';
+import '../../support/insights_rig.dart';
 import '../support/harness.dart';
 
 void main() {
@@ -61,15 +61,14 @@ void main() {
         kit: kit,
         motion: motion,
         theme: TapeThemeData(livery: livery ?? Liveries.ion),
-        child: InsightsPage(
-          load: () async => data,
-          tank: (trips) =>
-              TankReading.of(ledger: ledger, tankLitres: 40, trips: trips),
+        child: insightsPageFor(
+          data: data,
+          ledger: ledger,
           mode: mode,
-          width: size.width,
-          height: size.height,
-          onClose: () {},
-          initial: tab,
+          size: size,
+          tab: tab,
+          rest: madeRestReadings(DateTime(2026, 10, 17)),
+          selected: data.trips.first,
         ),
       ),
     );
@@ -82,5 +81,9 @@ void main() {
 
   testWidgets('tank', (tester) async {
     await capture(tester, InsightTab.tank, 'insights-tank');
+  }, skip: !enabled);
+
+  testWidgets('current', (tester) async {
+    await capture(tester, InsightTab.current, 'insights-current');
   }, skip: !enabled);
 }
