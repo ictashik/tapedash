@@ -15,6 +15,7 @@ import '../../design/icons/icons.dart';
 import '../../design/theme/tape_theme.dart';
 import '../../design/tokens/spacing.dart';
 import 'current_panel.dart';
+import 'gears_panel.dart';
 import 'power_panel.dart';
 import 'powerflow_panel.dart';
 import 'tank_panel.dart';
@@ -24,6 +25,7 @@ enum InsightTab {
   current('Current'),
   powerflow('Powerflow'),
   power('Power'),
+  gears('Gears'),
   tank('Tank');
 
   const InsightTab(this.label);
@@ -184,6 +186,7 @@ class InsightsPageState extends State<InsightsPage> {
         flow: trip == null ? null : data.powerflowOf(trip),
       ),
       InsightTab.power => PowerPanel(curve: data.powerCurve),
+      InsightTab.gears => GearsPanel(gearbox: data.gearbox),
       InsightTab.tank => TankPanel(reading: widget.tank(data.trips)),
     };
   }

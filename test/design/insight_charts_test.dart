@@ -2,9 +2,11 @@
 // long trace, so that a short dip is never averaged away.
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tapedash/insights/gearbox.dart';
 import 'package:tapedash/insights/power_curve.dart';
 import 'package:tapedash/insights/powerflow.dart';
 import 'package:tapedash/trips/trip.dart';
+import 'package:tapedash/ui/design/components/insights/gear_chart.dart';
 import 'package:tapedash/ui/design/components/insights/power_curve_chart.dart';
 import 'package:tapedash/ui/design/components/insights/powerflow_chart.dart';
 import 'package:tapedash/ui/design/components/insights/voltage_chart.dart';
@@ -138,5 +140,24 @@ void main() {
         expect(m, greaterThanOrEqualTo(40));
       },
     );
+  });
+
+  group('GearChartPainter', () {
+    test('the speed axis is to the next 20 km/h, 80 at least', () {
+      expect(GearChartPainter.kmhMax(Gearbox.from(const [])), 80);
+      final fast = Gearbox.from([
+        [
+          for (var i = 0; i < 60; i++)
+            TripSample(
+              seconds: i.toDouble(),
+              speedKmh: 90.0 + i,
+              rpm: 3000,
+              throttle: 20,
+              litresPerHour: 5,
+            ),
+        ],
+      ]);
+      expect(GearChartPainter.kmhMax(fast), 160);
+    });
   });
 }

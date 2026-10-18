@@ -92,6 +92,20 @@ void main() {
     await capture(tester, InsightTab.power, 'insights-power', pulls: true);
   }, skip: !enabled);
 
+  testWidgets('gears', (tester) async {
+    await capture(tester, InsightTab.gears, 'insights-gears', pulls: true);
+  }, skip: !enabled);
+
+  testWidgets('gears, a CVT, in the VFD livery', (tester) async {
+    await capture(
+      tester,
+      InsightTab.gears,
+      'insights-gears-cvt-vfd',
+      livery: Liveries.vfd,
+      manual: false,
+    );
+  }, skip: !enabled);
+
   testWidgets('current', (tester) async {
     await capture(tester, InsightTab.current, 'insights-current');
   }, skip: !enabled);

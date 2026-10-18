@@ -2,6 +2,32 @@ import 'dart:math' as math;
 
 import '../trips/trip.dart';
 
+/// How a gear is used: which number it is, its ratio, how much of the driving was in
+/// it, and the speeds it was held between.
+class GearUse {
+  const GearUse({
+    required this.gear,
+    required this.ratio,
+    required this.share,
+    required this.fromKmh,
+    required this.toKmh,
+  });
+
+  /// Counted from the shortest gear found, which is the first only if the car has
+  /// been driven in its first.
+  final int gear;
+
+  /// Rpm for each km/h.
+  final double ratio;
+
+  /// Of all the moments used, 0 to 1.
+  final double share;
+
+  /// The speeds it was held between: the 5th to the 95th percentile.
+  final double fromKmh;
+  final double toKmh;
+}
+
 /// The gearbox, found from the driving (Gearbox, found): with the clutch in and a
 /// gear chosen, revs and speed keep a fixed ratio, so each gear is a straight
 /// line of rpm against km/h. Plot a few drives and the lines show as crowds of dots
@@ -49,6 +75,30 @@ class Gearbox {
   int get gears => ratios.length;
 
   bool get isEmpty => observed == 0;
+
+  /// Each gear's use, shortest gear first. Empty for a fan.
+  List<GearUse> usage() {
+    final out = <GearUse>[];
+    for (var i = ratios.length - 1; i >= 0; i--) {
+      final speeds = <double>[
+        for (final p in points)
+          if ((p.$2 / p.$1 - ratios[i]).abs() <= binWidth * 1.5) p.$1,
+      ]..sort();
+      if (speeds.isEmpty) continue;
+      double at(double q) =>
+          speeds[(speeds.length * q).floor().clamp(0, speeds.length - 1)];
+      out.add(
+        GearUse(
+          gear: ratios.length - i,
+          ratio: ratios[i],
+          share: speeds.length / points.length,
+          fromKmh: at(0.05),
+          toKmh: at(0.95),
+        ),
+      );
+    }
+    return out;
+  }
 
   /// The gear number (1 is the shortest) for a moment, or null on a fan, with
   /// nothing found, or when the ratio is not near any gear's.

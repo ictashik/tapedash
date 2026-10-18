@@ -127,6 +127,23 @@ void main() {
     expect(find.textContaining('kW'), findsWidgets);
   });
 
+  testWidgets('Gears: the gears a made drive used, and none for a CVT', (
+    tester,
+  ) async {
+    await show(tester, tab: InsightTab.gears);
+    expect(find.text('GEARS FOUND'), findsOneWidget);
+    expect(find.textContaining('No gear sensor'), findsOneWidget);
+    expect(find.text('None'), findsNothing);
+  });
+
+  testWidgets('Gears: a CVT shows a fan, and says so', (tester) async {
+    data = madeInsightData(manual: false);
+    final state = await show(tester, tab: InsightTab.gears);
+    expect(state.data!.gearbox.isFan, isTrue);
+    expect(find.text('None'), findsOneWidget);
+    expect(find.textContaining('looks like a CVT'), findsOneWidget);
+  });
+
   testWidgets('the tank says what fills it in when nothing is counted', (
     tester,
   ) async {

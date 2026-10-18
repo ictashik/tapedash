@@ -52,6 +52,20 @@ void main() {
       expect(g.gearFor(60, 90.0 * 60), isNull, reason: 'between gears');
     });
 
+    test('how each gear is used: its ratio, its share and the speeds', () {
+      final g = Gearbox.from([
+        geared([128, 76, 52, 39, 32]),
+      ]);
+      final use = g.usage();
+      expect(use.length, 5);
+      expect(use.first.ratio, greaterThan(use.last.ratio));
+      expect([for (final u in use) u.gear], [1, 2, 3, 4, 5]);
+      expect(use.fold<double>(0, (a, u) => a + u.share), closeTo(1, 0.05));
+      for (final u in use) {
+        expect(u.fromKmh, lessThan(u.toKmh));
+      }
+    });
+
     test('a CVT is a fan and finds no gears', () {
       final rng = math.Random(3);
       final cvt = [
