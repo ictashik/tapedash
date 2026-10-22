@@ -110,7 +110,7 @@ class BleChannel(
                 stopScan()
                 result.success(null)
             }
-            "pair" -> result.success(null)
+            "pair", "unpair" -> result.success(null)
             "open" -> open(call.argument<String>("address"), result)
             "close" -> {
                 closeGatt()

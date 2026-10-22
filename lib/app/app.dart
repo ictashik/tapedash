@@ -264,8 +264,9 @@ class _ShellState extends State<_Shell> {
   /// compatibility mode, recording) reach the drive here; they only happen while
   /// parked.
   Future<void> _syncDrive() async {
-    // A survey has the adapter; it gives the drive back when it ends.
-    if (_surveying) return;
+    // A survey has the adapter; it gives the drive back when it ends. So does
+    // the connect flow, which pairs and tries adapters of its own.
+    if (_surveying || _connecting) return;
     final ticket = ++_syncs;
     final config = _adapters.useAdapter.value ? _adapters.adapter.value : null;
     if (config == null) {
@@ -320,7 +321,24 @@ class _ShellState extends State<_Shell> {
     super.dispose();
   }
 
-  void _openConnect() => setState(() => _connecting = true);
+  /// Opens the connect flow. The dashboard's drive lets go of the adapter first:
+  /// it keeps reopening the old one every few seconds, and that would cut across a
+  /// pairing and the flow's own test of the link.
+  void _openConnect() {
+    final old = _live;
+    _live = null;
+    _syncs++;
+    setState(() => _connecting = true);
+    unawaited(old?.dispose());
+  }
+
+  void _closeConnect({required bool done}) {
+    setState(() {
+      _connecting = false;
+      if (done) _onboarded = true;
+    });
+    unawaited(_syncDrive());
+  }
 
   /// Hands the adapter from the dashboard to a survey drive. The dashboard's link
   /// is closed first, since an adapter takes one connection at a time.
@@ -368,11 +386,8 @@ class _ShellState extends State<_Shell> {
             radios: _transports.radio,
             width: box.maxWidth,
             height: box.maxHeight,
-            onCancel: () => setState(() => _connecting = false),
-            onDone: () => setState(() {
-              _connecting = false;
-              _onboarded = true;
-            }),
+            onCancel: () => _closeConnect(done: false),
+            onDone: () => _closeConnect(done: true),
           ),
         ),
       );

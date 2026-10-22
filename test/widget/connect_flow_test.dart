@@ -40,7 +40,9 @@ class FakeRadio implements AdapterRadio {
   List<FoundAdapter> pairedList = const [];
   List<FoundAdapter> nearby = const [];
   Object? pairError;
+  Object? unpairError;
   final List<String> paired_ = [];
+  final List<String> unpaired = [];
   int scans = 0;
   int scanStops = 0;
   int permissionAsks = 0;
@@ -82,11 +84,18 @@ class FakeRadio implements AdapterRadio {
   }
 
   @override
+  Future<void> unpair(String address) async {
+    unpaired.add(address);
+    if (unpairError != null) throw unpairError!;
+  }
+
+  @override
   NativeLink link(String address) => throw UnimplementedError();
 }
 
 class FakeChecker implements AdapterChecker {
   bool reachableNow = true;
+  void Function()? onTry;
   final List<AdapterConfig> tried = [];
 
   @override
@@ -95,6 +104,7 @@ class FakeChecker implements AdapterChecker {
   @override
   Future<bool> reachable(AdapterConfig config) async {
     tried.add(config);
+    onTry?.call();
     return reachableNow;
   }
 }
@@ -300,6 +310,86 @@ void main() {
       expect(flow(tester).isPairing, isFalse);
       expect(find.textContaining('Could not pair'), findsOneWidget);
       expect(radio.scans, 2, reason: 'searching again');
+    });
+
+    testWidgets('a paired adapter is tried before it is taken', (tester) async {
+      radios[RadioKind.bluetoothClassic]!.pairedList = [
+        adapter('OBDII', 'AA:01', paired: true),
+      ];
+      await show(tester);
+      await tester.tap(find.text('Bluetooth').first);
+      await settle(tester);
+      await tester.tap(find.text('OBDII'));
+      await settle(tester);
+      expect(checker.tried.single.address, 'AA:01');
+      expect(flow(tester).step, ConnectStep.car);
+    });
+
+    testWidgets(
+      'one that will not connect offers to forget the pairing and pair again',
+      (tester) async {
+        final radio = radios[RadioKind.bluetoothClassic]!
+          ..pairedList = [adapter('OBDII', 'AA:01', paired: true)];
+        checker.reachableNow = false;
+        await show(tester);
+        await tester.tap(find.text('Bluetooth').first);
+        await settle(tester);
+        await tester.tap(find.text('OBDII'));
+        await settle(tester);
+        expect(flow(tester).step, ConnectStep.find);
+        expect(flow(tester).failed?.address, 'AA:01');
+        expect(find.textContaining('Could not connect'), findsOneWidget);
+        expect(radio.scans, 2, reason: 'searching again');
+
+        // The pairing is dropped and made again, and now the adapter answers.
+        checker.reachableNow = true;
+        await tester.tap(find.text('FORGET AND PAIR AGAIN'));
+        await settle(tester);
+        expect(radio.unpaired, ['AA:01']);
+        expect(radio.paired_, ['AA:01']);
+        expect(checker.tried, hasLength(2));
+        expect(flow(tester).step, ConnectStep.car);
+        expect(flow(tester).chosen!.address, 'AA:01');
+      },
+    );
+
+    testWidgets('Use anyway takes the adapter that would not connect', (
+      tester,
+    ) async {
+      radios[RadioKind.bluetoothClassic]!.pairedList = [
+        adapter('OBDII', 'AA:01', paired: true),
+      ];
+      checker.reachableNow = false;
+      await show(tester);
+      await tester.tap(find.text('Bluetooth').first);
+      await settle(tester);
+      await tester.tap(find.text('OBDII'));
+      await settle(tester);
+      await tester.tap(find.text('USE ANYWAY'));
+      await settle(tester);
+      expect(flow(tester).step, ConnectStep.car);
+      expect(flow(tester).chosen!.address, 'AA:01');
+    });
+
+    testWidgets('a pairing that cannot be forgotten says how to do it', (
+      tester,
+    ) async {
+      final radio = radios[RadioKind.bluetoothClassic]!
+        ..pairedList = [adapter('OBDII', 'AA:01', paired: true)]
+        ..unpairError = const NativeLinkException(
+          NativeLinkProblem.connectFailed,
+        );
+      checker.reachableNow = false;
+      await show(tester);
+      await tester.tap(find.text('Bluetooth').first);
+      await settle(tester);
+      await tester.tap(find.text('OBDII'));
+      await settle(tester);
+      await tester.tap(find.text('FORGET AND PAIR AGAIN'));
+      await settle(tester);
+      expect(radio.paired_, isEmpty);
+      expect(find.textContaining('Bluetooth settings'), findsOneWidget);
+      expect(flow(tester).step, ConnectStep.find);
     });
 
     testWidgets('BLE has no pairing: the adapter found is the adapter chosen', (

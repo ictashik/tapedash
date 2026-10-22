@@ -53,6 +53,8 @@ class _Radio implements AdapterRadio {
   @override
   Future<void> pair(String address) async {}
   @override
+  Future<void> unpair(String address) async {}
+  @override
   NativeLink link(String address) => throw UnimplementedError();
 }
 

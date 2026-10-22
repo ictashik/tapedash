@@ -33,7 +33,7 @@ import java.util.concurrent.Executors
  * the method names, the error codes and the shape of an event have to match it:
  *
  *   methods `tapedash/bt_classic`: status, requestPermission, paired, startScan,
- *     stopScan, pair {address}, open {address}, close, send {text}
+ *     stopScan, pair {address}, unpair {address}, open {address}, close, send {text}
  *   events `tapedash/bt_classic/events`: {type: found, name, address, paired},
  *     {type: data, text} and {type: lost}
  *   error codes: permission_denied, radio_off, unsupported, connect_failed,
@@ -95,6 +95,7 @@ class BtClassicChannel(
                 result.success(null)
             }
             "pair" -> pair(call.argument<String>("address"), result)
+            "unpair" -> unpair(call.argument<String>("address"), result)
             "open" -> open(call.argument<String>("address"), result)
             "close" -> {
                 worker.execute {
@@ -199,6 +200,9 @@ class BtClassicChannel(
             return
         }
         cancelBonding()
+        // A pairing left half-done (a wrong PIN, a dialog dismissed) blocks the
+        // next one: drop it first.
+        if (device.bondState == BluetoothDevice.BOND_BONDING) removeBond(device)
         var answered = false
         fun answer(ok: Boolean) {
             if (answered) return
@@ -228,6 +232,71 @@ class BtClassicChannel(
             cancelBonding()
             result.error("permission_denied", e.message, null)
         }
+    }
+
+    /**
+     * Forgets the pairing with [address], as Android's settings do. A pairing made
+     * with a wrong PIN, or an old one the adapter no longer knows, makes every
+     * connection fail until it is dropped and made again.
+     */
+    @SuppressLint("MissingPermission")
+    private fun unpair(address: String?, result: MethodChannel.Result) {
+        if (unusable(result)) return
+        val device = deviceAt(address)
+        if (device == null) {
+            result.error("connect_failed", "No such device: $address", null)
+            return
+        }
+        worker.execute {
+            // A pairing cannot be dropped under an open link.
+            closeSocket()
+            main.post { forget(device, result) }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun forget(device: BluetoothDevice, result: MethodChannel.Result) {
+        if (device.bondState == BluetoothDevice.BOND_NONE) {
+            result.success(null)
+            return
+        }
+        cancelBonding()
+        var answered = false
+        fun answer(ok: Boolean) {
+            if (answered) return
+            answered = true
+            cancelBonding()
+            if (ok) result.success(null) else result.error("connect_failed", "Could not forget the pairing", null)
+        }
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action != BluetoothDevice.ACTION_BOND_STATE_CHANGED) return
+                val changed = deviceOf(intent) ?: return
+                if (changed.address != device.address) return
+                if (intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR) ==
+                    BluetoothDevice.BOND_NONE
+                ) {
+                    answer(true)
+                }
+            }
+        }
+        bondReceiver = receiver
+        registerReceiver(receiver, IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED))
+        main.postDelayed({ answer(device.bondState == BluetoothDevice.BOND_NONE) }, UNPAIR_TIMEOUT_MS)
+        try {
+            if (!removeBond(device)) answer(device.bondState == BluetoothDevice.BOND_NONE)
+        } catch (e: SecurityException) {
+            answered = true
+            cancelBonding()
+            result.error("permission_denied", e.message, null)
+        }
+    }
+
+    /** `BluetoothDevice.removeBond()` is hidden from the SDK, so it is called by name. */
+    private fun removeBond(device: BluetoothDevice): Boolean = try {
+        device.javaClass.getMethod("removeBond").invoke(device) as? Boolean ?: false
+    } catch (e: ReflectiveOperationException) {
+        false
     }
 
     private fun cancelBonding() {
@@ -392,5 +461,6 @@ class BtClassicChannel(
         /** The Serial Port Profile's well-known UUID, which every ELM327 answers. */
         private val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
         private const val PAIRING_TIMEOUT_MS = 60_000L
+        private const val UNPAIR_TIMEOUT_MS = 8_000L
     }
 }

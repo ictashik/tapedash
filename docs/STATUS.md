@@ -18,6 +18,10 @@ Updated 2026-10-18, with the Insights ("Insights" below). Before that, 2026-10-1
 
 **Suggested tags, none created** (placing them is your call; none has been pushed): `v0.1.0-sim` on `d5016d6`, `v0.2.0-design` on `62fb1bb`, `v0.3.0-sim` on `57cd4e2`, `v0.4.0-sim` on `f0105e3`, `v0.5.0-sim` on `2db202f`, `v0.6.0-handoff` on the commit that adds `docs/HARDWARE_HANDOFF.md`.
 
+## A pairing gone wrong (2026-10-22)
+
+A Bluetooth Classic adapter paired with the wrong PIN could be left bonded but unusable, and every connection then failed with no way out in the app. Now: `BtClassicChannel` can forget a pairing (`unpair`, the hidden `removeBond` by reflection) and clears a half-finished one before pairing again; the connect flow tries a Bluetooth Classic adapter before taking it and, if it will not open, offers **Forget and pair again** (the phone asks for the PIN afresh) or **Use anyway**; and the dashboard's drive lets go of the adapter while the connect flow is open, so its 10-second reopening no longer cuts across a pairing or the test. Mocked-channel and widget tests cover the Dart side. **Unverified on a phone:** `removeBond` by reflection and the bond-state waits.
+
 ## Insights (2026-10-18)
 
 Nine ideas from the pitch, built, tested and committed: **Current, Powerflow, Power, Gears, Tank, Tolls, Cold start, Ghost and Year on Tape**, with a **Share** button on the last. They open from a new **Insights** button on the parked dock, as one full-screen form with a scrolling selector (DESIGN.md 7.14, 6.18); parked only, and it closes itself when the car moves. The Tank count also fills the Money page's fuel-left slot for a car that sends no level, marked "≈". Decisions and their reasons are in `docs/DECISIONS.md` ("Insights").

@@ -87,6 +87,12 @@ class ConnectFlowState extends State<ConnectFlow> {
   bool _pairing = false;
   String? _note;
 
+  // A Bluetooth adapter is tried before it is accepted. One that would not open
+  // (most often a pairing made with the wrong PIN) is kept here, with the offer
+  // to forget the pairing and make it again.
+  bool _checking = false;
+  FoundAdapter? _failed;
+
   // A WiFi adapter.
   final AddressEntry _entry = AddressEntry(
     host: _defaultHost,
@@ -103,6 +109,8 @@ class ConnectFlowState extends State<ConnectFlow> {
   AdapterKind? get kind => _kind;
   AdapterConfig? get chosen => _chosen;
   bool get isPairing => _pairing;
+  bool get isChecking => _checking;
+  FoundAdapter? get failed => _failed;
 
   @override
   void dispose() {
@@ -138,6 +146,7 @@ class ConnectFlowState extends State<ConnectFlow> {
   void _go(ConnectStep next) => setState(() {
     _step = next;
     _note = null;
+    _failed = null;
   });
 
   void _back() {
@@ -244,11 +253,16 @@ class ConnectFlowState extends State<ConnectFlow> {
     unawaited(scan?.cancel());
   }
 
+  AdapterConfig _configOf(FoundAdapter adapter) =>
+      AdapterConfig(kind: _kind!, address: adapter.address, name: adapter.name);
+
   Future<void> _pick(FoundAdapter adapter) async {
-    if (_pairing) return;
+    if (_pairing || _checking) return;
     _stopScan();
-    if (adapter.kind == RadioKind.bluetoothClassic && !adapter.paired) {
+    final classic = adapter.kind == RadioKind.bluetoothClassic;
+    if (classic && !adapter.paired) {
       setState(() {
+        _failed = null;
         _pairing = true;
         _note =
             'Pairing with ${adapter.displayName}. If it asks for a PIN, '
@@ -269,11 +283,78 @@ class ConnectFlowState extends State<ConnectFlow> {
       if (!mounted) return;
       setState(() => _pairing = false);
     }
-    _chosen = AdapterConfig(
-      kind: _kind!,
-      address: adapter.address,
-      name: adapter.name,
+    if (classic) {
+      // A pairing can be accepted and still not work. Find out here, with the
+      // adapter in reach, not on the first drive.
+      setState(() {
+        _failed = null;
+        _checking = true;
+        _note = 'Checking the connection to ${adapter.displayName}…';
+      });
+      final config = _configOf(adapter);
+      var worked = false;
+      try {
+        worked = await widget.checker.reachable(config);
+      } on Object {
+        worked = false;
+      }
+      if (!mounted) return;
+      if (!worked) {
+        setState(() {
+          _checking = false;
+          _failed = adapter;
+          _note =
+              'Could not connect to ${adapter.displayName}. Is the ignition on? '
+              'If the PIN was wrong when it was paired, forget the pairing and '
+              'pair again.';
+        });
+        unawaited(_startScan());
+        return;
+      }
+      setState(() => _checking = false);
+    }
+    _chosen = _configOf(adapter);
+    _go(ConnectStep.car);
+  }
+
+  /// Drops the pairing with the adapter that would not connect, and pairs it again
+  /// (which makes the phone ask for the PIN afresh).
+  Future<void> _forgetAndPair() async {
+    final adapter = _failed;
+    if (adapter == null || _pairing || _checking) return;
+    setState(() {
+      _pairing = true;
+      _note = 'Forgetting the old pairing…';
+    });
+    try {
+      await widget.radios(RadioKind.bluetoothClassic).unpair(adapter.address);
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _pairing = false;
+        _note =
+            'Could not forget it. Remove ${adapter.displayName} in Android\'s '
+            'Bluetooth settings, then try again.';
+      });
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _pairing = false);
+    await _pick(
+      FoundAdapter(
+        name: adapter.name,
+        address: adapter.address,
+        kind: adapter.kind,
+      ),
     );
+  }
+
+  /// Takes the adapter that would not connect all the same.
+  void _useAnyway() {
+    final adapter = _failed;
+    if (adapter == null) return;
+    _stopScan();
+    _chosen = _configOf(adapter);
     _go(ConnectStep.car);
   }
 
@@ -564,7 +645,7 @@ class ConnectFlowState extends State<ConnectFlow> {
             TapeButton(
               label: 'Search again',
               compact: true,
-              onPressed: _pairing ? null : _startScan,
+              onPressed: _pairing || _checking ? null : _startScan,
             ),
           ],
         ),
@@ -586,17 +667,37 @@ class ConnectFlowState extends State<ConnectFlow> {
                         label: a.displayName,
                         value: a.paired ? 'Paired' : a.address,
                         selected: a.looksLikeAdapter,
-                        onTap: _pairing ? null : () => _pick(a),
+                        onTap: _pairing || _checking ? null : () => _pick(a),
                       ),
                   ],
                 ),
         ),
+        if (_failed != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: TapeSpace.s1),
+            child: Row(
+              children: [
+                TapeButton(
+                  label: 'Forget and pair again',
+                  compact: true,
+                  primary: true,
+                  onPressed: _pairing || _checking ? null : _forgetAndPair,
+                ),
+                const SizedBox(width: TapeSpace.s2),
+                TapeButton(
+                  label: 'Use anyway',
+                  compact: true,
+                  onPressed: _useAnyway,
+                ),
+              ],
+            ),
+          ),
         if (_note != null)
           TapeText(
             _note!,
             style: TapeTextStyle.caption,
             color: palette.inkMid,
-            maxLines: 2,
+            maxLines: 3,
           ),
       ],
     );

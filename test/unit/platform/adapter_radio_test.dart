@@ -172,6 +172,21 @@ void main() {
         );
       });
 
+      test(
+        'forgetting a pairing passes the address, and a refusal is a problem',
+        () async {
+          await radio.unpair('AA:01');
+          expect(calls.single.method, 'unpair');
+          expect(calls.single.arguments, {'address': 'AA:01'});
+
+          reply = (call) => throw PlatformException(code: 'connect_failed');
+          await expectLater(
+            radio.unpair('AA:01'),
+            throwsA(isA<NativeLinkException>()),
+          );
+        },
+      );
+
       test('a link opens, sends, receives, and closes', () async {
         final link = radio.link('AA:01');
         final text = StringBuffer();

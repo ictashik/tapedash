@@ -221,6 +221,17 @@ class AdapterRadio {
     }
   }
 
+  /// Forgets the pairing with [address] (Bluetooth Classic), as Android's
+  /// settings do. A pairing made with a wrong PIN, or one the adapter no longer
+  /// knows, makes every connection fail until it is dropped and made again.
+  Future<void> unpair(String address) async {
+    try {
+      await _methods.invokeMethod<void>('unpair', {'address': address});
+    } on PlatformException catch (e) {
+      throw _problemOf(e);
+    }
+  }
+
   /// A pipe to the adapter at [address].
   NativeLink link(String address) => _ChannelLink(this, address);
 
