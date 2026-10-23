@@ -31,6 +31,14 @@ import '../design/tokens/strokes.dart';
 /// spec has it:** the last step lists the five layouts by name, not with live
 /// previews, and the scenes' illustrations are simple line art.
 ///
+/// **Bluetooth is one choice, and finds both radios.** Many adapters answer on
+/// Bluetooth Classic (as `OBDII`) and on Low Energy (as `OBDBLE`) at once, and a
+/// person cannot be expected to know which is which. The search runs both radios and
+/// lists what it finds with the radio named and how close each one is (the nearer is
+/// the one in your own car, not the one in the next). Whatever is picked is tried
+/// before it is taken, and when it will not open and the other radio has an adapter
+/// that looks like it, that one is offered.
+///
 /// Unverified on hardware until the handoff (CLAUDE.md 11): the Bluetooth steps
 /// are tested against fake radios.
 class ConnectFlow extends StatefulWidget {
@@ -78,12 +86,14 @@ class ConnectFlowState extends State<ConnectFlow> {
   AdapterKind? _kind;
   AdapterConfig? _chosen;
 
-  // Finding a Bluetooth adapter.
+  // Finding a Bluetooth adapter: both radios, each of which may or may not be
+  // there, on, and allowed.
   RadioStatus? _status;
+  final Map<RadioKind, RadioStatus> _radioStatus = {};
   final List<FoundAdapter> _found = [];
   // Cancelled in _stopScan.
   // ignore: cancel_subscriptions
-  StreamSubscription<FoundAdapter>? _scan;
+  final List<StreamSubscription<FoundAdapter>> _scans = [];
   bool _pairing = false;
   String? _note;
 
@@ -118,8 +128,15 @@ class ConnectFlowState extends State<ConnectFlow> {
     super.dispose();
   }
 
-  RadioKind get _radioKind =>
-      _kind == AdapterKind.ble ? RadioKind.ble : RadioKind.bluetoothClassic;
+  /// Whether a search is going on.
+  bool get _scanning => _scans.isNotEmpty;
+
+  /// The radio that can ask for the permission and say the Bluetooth is off: the
+  /// first that is there.
+  RadioKind get _lead =>
+      (_radioStatus[RadioKind.bluetoothClassic]?.supported ?? false)
+      ? RadioKind.bluetoothClassic
+      : RadioKind.ble;
 
   static const Map<ConnectStep, String> _titles = {
     ConnectStep.type: 'How does your adapter connect?',
@@ -132,7 +149,9 @@ class ConnectFlowState extends State<ConnectFlow> {
   static const Map<ConnectStep, String> _hints = {
     ConnectStep.type:
         'Plug the adapter into the car\'s OBD port, under the dash, and turn the ignition on.',
-    ConnectStep.find: 'Keep the adapter plugged in and the ignition on.',
+    ConnectStep.find:
+        'Keep the adapter plugged in and the ignition on. One adapter can show twice, '
+        'once for each kind of Bluetooth: the nearer one is yours.',
     ConnectStep.car:
         'So fuel and money can be worked out. The estimates get better with your fill-ups.',
     ConnectStep.price:
@@ -167,10 +186,13 @@ class ConnectFlowState extends State<ConnectFlow> {
 
   // ---- step 1: type ------------------------------------------------------
 
+  /// Bluetooth is [AdapterKind.bluetoothClassic] here, and means both radios: the
+  /// kind of each adapter is its radio's, set when one is picked.
   void _chooseKind(AdapterKind kind) {
     _kind = kind;
     _found.clear();
     _status = null;
+    _radioStatus.clear();
     _go(ConnectStep.find);
     if (kind != AdapterKind.wifi) unawaited(_prepareRadio());
   }
@@ -178,24 +200,38 @@ class ConnectFlowState extends State<ConnectFlow> {
   // ---- step 2: find ------------------------------------------------------
 
   Future<void> _prepareRadio() async {
-    final radio = widget.radios(_radioKind);
-    RadioStatus status;
-    try {
-      status = await radio.status();
-    } on Object {
-      status = const RadioStatus(
-        supported: false,
-        enabled: false,
-        permitted: false,
-      );
+    for (final kind in RadioKind.values) {
+      RadioStatus status;
+      try {
+        status = await widget.radios(kind).status();
+      } on Object {
+        status = const RadioStatus(
+          supported: false,
+          enabled: false,
+          permitted: false,
+        );
+      }
+      _radioStatus[kind] = status;
     }
     if (!mounted) return;
-    setState(() => _status = status);
-    if (status.ready) await _startScan();
+    final there = [
+      for (final s in _radioStatus.values)
+        if (s.supported) s,
+    ];
+    // What the screen says: there is a radio, it is allowed, it is on. A radio the
+    // phone does not have (many have no Classic or no LE) is simply not searched.
+    setState(
+      () => _status = RadioStatus(
+        supported: there.isNotEmpty,
+        enabled: there.isNotEmpty && there.every((s) => s.enabled),
+        permitted: there.isNotEmpty && there.every((s) => s.permitted),
+      ),
+    );
+    if (there.any((s) => s.ready)) await _startScan();
   }
 
   Future<void> _allow() async {
-    final radio = widget.radios(_radioKind);
+    final radio = widget.radios(_lead);
     try {
       await radio.requestPermission();
     } on Object {
@@ -206,33 +242,40 @@ class ConnectFlowState extends State<ConnectFlow> {
 
   Future<void> _startScan() async {
     _stopScan();
-    final radio = widget.radios(_radioKind);
-    try {
-      final paired = await radio.paired();
-      if (!mounted) return;
-      setState(() {
-        for (final a in paired) {
-          if (!_found.contains(a)) _found.add(a);
-        }
-        _sortFound();
-      });
-    } on Object {
-      // A phone that will not list them can still search.
-    }
-    _scan = radio.scan().listen(
-      (a) {
-        if (!mounted || _found.contains(a)) return;
+    for (final kind in RadioKind.values) {
+      if (!(_radioStatus[kind]?.ready ?? false)) continue;
+      final radio = widget.radios(kind);
+      try {
+        final paired = await radio.paired();
+        if (!mounted) return;
         setState(() {
-          _found.add(a);
+          for (final a in paired) {
+            if (!_found.contains(a)) _found.add(a);
+          }
           _sortFound();
         });
-      },
-      onError: (Object _) {
-        if (mounted) {
-          setState(() => _note = 'The search stopped. Try again.');
-        }
-      },
-    );
+      } on Object {
+        // A phone that will not list them can still search.
+      }
+      if (!mounted) return;
+      _scans.add(
+        radio.scan().listen(
+          (a) {
+            if (!mounted || _found.contains(a)) return;
+            setState(() {
+              _found.add(a);
+              _sortFound();
+            });
+          },
+          onError: (Object _) {
+            if (mounted) {
+              setState(() => _note = 'The search stopped. Try again.');
+            }
+          },
+        ),
+      );
+    }
+    if (mounted) setState(() {});
   }
 
   void _sortFound() {
@@ -241,6 +284,14 @@ class ConnectFlowState extends State<ConnectFlow> {
         return a.looksLikeAdapter ? -1 : 1;
       }
       if (a.paired != b.paired) return a.paired ? -1 : 1;
+      // The nearer first: the adapter in your own car is the one beside you.
+      final ar = a.rssi;
+      final br = b.rssi;
+      if (ar != br) {
+        if (ar == null) return 1;
+        if (br == null) return -1;
+        return br.compareTo(ar);
+      }
       return a.displayName.compareTo(b.displayName);
     });
   }
@@ -248,13 +299,29 @@ class ConnectFlowState extends State<ConnectFlow> {
   // Not awaited: letting go of a search is the radio's business, and the screen
   // does not wait for it.
   void _stopScan() {
-    final scan = _scan;
-    _scan = null;
-    unawaited(scan?.cancel());
+    final scans = List.of(_scans);
+    _scans.clear();
+    for (final scan in scans) {
+      unawaited(scan.cancel());
+    }
   }
 
-  AdapterConfig _configOf(FoundAdapter adapter) =>
-      AdapterConfig(kind: _kind!, address: adapter.address, name: adapter.name);
+  AdapterConfig _configOf(FoundAdapter adapter) => AdapterConfig(
+    kind: adapter.kind == RadioKind.ble
+        ? AdapterKind.ble
+        : AdapterKind.bluetoothClassic,
+    address: adapter.address,
+    name: adapter.name,
+  );
+
+  /// Another adapter that may be this one on its other radio: one that looks like an
+  /// adapter, on the radio that [adapter] is not on.
+  FoundAdapter? _otherRadio(FoundAdapter adapter) {
+    for (final a in _found) {
+      if (a.kind != adapter.kind && a.looksLikeAdapter) return a;
+    }
+    return null;
+  }
 
   Future<void> _pick(FoundAdapter adapter) async {
     if (_pairing || _checking) return;
@@ -283,36 +350,36 @@ class ConnectFlowState extends State<ConnectFlow> {
       if (!mounted) return;
       setState(() => _pairing = false);
     }
-    if (classic) {
-      // A pairing can be accepted and still not work. Find out here, with the
-      // adapter in reach, not on the first drive.
-      setState(() {
-        _failed = null;
-        _checking = true;
-        _note = 'Checking the connection to ${adapter.displayName}…';
-      });
-      final config = _configOf(adapter);
-      var worked = false;
-      try {
-        worked = await widget.checker.reachable(config);
-      } on Object {
-        worked = false;
-      }
-      if (!mounted) return;
-      if (!worked) {
-        setState(() {
-          _checking = false;
-          _failed = adapter;
-          _note =
-              'Could not connect to ${adapter.displayName}. Is the ignition on? '
-              'If the PIN was wrong when it was paired, forget the pairing and '
-              'pair again.';
-        });
-        unawaited(_startScan());
-        return;
-      }
-      setState(() => _checking = false);
+    // A pairing can be accepted and still not work, and a Low Energy adapter may
+    // not offer the serial service the app needs. Find out here, with the adapter in
+    // reach, not on the first drive.
+    setState(() {
+      _failed = null;
+      _checking = true;
+      _note = 'Checking the connection to ${adapter.displayName}…';
+    });
+    final config = _configOf(adapter);
+    var worked = false;
+    try {
+      worked = await widget.checker.reachable(config);
+    } on Object {
+      worked = false;
     }
+    if (!mounted) return;
+    if (!worked) {
+      final other = _otherRadio(adapter);
+      setState(() {
+        _checking = false;
+        _failed = adapter;
+        _note =
+            'Could not connect to ${adapter.displayName}. Is the ignition on? '
+            '${classic ? 'If the PIN was wrong when it was paired, forget the pairing and pair again. ' : ''}'
+            '${other == null ? '' : '${other.displayName} is also nearby: it may be the same adapter on its other radio, and is worth trying.'}';
+      });
+      unawaited(_startScan());
+      return;
+    }
+    setState(() => _checking = false);
     _chosen = _configOf(adapter);
     _go(ConnectStep.car);
   }
@@ -585,15 +652,9 @@ class ConnectFlowState extends State<ConnectFlow> {
     children: [
       TapeListRow(
         label: 'Bluetooth',
-        value: 'Most cheap adapters',
+        value: 'Most adapters',
         icon: TapeIcon.bluetooth,
         onTap: () => _chooseKind(AdapterKind.bluetoothClassic),
-      ),
-      TapeListRow(
-        label: 'Bluetooth LE',
-        value: 'Newer adapters',
-        icon: TapeIcon.bluetooth,
-        onTap: () => _chooseKind(AdapterKind.ble),
       ),
       TapeListRow(
         label: 'WiFi',
@@ -619,9 +680,7 @@ class ConnectFlowState extends State<ConnectFlow> {
       return message('Looking at Bluetooth…');
     }
     if (!status.supported) {
-      return message(
-        'This phone has no ${_kind == AdapterKind.ble ? 'Bluetooth LE' : 'Bluetooth'}. A WiFi adapter would work.',
-      );
+      return message('This phone has no Bluetooth. A WiFi adapter would work.');
     }
     if (!status.permitted) {
       return message(
@@ -640,7 +699,7 @@ class ConnectFlowState extends State<ConnectFlow> {
       children: [
         Row(
           children: [
-            TapeLabel(_scan == null ? 'Adapters' : 'Adapters nearby', size: 11),
+            TapeLabel(_scanning ? 'Adapters nearby' : 'Adapters', size: 11),
             const Spacer(),
             TapeButton(
               label: 'Search again',
@@ -665,7 +724,7 @@ class ConnectFlowState extends State<ConnectFlow> {
                     for (final a in _found)
                       TapeListRow(
                         label: a.displayName,
-                        value: a.paired ? 'Paired' : a.address,
+                        value: _describe(a),
                         selected: a.looksLikeAdapter,
                         onTap: _pairing || _checking ? null : () => _pick(a),
                       ),
@@ -675,15 +734,35 @@ class ConnectFlowState extends State<ConnectFlow> {
         if (_failed != null)
           Padding(
             padding: const EdgeInsets.only(bottom: TapeSpace.s1),
-            child: Row(
+            child: Wrap(
+              spacing: TapeSpace.s2,
+              runSpacing: TapeSpace.s1,
               children: [
-                TapeButton(
-                  label: 'Forget and pair again',
-                  compact: true,
-                  primary: true,
-                  onPressed: _pairing || _checking ? null : _forgetAndPair,
-                ),
-                const SizedBox(width: TapeSpace.s2),
+                if (_failed!.kind == RadioKind.bluetoothClassic)
+                  TapeButton(
+                    label: 'Forget and pair again',
+                    compact: true,
+                    primary: _otherRadio(_failed!) == null,
+                    onPressed: _pairing || _checking ? null : _forgetAndPair,
+                  )
+                else
+                  TapeButton(
+                    label: 'Try again',
+                    compact: true,
+                    primary: _otherRadio(_failed!) == null,
+                    onPressed: _pairing || _checking
+                        ? null
+                        : () => _pick(_failed!),
+                  ),
+                if (_otherRadio(_failed!) case final other?)
+                  TapeButton(
+                    label: 'Try ${other.displayName}',
+                    compact: true,
+                    primary: true,
+                    onPressed: _pairing || _checking
+                        ? null
+                        : () => _pick(other),
+                  ),
                 TapeButton(
                   label: 'Use anyway',
                   compact: true,
@@ -701,6 +780,21 @@ class ConnectFlowState extends State<ConnectFlow> {
           ),
       ],
     );
+  }
+
+  /// A line under an adapter's name: its radio, whether it is paired or its
+  /// address, and how close it is.
+  static String _describe(FoundAdapter a) {
+    final radio = a.kind == RadioKind.ble ? 'Low Energy' : 'Classic';
+    final rssi = a.rssi;
+    final signal = rssi == null
+        ? ''
+        : rssi >= -60
+        ? '  ·  Close'
+        : rssi >= -75
+        ? '  ·  Near'
+        : '  ·  Far';
+    return '$radio  ·  ${a.paired ? 'Paired' : a.address}$signal';
   }
 
   Widget _wifiEntry(TapePalette palette) {

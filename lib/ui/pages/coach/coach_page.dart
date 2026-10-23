@@ -27,7 +27,7 @@ import '../review/review_page.dart' show BracketFramePainter, ReviewPageState;
 /// steady driving yet the curve is drawn as a ghost, and the page says what fills
 /// it in.
 ///
-/// Everything is from real trips: demo trips never count (CLAUDE.md 7.6, 8.9).
+/// Everything is from real trips (CLAUDE.md 8.9).
 /// Parked only, and the tips show nothing while the car moves.
 class CoachPage extends StatefulWidget {
   const CoachPage({
@@ -89,7 +89,7 @@ class CoachPageState extends State<CoachPage> {
     setState(() {
       _curve = curve;
       _weeks = TripStatistics.weekly(
-        widget.library.realTrips,
+        widget.library.trips.value,
         widget.clock.now(),
       );
       _loaded = true;
@@ -122,7 +122,7 @@ class CoachPageState extends State<CoachPage> {
     final range = _curve.range;
     final thisWeek = _weeks.isEmpty ? null : _weeks.last;
     final lastWeek = _weeks.length < 2 ? null : _weeks[_weeks.length - 2];
-    final recent = [for (final t in widget.library.realTrips.take(3)) t];
+    final recent = [for (final t in widget.library.trips.value.take(3)) t];
 
     return SizedBox(
       width: widget.width,

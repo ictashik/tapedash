@@ -5,7 +5,6 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/app/app_services.dart';
-import 'package:tapedash/app/drive_shell.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/sound/engine_profile.dart';
 import 'package:tapedash/sound/pcm_sink.dart';
@@ -14,6 +13,7 @@ import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
 
 import '../design/support/harness.dart';
+import '../support/sim_shell.dart';
 
 class _Voice implements VoiceHost {
   bool running = false;
@@ -79,7 +79,7 @@ void main() {
       tapeHarness(
         kit: kit,
         motion: motion,
-        child: DriveShell(
+        child: SimDriveShell(
           clock: clock,
           scheduler: clock,
           scenario: 'city_stop_go',
@@ -140,7 +140,7 @@ void main() {
       tapeHarness(
         kit: kit,
         motion: motion,
-        child: DriveShell(
+        child: SimDriveShell(
           clock: clock,
           scheduler: clock,
           app: app,

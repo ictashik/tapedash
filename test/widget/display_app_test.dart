@@ -3,11 +3,11 @@
 // drops to Lite at 30 fps.
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tapedash/app/app.dart';
 import 'package:tapedash/app/app_services.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/platform/device_features.dart';
 import 'package:tapedash/platform/fake_device_features.dart';
+import 'package:tapedash/sim/scenarios.dart';
 import 'package:tapedash/ui/design/fidelity/fidelity_tier.dart';
 import 'package:tapedash/ui/design/motion/motion_scope.dart';
 import 'package:tapedash/ui/design/render/tape_fonts.dart';
@@ -15,6 +15,8 @@ import 'package:tapedash/ui/design/theme/mode_controller.dart' show ModeSetting;
 import 'package:tapedash/ui/design/theme/palette.dart' show TapeMode;
 import 'package:tapedash/ui/design/theme/tape_theme.dart';
 import 'package:tapedash/ui/pages/drive/drive_page.dart';
+
+import '../support/sim_shell.dart';
 
 Future<void> main() async {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -36,16 +38,13 @@ Future<void> main() async {
     tester.view.physicalSize = const Size(1440, 720);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      TapeDashApp(
-        clock: clock,
-        scheduler: clock,
-        onboarding: false,
-        services: app,
-        device: device,
-        scenario: 'cold_start_idle',
-      ),
+    final rig = await SimRig.create(
+      clock,
+      scenario: DriveScenarios.coldStartIdle,
+      services: app,
     );
+    addTearDown(rig.dispose);
+    await tester.pumpWidget(rig.widget(device: device));
   }
 
   Future<void> run(WidgetTester tester, int ms) async {

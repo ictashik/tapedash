@@ -6,9 +6,9 @@ abstract final class TapeStatusStrip {
   /// The clock's digit size (secondary, not a hero numeral).
   static const double clockSize = 22;
 
-  /// The width the right flank reserves: the clock, the phone-hot column and the
-  /// DEMO badge (at their widest) right-aligned inside it, so the flank sits
-  /// against the margin whatever it holds.
+  /// The width the right flank reserves: the clock and the phone-hot column (at
+  /// their widest) right-aligned inside it, so the flank sits against the margin
+  /// whatever it holds.
   static const double rightReserve = 240;
 
   /// The Parked-only caption under a glyph.
@@ -31,10 +31,4 @@ abstract final class TapeStatusStrip {
   /// The pulse's alpha range, a share of the glyph's normal (lit) alpha.
   static const double searchPulseAlphaMin = 0.35;
   static const double searchPulseAlphaMax = 1.0;
-
-  /// The DEMO badge's chamfer and inset (a small chamfered outline, DESIGN.md
-  /// 6.9), matching the chamfer family used by other small controls.
-  static const double badgeChamfer = 4;
-  static const double badgePaddingH = 8;
-  static const double badgePaddingV = 3;
 }

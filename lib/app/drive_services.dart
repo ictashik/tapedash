@@ -16,7 +16,7 @@ import '../vehicle/vehicle_state.dart';
 import 'app_services.dart';
 
 /// Everything that turns a car's readings into a trip, its fuel and its money
-/// (CLAUDE.md 6), for one source of readings: a demo drive now, a real adapter's
+/// (CLAUDE.md 6), for one source of readings: a real adapter's
 /// session later.
 ///
 /// The chain is the one the end-to-end tests run: [VehicleState] to the fuel
@@ -90,7 +90,7 @@ class DriveServices {
   final LocationSource? location;
 
   /// Where the app writes what it is making of the car, for a recording of the
-  /// drive to carry (`LiveDrive.note`). Null for a demo.
+  /// drive to carry (`LiveDrive.note`). Null for a simulated drive.
   final void Function(String)? note;
 
   late final FuelEstimator estimator;

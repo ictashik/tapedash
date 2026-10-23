@@ -32,7 +32,7 @@ adb install -r build/app/outputs/flutter-apk/app-arm64-v8a-release.apk    # or a
 
 ## 2. Before the car: check the phone at your desk
 
-**a. The demo.** First launch: the cold open, then TRY A DEMO DRIVE. Swipe up and down for the five layouts; swipe left and right for the pages while it stands (the demo idles at signals, and the pages only open when parked). Open Garage, Diagnostics and Pit Stop from the dock. Double-tap for the HUD. Nothing should be blank, jittery or off the screen. Write down anything that is.
+**a. GPS only.** First launch: the cold open, then GPS SPEED ONLY (there is no demo mode any more; the simulator is only reached over WiFI in step b). Allow the location when it asks. Outside, the speed should appear within a minute and follow the car or your walking pace; DISTANCE, MOVING, AVERAGE, FASTEST and HEADING fill in under it. Stood still for five seconds, the dock rises with GARAGE, HUD and RESET TRIP. Double-tap for the HUD (the speed alone). Nothing should be blank, jittery or off the screen. Write down anything that is.
 
 **b. The WiFi path against the simulator, over USB.** This tests the production WiFi code on the phone with no car at all. On the Mac:
 
@@ -43,7 +43,7 @@ adb reverse tcp:35000 tcp:35000
 
 In the app: **CONNECT MY CAR** (or Garage, then Adapter) -> **WiFi** -> address `127.0.0.1`, port `35000` -> **Test** (it should say "The adapter answered.") -> Next, and through the car, price and layout. `127.0.0.1` is allowed by the network guard; a public address is refused, so try `8.8.8.8` once and check that it says so. The drive screen should connect, and the values should follow the simulated car. Check Diagnostics: the adapter says `ELM327 v1.5`, the protocol is `ISO 15765-4 CAN, 11-bit, 500 kbaud`, the PID matrix is lit, the poll rate is a few a second. Stop the server (Ctrl-C) and see **Reconnecting** and the values going stale; start it again and see them come back.
 
-Then put the demo back: Garage -> Adapter -> **Drive from this adapter** off.
+Then go back to what you were using: Garage -> **Speed from** -> GPS only, or forget the simulator adapter (Garage -> Adapter -> Forget this adapter) and connect your own.
 
 ## 3. In the car
 
@@ -52,8 +52,8 @@ Do each adapter type in this order (skip the ones you do not have). For each:
 ### Pair and connect
 
 - **WiFi:** plug the adapter in, turn the ignition on, join its WiFi network in Android's settings (often `WiFi_OBDII` or `V-LINK`; no internet, and Android may offer to leave it: keep it). In TapeDash: CONNECT MY CAR -> WiFi -> the address (most are `192.168.0.10`, port `35000`) -> **Test**. If nothing answers, the address is wrong: check the adapter's manual, and write it down.
-- **Bluetooth:** plug the adapter in, ignition on. CONNECT MY CAR -> Bluetooth. Allow the permission when asked. An adapter Android has already paired is listed first; otherwise tap it in the search list and enter the PIN if asked (usually `1234` or `0000`). Write down what the adapter is called and whether pairing worked first time.
-- **Bluetooth LE:** the same, with Bluetooth LE. There is no pairing. **If it connects and then says the adapter has "no serial service TapeDash knows",** that is the most useful thing you can tell me: run a BLE scanner app once (nRF Connect is free) and write down the adapter's services and characteristics.
+- **Bluetooth:** plug the adapter in, ignition on. CONNECT MY CAR -> Bluetooth. Allow the permission when asked. The search runs **both** kinds of Bluetooth at once, and each adapter says which it is on (Classic or Low Energy) and how close it is. **One adapter often shows twice**, as `OBDII` (Classic) and `OBDBLE` (Low Energy): they are the same adapter on its two radios, and the nearer one is yours (an adapter in the next car shows as Far). Classic needs a pairing (the PIN is usually `1234` or `0000`); Low Energy has none. Whichever you tap is **tried before it is taken**; if it will not open, the screen says so and offers the other radio (**Try OBDBLE**) and, for Classic, **Forget and pair again**. Write down which of the two worked, how long it took, and whether it worked first time.
+- **If it will not connect, or drops:** Garage -> Adapter -> **Connection log** has, newest first, what the app did (each attempt, the status code the radio gave, which kind of socket worked or failed, the services the adapter listed). **A screenshot of it is the most useful thing you can send.** The debug build also writes the same lines into the session recording as `@ link ...`. If it says the adapter has "no serial service TapeDash knows", the services line next to it is what is needed.
 
 Then the car (fuel, engine size, tank), the price (or skip), and the layout, and START DRIVING.
 

@@ -67,6 +67,15 @@ class TransportException implements Exception {
       : 'TransportException(${failure.name}): $message';
 }
 
+/// A transport that can say what is going on underneath it: which kind of socket
+/// connected, a status code that came with a failure, the services an adapter
+/// listed. It is for the connection log, which is how a link that will not come up
+/// (and says nothing else) is understood afterwards. Plain text, one line a piece.
+abstract interface class LinkDiagnostics {
+  /// A broadcast stream of lines.
+  Stream<String> get diagnostics;
+}
+
 /// The link to an ELM327 adapter (CLAUDE.md 6): text goes out, text comes back,
 /// and the state of the link is reported. Everything above it deals in ELM327
 /// strings; whether they travel by Bluetooth Classic, BLE, WiFi, from the

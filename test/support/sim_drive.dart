@@ -1,28 +1,29 @@
 import 'dart:async';
 
-import '../core/clock.dart';
-import '../core/observable.dart';
-import '../core/scheduler.dart';
-import '../obd/obd_session.dart';
-import '../obd/transport/sim_transport.dart';
-import '../sim/profiles.dart';
-import '../sim/scenarios.dart';
-import '../sim/simulated_car.dart';
-import '../sim/vehicle_profile.dart';
-import '../ui/dev/demo_control.dart';
-import '../vehicle/vehicle_state.dart';
-import 'drive_feed.dart';
+import 'package:tapedash/app/drive_feed.dart';
+import 'package:tapedash/core/clock.dart';
+import 'package:tapedash/core/observable.dart';
+import 'package:tapedash/core/scheduler.dart';
+import 'package:tapedash/obd/obd_session.dart';
+import 'package:tapedash/obd/transport/sim_transport.dart';
+import 'package:tapedash/sim/profiles.dart';
+import 'package:tapedash/sim/scenarios.dart';
+import 'package:tapedash/sim/simulated_car.dart';
+import 'package:tapedash/sim/vehicle_profile.dart';
+import 'package:tapedash/vehicle/vehicle_state.dart';
 
-/// Demo Mode's data (CLAUDE.md 7.6): a simulated car on a simulated adapter, read
-/// by the same OBD stack a real car is. The vehicle it fills is the one the whole UI
-/// reads, so what is drawn in demo is what would be drawn with an adapter plugged
-/// in.
+/// A simulated car on a simulated adapter, read by the same OBD stack a real car
+/// is, for the widget tests and the Design Lab's captures (CLAUDE.md 7): the
+/// simulator drives the whole app without hardware. It is a test tool and is not
+/// in the app (Demo Mode, which used it, was removed on 2026-10-23: see
+/// docs/DECISIONS.md). The vehicle it fills is the one the whole UI reads, so what
+/// is drawn here is what would be drawn with an adapter plugged in.
 ///
 /// The drive loops: when the scenario ends it starts again. Changing the scenario or
 /// the car rebuilds the simulator and the session and keeps the [vehicle], so
 /// whatever is reading it carries on.
-class DemoDrive implements DemoControl, DriveFeed {
-  DemoDrive({
+class SimDrive implements DriveFeed {
+  SimDrive({
     required this.clock,
     required this.scheduler,
     String scenario = 'city_stop_go',
@@ -60,22 +61,14 @@ class DemoDrive implements DemoControl, DriveFeed {
   void Function()? _statusListener;
   void Function()? _rateListener;
 
-  @override
-  bool get isDemo => true;
-
-  @override
   List<String> get scenarios => [for (final s in DriveScenarios.all) s.name];
 
-  @override
   List<String> get profiles => [for (final p in VehicleProfiles.all) p.name];
 
-  @override
   Observable<String> get scenario => _scenario;
 
-  @override
   Observable<String> get profile => _profile;
 
-  @override
   Observable<bool> get running => _running;
 
   @override
@@ -106,7 +99,7 @@ class DemoDrive implements DemoControl, DriveFeed {
   Observable<int> get loops => _loopValue;
 
   /// The simulated car, as something to listen to: it is replaced whenever the
-  /// drive starts over, and the demo's GPS follows the new one.
+  /// drive starts over, and the simulated GPS follows the new one.
   Observable<SimulatedCar?> get cars => _carValue;
 
   /// The car being driven, for the simulator's own ground truth.
@@ -114,7 +107,7 @@ class DemoDrive implements DemoControl, DriveFeed {
 
   String _describe() {
     final profile = _profile.value.isEmpty ? 'default car' : _profile.value;
-    return 'DEMO  ${_scenario.value}  ·  $profile';
+    return 'SIM  ${_scenario.value}  ·  $profile';
   }
 
   @override
@@ -124,21 +117,18 @@ class DemoDrive implements DemoControl, DriveFeed {
     _running.value = true;
   }
 
-  @override
   void stop() {
     _teardown();
     _running.value = false;
     _connection.value = ConnectionStatus.stopped;
   }
 
-  @override
   void restart() {
     _teardown();
     _build();
     _running.value = true;
   }
 
-  @override
   void select({String? scenario, String? profile}) {
     if (scenario != null) _scenario.value = scenario;
     if (profile != null) _profile.value = profile;

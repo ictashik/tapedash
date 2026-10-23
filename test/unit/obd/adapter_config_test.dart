@@ -69,56 +69,93 @@ void main() {
       adapters = AdapterStore(store);
     });
 
-    test('a fresh one has no adapter and uses the demo', () async {
+    test('a fresh one has no adapter and no source: the app asks', () async {
       await adapters.load();
       expect(adapters.adapter.value, isNull);
-      expect(adapters.useAdapter.value, isFalse);
+      expect(adapters.source.value, isNull);
       expect(adapters.compatibilityMode.value, isFalse);
       expect(adapters.recordSessions.value, isFalse);
     });
 
-    test('choosing an adapter remembers it, and switches to it', () async {
+    test('choosing an adapter remembers it, and makes it the source', () async {
       await adapters.choose(_bt);
       expect(adapters.adapter.value, _bt);
-      expect(adapters.useAdapter.value, isTrue);
+      expect(adapters.source.value, DriveSource.obd);
 
       final again = AdapterStore(store);
       await again.load();
       expect(again.adapter.value, _bt);
-      expect(again.useAdapter.value, isTrue);
+      expect(again.source.value, DriveSource.obd);
     });
 
-    test(
-      'forgetting goes back to the demo, and forgets its protocol',
-      () async {
-        await adapters.choose(_bt);
-        final memory = await adapters.memoryFor(_bt);
-        memory.protocol = '6';
-        await Future<void>.delayed(Duration.zero);
+    test('forgetting the adapter leaves no source, not another one', () async {
+      await adapters.choose(_bt);
+      final memory = await adapters.memoryFor(_bt);
+      memory.protocol = '6';
+      await Future<void>.delayed(Duration.zero);
 
-        await adapters.forget();
-        expect(adapters.adapter.value, isNull);
-        expect(adapters.useAdapter.value, isFalse);
-        expect((await adapters.memoryFor(_bt)).protocol, isNull);
-        final again = AdapterStore(store);
-        await again.load();
-        expect(again.adapter.value, isNull);
-        expect(again.useAdapter.value, isFalse);
-      },
-    );
+      await adapters.forget();
+      expect(adapters.adapter.value, isNull);
+      expect(adapters.source.value, isNull);
+      expect((await adapters.memoryFor(_bt)).protocol, isNull);
+      final again = AdapterStore(store);
+      await again.load();
+      expect(again.adapter.value, isNull);
+      expect(again.source.value, isNull);
+    });
 
-    test('the demo can be used without forgetting the adapter', () async {
+    test('forgetting the adapter leaves the GPS source as it was', () async {
+      await adapters.choose(_bt);
+      await adapters.setSource(DriveSource.gps);
+      await adapters.forget();
+      expect(adapters.source.value, DriveSource.gps);
+      final again = AdapterStore(store);
+      await again.load();
+      expect(again.source.value, DriveSource.gps);
+    });
+
+    test('the GPS can be the source without forgetting the adapter', () async {
       await adapters.choose(_wifi);
-      await adapters.setUseAdapter(false);
-      expect(adapters.useAdapter.value, isFalse);
+      await adapters.setSource(DriveSource.gps);
+      expect(adapters.source.value, DriveSource.gps);
       expect(adapters.adapter.value, _wifi);
-      await adapters.setUseAdapter(true);
-      expect(adapters.useAdapter.value, isTrue);
+      await adapters.setSource(DriveSource.obd);
+      expect(adapters.source.value, DriveSource.obd);
+
+      await adapters.setSource(DriveSource.gps);
+      final again = AdapterStore(store);
+      await again.load();
+      expect(again.source.value, DriveSource.gps);
+      expect(again.adapter.value, _wifi);
     });
 
-    test('with no adapter there is nothing to use', () async {
-      await adapters.setUseAdapter(true);
-      expect(adapters.useAdapter.value, isFalse);
+    test('the GPS can be the first and only choice', () async {
+      await adapters.setSource(DriveSource.gps);
+      expect(adapters.source.value, DriveSource.gps);
+      expect(adapters.adapter.value, isNull);
+    });
+
+    test('with no adapter the car cannot be the source', () async {
+      await adapters.setSource(DriveSource.obd);
+      expect(adapters.source.value, isNull);
+    });
+
+    test('builds from before the source was a setting: a chosen adapter is used, '
+        'even if the old demo switch had been left on', () async {
+      await store.setString(
+        'adapter_config',
+        '{"kind":"bluetoothClassic","address":"00:1D:A5:00:00:01","name":"OBDII"}',
+      );
+      await store.setBool('adapter_use_live', false);
+      await adapters.load();
+      expect(adapters.adapter.value, _bt);
+      expect(adapters.source.value, DriveSource.obd);
+    });
+
+    test('a stored OBD source with no adapter is no source', () async {
+      await store.setString('drive_source', 'obd');
+      await adapters.load();
+      expect(adapters.source.value, isNull);
     });
 
     test('the protocol is remembered per adapter', () async {

@@ -748,16 +748,15 @@ void main() {
       expect(find.textContaining('No trips'), findsOneWidget);
     });
 
-    testWidgets('a demo trip is listed with its badge but not counted', (
-      tester,
-    ) async {
+    testWidgets('a simulated trip (left by an old build) is not listed, '
+        'and carries no badge', (tester) async {
       await tester.runAsync(() async {
         await addTrip(repo, demo: true);
         await library.refresh();
       });
       await show(tester, history);
-      expect(find.byType(TripRow), findsOneWidget);
-      expect(find.text('DEMO'), findsOneWidget);
+      expect(find.byType(TripRow), findsNothing);
+      expect(find.text('DEMO'), findsNothing);
       // The month's header counts only real trips.
       expect(find.text('0.0 km'), findsOneWidget);
     });

@@ -22,7 +22,7 @@ class RecordingDemand {
     _update();
   }
 
-  /// The session in use, which changes when a demo drive starts over (or an
+  /// The session in use, which changes when a simulated drive starts over (or an
   /// adapter is replaced): the claim is made again on the new one.
   final Observable<ObdSession?> sessions;
   final TripRecorder recorder;

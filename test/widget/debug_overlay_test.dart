@@ -3,13 +3,14 @@
 // Design Lab, and its Close puts it away. Never shown by itself.
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tapedash/app/app.dart';
-import 'package:tapedash/app/app_services.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/platform/fake_device_features.dart';
+import 'package:tapedash/sim/scenarios.dart';
 import 'package:tapedash/ui/design/render/tape_fonts.dart';
 import 'package:tapedash/ui/dev/debug_overlay.dart';
 import 'package:tapedash/ui/lab/design_lab.dart';
+
+import '../support/sim_shell.dart';
 
 Future<void> main() async {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -29,16 +30,12 @@ Future<void> main() async {
     tester.view.physicalSize = const Size(1440, 720);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      TapeDashApp(
-        clock: clock,
-        scheduler: clock,
-        onboarding: false,
-        services: await AppServices.memory(),
-        device: device,
-        scenario: 'cold_start_idle',
-      ),
+    final rig = await SimRig.create(
+      clock,
+      scenario: DriveScenarios.coldStartIdle,
     );
+    addTearDown(rig.dispose);
+    await tester.pumpWidget(rig.widget(device: device));
     for (var i = 0; i < 20; i++) {
       clock.advance(const Duration(milliseconds: 100));
       await tester.pump(const Duration(milliseconds: 100));
@@ -74,7 +71,7 @@ Future<void> main() async {
     }
     expect(find.textContaining('37.5'), findsOneWidget);
     expect(find.textContaining('BALANCED'), findsOneWidget);
-    expect(find.textContaining('DEMO'), findsWidgets);
+    expect(find.textContaining('OBDII'), findsWidgets);
   });
 
   testWidgets('Close puts it away', (tester) async {

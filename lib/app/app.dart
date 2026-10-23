@@ -5,11 +5,14 @@ import 'package:flutter/widgets.dart';
 import '../core/clock.dart';
 import '../core/observable.dart';
 import '../core/scheduler.dart';
+import '../location/gps_drive.dart';
+import '../location/location_source.dart';
 import '../obd/adapter_config.dart';
 import '../obd/transport/session_sink.dart';
 import '../platform/device_features.dart';
 import '../platform/fake_device_features.dart';
 import '../platform/file_session_sink.dart';
+import '../platform/native_location_source.dart';
 import '../ui/design/components/backdrop.dart';
 import '../ui/design/components/controls/tape_button.dart';
 import '../ui/design/fidelity/tier_detector.dart';
@@ -31,9 +34,9 @@ import '../ui/pages/survey/survey_page.dart';
 import 'app_info.dart';
 import 'app_services.dart';
 import 'app_settings.dart';
-import 'demo_drive.dart';
 import 'display_controller.dart';
 import 'drive_shell.dart';
+import 'gps_shell.dart';
 import 'live_drive.dart';
 import 'radio_transport_factory.dart';
 import 'survey_drive.dart';
@@ -41,10 +44,13 @@ import 'transport_adapter_checker.dart';
 
 /// Root widget.
 ///
-/// The app opens on the cold open and the choice (DESIGN.md 7.11); the demo path
-/// goes to the Strip, driven by Demo Mode (the connect path needs phase 6), with
-/// one way into the design system: a small dev button that opens the Design Lab (DESIGN.md 13.2), shown
-/// in debug and profile builds, and in a release build made with
+/// The app opens on the cold open and the choice (DESIGN.md 7.11): connect the
+/// car's adapter, or use the phone's GPS alone for the speed. Whichever is chosen
+/// is the source from then on and is remembered; **nothing else is ever
+/// substituted for it** (an adapter that will not connect stays "looking for your
+/// adapter", it does not turn into another source). There is one way into the
+/// design system: a small dev button that opens the Design Lab (DESIGN.md 13.2),
+/// shown in debug and profile builds, and in a release build made with
 /// `--dart-define=TAPEDASH_DEV=true`. It uses [WidgetsApp] rather than
 /// `MaterialApp`, since Material widgets are banned (DESIGN.md 13.1).
 class TapeDashApp extends StatelessWidget {
@@ -52,14 +58,17 @@ class TapeDashApp extends StatelessWidget {
     super.key,
     this.clock = const SystemClock(),
     this.scheduler = const SystemScheduler(),
-    this.onboarding = true,
     this.skipColdOpen = DevMode.skipColdOpen,
     this.services,
-    this.scenario,
     this.transports,
     this.sessionSink,
     this.device,
+    this.location,
   });
+
+  /// The phone's GPS, for a drive on the GPS alone and for a trip's route. Null
+  /// uses the phone's own; a test gives a simulated one.
+  final LocationSource? location;
 
   /// The phone's own features (light sensor, brightness, battery). Null is a phone
   /// with none, as in a test: the display then stays as it is.
@@ -72,16 +81,8 @@ class TapeDashApp extends StatelessWidget {
   /// Where recorded sessions go. Null writes files on the phone.
   final SessionSink? sessionSink;
 
-  /// The demo drive to run, if not the one chosen in Garage (tests).
-  final String? scenario;
-
   /// The app's settings and trip log. Null uses empty in-memory ones (tests).
   final AppServices? services;
-
-  /// Whether the app opens on the cold open and the choice (DESIGN.md 7.11), or
-  /// straight on the drive (tests, and a later launch once the choice is
-  /// remembered -- which needs the settings store, the Garage's piece).
-  final bool onboarding;
 
   /// Goes straight to the choice, past the cold open.
   final bool skipColdOpen;
@@ -98,13 +99,12 @@ class TapeDashApp extends StatelessWidget {
       builder: (context, child) => _Shell(
         clock: clock,
         scheduler: scheduler,
-        onboarding: onboarding,
         skipColdOpen: skipColdOpen,
         services: services,
-        scenario: scenario,
         transports: transports,
         sessionSink: sessionSink,
         device: device,
+        location: location,
       ),
     );
   }
@@ -114,22 +114,20 @@ class _Shell extends StatefulWidget {
   const _Shell({
     required this.clock,
     required this.scheduler,
-    required this.onboarding,
     required this.skipColdOpen,
     required this.services,
-    required this.scenario,
     required this.transports,
     required this.sessionSink,
     required this.device,
+    required this.location,
   });
 
+  final LocationSource? location;
   final DeviceFeatures? device;
   final RadioTransportFactory? transports;
   final SessionSink? sessionSink;
-  final String? scenario;
   final Clock clock;
   final Scheduler scheduler;
-  final bool onboarding;
   final bool skipColdOpen;
   final AppServices? services;
 
@@ -151,9 +149,6 @@ class _ShellState extends State<_Shell> {
     ObservableListenable(_display.mode),
     ObservableListenable(_display.tier),
   ]);
-
-  // The choice at first launch is asked once: a later launch goes straight in.
-  late bool _onboarded = !widget.onboarding || _settings.onboarded.value;
 
   /// The light, the brightness, the heat and the fidelity tier (DESIGN.md 4.4, 9.2).
   late final DisplayController _display = DisplayController(
@@ -225,13 +220,11 @@ class _ShellState extends State<_Shell> {
       FileSessionSink(widget.device ?? FakeDeviceFeatures());
   late final AppServices _services = widget.services ?? AppServices.inMemory();
 
-  /// The demo drive, started at launch so that it is already connected when
-  /// the user chooses it (DESIGN.md 7.11: the ignition within a second). Not
-  /// built at all for a launch that goes straight to the user's own adapter.
-  DemoDrive? _demo;
-
-  /// The drive from the user's adapter, when that is what they use.
+  /// The drive from the user's adapter, when that is the source.
   LiveDrive? _live;
+
+  /// The drive on the phone's GPS alone, when that is the source.
+  GpsDrive? _gps;
   int _syncs = 0;
 
   /// Whether the connect flow is on screen.
@@ -251,7 +244,7 @@ class _ShellState extends State<_Shell> {
   void initState() {
     super.initState();
     _adapters.adapter.addListener(_syncDrive);
-    _adapters.useAdapter.addListener(_syncDrive);
+    _adapters.source.addListener(_syncDrive);
     _adapters.compatibilityMode.addListener(_syncDrive);
     _adapters.recordSessions.addListener(_syncDrive);
     _syncDrive();
@@ -259,32 +252,42 @@ class _ShellState extends State<_Shell> {
     if (DevMode.launchScreen == 'lab') _labOpen = true;
   }
 
-  /// Makes the drive the settings ask for: the adapter's when there is one and it
-  /// is in use, the demo otherwise. Changes made in Garage (another adapter,
-  /// compatibility mode, recording) reach the drive here; they only happen while
-  /// parked.
+  /// Makes the drive the settings ask for: the adapter's, the phone's GPS alone,
+  /// or none while the source has not been chosen (the screen then asks). Changes
+  /// made in Garage (another adapter, the source, compatibility mode, recording)
+  /// reach the drive here; they only happen while parked. **Nothing is ever
+  /// substituted**: with the adapter chosen, a drive that cannot connect stays an
+  /// adapter drive, trying again.
   Future<void> _syncDrive() async {
     // A survey has the adapter; it gives the drive back when it ends. So does
     // the connect flow, which pairs and tries adapters of its own.
     if (_surveying || _connecting) return;
     final ticket = ++_syncs;
-    final config = _adapters.useAdapter.value ? _adapters.adapter.value : null;
-    if (config == null) {
+    final source = _adapters.source.value;
+    if (source == DriveSource.gps) {
       final old = _live;
       _live = null;
-      _demo ??= DemoDrive(
+      _gps ??= GpsDrive(
+        location: widget.location ?? NativeLocationSource(),
         clock: widget.clock,
         scheduler: widget.scheduler,
-        scenario: widget.scenario ?? _settings.demoScenario.value,
-        profile: _settings.demoProfile.value,
       );
-      _demo!.start();
       if (mounted) setState(() {});
       unawaited(old?.dispose());
       return;
     }
-    // Something is in use that is not the demo: let the demo stand down.
-    _demo?.stop();
+    final gps = _gps;
+    _gps = null;
+    final config = source == DriveSource.obd ? _adapters.adapter.value : null;
+    if (config == null) {
+      final old = _live;
+      _live = null;
+      if (mounted) setState(() {});
+      unawaited(old?.dispose());
+      unawaited(gps?.dispose());
+      return;
+    }
+    unawaited(gps?.dispose());
     final memory = await _adapters.memoryFor(config);
     if (!mounted || ticket != _syncs) return;
     final old = _live;
@@ -298,6 +301,7 @@ class _ShellState extends State<_Shell> {
       recordSessions: _adapters.recordSessions.value,
       sink: _sink,
       appVersion: appVersion,
+      diary: _services.linkDiary,
     );
     setState(() {});
     unawaited(old?.dispose());
@@ -306,10 +310,10 @@ class _ShellState extends State<_Shell> {
   @override
   void dispose() {
     _adapters.adapter.removeListener(_syncDrive);
-    _adapters.useAdapter.removeListener(_syncDrive);
+    _adapters.source.removeListener(_syncDrive);
     _adapters.compatibilityMode.removeListener(_syncDrive);
     _adapters.recordSessions.removeListener(_syncDrive);
-    _demo?.dispose();
+    unawaited(_gps?.dispose());
     unawaited(_live?.dispose());
     unawaited(_survey?.dispose());
     _phoneHot.dispose();
@@ -333,17 +337,17 @@ class _ShellState extends State<_Shell> {
   }
 
   void _closeConnect({required bool done}) {
-    setState(() {
-      _connecting = false;
-      if (done) _onboarded = true;
-    });
+    if (done) _settings.onboarded.value = true;
+    setState(() => _connecting = false);
     unawaited(_syncDrive());
   }
 
   /// Hands the adapter from the dashboard to a survey drive. The dashboard's link
   /// is closed first, since an adapter takes one connection at a time.
   Future<void> _openSurvey() async {
-    final config = _adapters.useAdapter.value ? _adapters.adapter.value : null;
+    final config = _adapters.source.value == DriveSource.obd
+        ? _adapters.adapter.value
+        : null;
     if (config == null || _surveying) return;
     _surveying = true;
     final old = _live;
@@ -407,42 +411,60 @@ class _ShellState extends State<_Shell> {
         ),
       );
     }
-    if (_onboarded) {
-      final live = _live;
-      final demo = _demo;
-      // Waiting for the adapter's drive to be made (a moment at launch).
-      if (live == null && demo == null) return const SizedBox.shrink();
-      return DriveShell(
-        // A different drive is a different shell: it starts fresh.
-        key: ValueKey(live ?? demo),
-        demo: live == null ? demo : null,
-        live: live,
-        app: _services,
-        clock: widget.clock,
-        scheduler: widget.scheduler,
-        onChangeAdapter: _openConnect,
-        onSurvey: live == null ? null : () => unawaited(_openSurvey()),
-        phoneHot: _phoneHot,
-        phoneTemperature: _display.temperature,
-        debugRows: _debugRows,
-        onOpenLab: () => setState(() => _labOpen = true),
-      );
+    switch (_adapters.source.value) {
+      case DriveSource.obd:
+        final live = _live;
+        // Waiting for the adapter's drive to be made (a moment at launch).
+        if (live == null) return const SizedBox.shrink();
+        return DriveShell(
+          // A different drive is a different shell: it starts fresh.
+          key: ValueKey(live),
+          feed: live,
+          app: _services,
+          clock: widget.clock,
+          scheduler: widget.scheduler,
+          location: widget.location,
+          onChangeAdapter: _openConnect,
+          onSurvey: () => unawaited(_openSurvey()),
+          phoneHot: _phoneHot,
+          phoneTemperature: _display.temperature,
+          debugRows: _debugRows,
+          onOpenLab: () => setState(() => _labOpen = true),
+        );
+      case DriveSource.gps:
+        final gps = _gps;
+        if (gps == null) return const SizedBox.shrink();
+        return GpsShell(
+          key: ValueKey(gps),
+          gps: gps,
+          app: _services,
+          clock: widget.clock,
+          scheduler: widget.scheduler,
+          onChangeAdapter: _openConnect,
+          phoneHot: _phoneHot,
+          phoneTemperature: _display.temperature,
+          debugRows: _debugRows,
+          onOpenLab: () => setState(() => _labOpen = true),
+        );
+      case null:
+        return LayoutBuilder(
+          builder: (context, box) => TapeBackdrop(
+            child: OnboardingScreen(
+              width: box.maxWidth,
+              height: box.maxHeight,
+              // A person who has seen the cold open once does not see it again
+              // when the app asks the question a second time.
+              skipColdOpen: widget.skipColdOpen || _settings.onboarded.value,
+              onBenchmark: _onBenchmark,
+              onGps: () {
+                _settings.onboarded.value = true;
+                unawaited(_adapters.setSource(DriveSource.gps));
+              },
+              onConnect: _openConnect,
+            ),
+          ),
+        );
     }
-    return LayoutBuilder(
-      builder: (context, box) => TapeBackdrop(
-        child: OnboardingScreen(
-          width: box.maxWidth,
-          height: box.maxHeight,
-          skipColdOpen: widget.skipColdOpen,
-          onBenchmark: _onBenchmark,
-          onDemo: () {
-            _settings.onboarded.value = true;
-            setState(() => _onboarded = true);
-          },
-          onConnect: _openConnect,
-        ),
-      ),
-    );
   }
 
   @override
@@ -475,7 +497,7 @@ class _ShellState extends State<_Shell> {
                           // connect flow's and Garage's buttons, and the debug overlay (a
                           // long-press) opens the Lab from there.
                           if (DevMode.buttonVisible &&
-                              !_onboarded &&
+                              _adapters.source.value == null &&
                               !_connecting)
                             Positioned(
                               right: TapeSpace.s4,

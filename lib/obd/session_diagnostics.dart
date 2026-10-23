@@ -8,7 +8,7 @@ import 'elm327/elm327_failure.dart';
 import 'obd_session.dart';
 
 /// [DiagnosticsSource] over whichever OBD session is current. A drive can start
-/// over with a new session (the demo loops, a real adapter reconnects with a fresh
+/// over with a new session (a simulated drive loops, a real adapter reconnects with a fresh
 /// one), and this follows it, so the page listens to one set of values throughout.
 class SessionDiagnostics implements DiagnosticsSource {
   SessionDiagnostics({

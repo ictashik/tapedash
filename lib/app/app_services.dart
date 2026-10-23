@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:sqflite/sqflite.dart';
 
@@ -13,6 +11,7 @@ import '../money/fill_up.dart';
 import '../money/fuel_ledger.dart';
 import '../money/money_settings.dart';
 import '../obd/adapter_config.dart';
+import '../obd/link_diary.dart';
 import '../platform/shared_prefs_store.dart';
 import '../trips/sqflite_database.dart';
 import '../trips/sqflite_fill_up_repository.dart';
@@ -24,7 +23,7 @@ import 'app_settings.dart';
 /// the calibration (CLAUDE.md 6), all on the phone and nowhere else.
 ///
 /// It is separate from a drive's own services, so the same money settings and
-/// trip log serve a demo drive and, later, a real one.
+/// trip log serve whichever drive is on.
 class AppServices {
   AppServices({
     required this.store,
@@ -57,7 +56,7 @@ class AppServices {
 
   final ObservableValue<VehicleSetup> _setup;
 
-  /// The look, the HUD, the coach and the demo: what the user sets in Garage
+  /// The look, the HUD, the coach and the engine sound: what the user sets in Garage
   /// (`AppSettings`), saved to [store] as it changes.
   late final AppSettings settings = AppSettings(store);
 
@@ -66,6 +65,9 @@ class AppServices {
     store: store,
     clock: clock,
   );
+
+  /// What the app has done to reach the adapter, for Garage's connection log.
+  late final LinkDiary linkDiary = LinkDiary(clock: clock);
 
   /// The adapter the user chose, and how it is used (`AdapterStore`).
   late final AdapterStore adapters = AdapterStore(
@@ -102,8 +104,8 @@ class AppServices {
     return fill;
   }
 
-  /// Deletes what the app has recorded (Garage → Data): every trip, demo ones
-  /// included, every fill-up and the calibration, and the fuel price. The car's
+  /// Deletes what the app has recorded (Garage → Data): every trip, the simulated ones
+  /// that older builds left behind included, every fill-up and the calibration, and the fuel price. The car's
   /// setup and the settings stay.
   Future<void> deleteAllData() async {
     for (final t in await trips.all(includeDemo: true)) {
@@ -179,35 +181,4 @@ class AppServices {
     await services.load();
     return services;
   }
-
-  /// The services for Demo Mode (CLAUDE.md 7.6): the trip log is shared (demo
-  /// trips are stored, flagged), but the price, the fill-ups and the calibration
-  /// are the demo's own, in memory, so nothing a demo does touches the real
-  /// numbers. The demo has an example price so the money screens have something
-  /// to show; the DEMO badge is always on.
-  ///
-  /// With [now], the demo's tank starts full as of then, so that the counted fuel
-  /// left (and the Tank insight) have something to show.
-  factory AppServices.demo(TripRepository trips, {DateTime? now}) {
-    final services = AppServices.inMemory(
-      price: demoPricePerLitre,
-      trips: trips,
-    );
-    if (now != null) {
-      final tank = services.setup.value.tankLitres;
-      // In memory, so this completes before anything can look.
-      unawaited(
-        services.ledger.recordFillUp(
-          at: now,
-          litres: tank,
-          amount: tank * demoPricePerLitre,
-          fullTank: true,
-        ),
-      );
-    }
-    return services;
-  }
-
-  /// The example price a demo drive uses, in rupees a litre.
-  static const double demoPricePerLitre = 102.5;
 }

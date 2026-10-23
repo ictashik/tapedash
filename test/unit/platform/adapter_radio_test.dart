@@ -132,6 +132,43 @@ void main() {
         },
       );
 
+      test('a found adapter carries how strong its signal was', () async {
+        final found = <FoundAdapter>[];
+        final sub = radio.scan().listen(found.add);
+        await settle();
+        sink!.success({
+          'type': 'found',
+          'name': 'OBDII',
+          'address': 'AA:01',
+          'rssi': -58,
+        });
+        sink!.success({'type': 'found', 'name': 'OBDII', 'address': 'AA:02'});
+        await settle();
+        expect(found.first.rssi, -58);
+        expect(found.last.rssi, isNull, reason: 'a remembered device has none');
+        await sub.cancel();
+      });
+
+      test(
+        'the radio\'s diagnostic lines reach the link, and nothing else',
+        () async {
+          final link = radio.link('AA:01');
+          final lines = <String>[];
+          link.diagnostics.listen(lines.add);
+          final text = StringBuffer();
+          link.incoming.listen(text.write);
+          await link.open();
+          sink!.success({'type': 'diag', 'text': 'ble: link status=133'});
+          sink!.success({'type': 'diag', 'text': 'ble: attempt 2 of 3'});
+          sink!.success({'type': 'diag'}); // no text
+          sink!.success({'type': 'data', 'text': 'OK'});
+          await settle();
+          expect(lines, ['ble: link status=133', 'ble: attempt 2 of 3']);
+          expect(text.toString(), 'OK', reason: 'a diagnostic is never data');
+          await link.close();
+        },
+      );
+
       test('a scan that cannot start says why, and ends', () async {
         reply = (call) {
           if (call.method == 'startScan') {

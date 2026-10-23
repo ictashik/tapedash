@@ -23,7 +23,7 @@ TapeDash is a free, open-source, strictly offline Flutter app. It reads your car
 - **Trips, fill-ups and fuel calibration.** Log a fill-up and the fuel estimate calibrates itself against the real litres. Numbers are labelled as estimates, with confidence shown.
 - **Fault codes.** Read, look up and (when stopped) clear stored and pending codes.
 - **Engine sound (optional).** A synthesised engine note that says only what the tach says. Off by default.
-- **Demo Mode.** A built-in simulated car, so you can try everything without a car or an adapter.
+- **GPS only.** No adapter? The speed, distance and time from the phone's GPS alone. (There is no demo mode: the app never shows simulated data as if it were your car.)
 
 ## Principles
 
@@ -61,7 +61,7 @@ flutter pub get
 tool/verify.sh                 # format, analyze, tests and the offline check
 ```
 
-**Try it without a car.** Run on a phone or emulator and choose **TRY A DEMO DRIVE** on the first screen:
+**Try it without a car.** Run on a phone or emulator and choose **GPS SPEED ONLY** on the first screen for the speed from the phone's GPS. To see the whole app on a simulated car, run the simulator on your computer (`dart run tool/sim_server.dart`, see the next section) and connect the app to it over WiFi:
 
 ```sh
 flutter run

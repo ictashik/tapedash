@@ -220,7 +220,7 @@ class TripRecorder {
   }
 
   /// Ends the trip now, for good: the next engine start is a new trip, not a
-  /// resumed one. The demo drive starting over is one such moment, the parked
+  /// resumed one. A simulated drive starting over is one such moment, the parked
   /// dock's END TRIP (a stop with the engine still running) another. With the
   /// engine still running, the next trip begins when the car moves off, not
   /// straight away. Nothing if no trip is going.

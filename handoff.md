@@ -4,7 +4,7 @@ Updated 2026-09-30, at the end of phase 6, where CLAUDE.md 11 says to stop. Read
 
 ## Where things stand
 
-- **Phases 0 to 6 are done, on the simulator.** The app has a cold open, a demo drive, a connect flow for WiFi, Bluetooth Classic and BLE ELM327s, the five Drive clusters and the HUD, trips and money, the coach, Review with the Debrief, Coach, History, Garage, Diagnostics, and a display that follows the light and the heat.
+- **Phases 0 to 6 are done, on the simulator.** The app has a cold open, a connect flow for WiFi, Bluetooth Classic and BLE ELM327s, the five Drive clusters and the HUD, trips and money, the coach, Review with the Debrief, Coach, History, Garage, Diagnostics, and a display that follows the light and the heat.
 - **Nothing has met a real phone, adapter or car.** The three Kotlin channels compile and have never run; the WiFi transport has only talked to `tool/sim_server.dart`. Do not report any of it as working on hardware.
 - HEAD is on `main`; the tree was clean after the last commit. **The repo is public at github.com/ictashik/tapedash (pushed 2026-10-16); no tags exist** (suggested ones are in `docs/STATUS.md`). `./tool/verify.sh` is green: about 2,900 tests, format, analyze, the offline check.
 - The human's standing instructions: phases 4 to 6 ran back to back with **no design review packages and no screenshot folders** (CLAUDE.md 13's note); they test on a real phone and car after phase 6 and report back. **The next session starts from their report.**
@@ -26,7 +26,7 @@ Also owed and not built (all in `docs/STATUS.md`): currency and units in Garage,
 
 - `lib/obd/transport/`: `wifi_transport.dart` (the only socket code; `NetworkGuard`), `native_link.dart` and `native_link_transport.dart` (both radios), `sim_transport.dart`, `replay_transport.dart`, `recording_transport.dart`, `session_log.dart`, `session_sink.dart`.
 - `lib/platform/`: the Dart sides of the Kotlin channels (`adapter_radio.dart` for both Bluetooths, `native_location_source.dart`, `device_channel.dart`), `file_session_sink.dart`. Kotlin is in `android/app/src/main/kotlin/io/github/ictashik/tapedash/`.
-- `lib/app/`: `app.dart` (theme, onboarding, connect flow, choosing the drive), `drive_shell.dart` (the driving surface), `live_drive.dart` and `demo_drive.dart` (both `DriveFeed`), `app_services.dart` (settings, adapters, money, trips), `display_controller.dart` (light, brightness, heat, tier), `radio_transport_factory.dart`.
+- `lib/app/`: `app.dart` (theme, onboarding, connect flow, choosing the drive), `drive_shell.dart` (the driving surface), `live_drive.dart` (a `DriveFeed`), `gps_shell.dart` (the GPS-only screen), `app_services.dart` (settings, adapters, money, trips), `display_controller.dart` (light, brightness, heat, tier), `radio_transport_factory.dart`.
 - `lib/ui/pages/`: `review`, `coach`, `history`, `garage`, `diagnostics`, `money`, `pitstop`, `drive`, `strip`. `lib/ui/onboarding/connect_flow.dart`. `lib/ui/dev/debug_overlay.dart` (long-press).
 
 ## Traps that cost time, so they need not again

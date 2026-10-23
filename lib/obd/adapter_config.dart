@@ -15,6 +15,17 @@ enum AdapterKind {
   final String label;
 }
 
+/// Where the drive's speed comes from. Nothing else is ever substituted for it:
+/// an adapter that will not connect stays "looking for your adapter" and does not
+/// quietly become another source.
+enum DriveSource {
+  /// The car, through the OBD adapter the user chose.
+  obd,
+
+  /// The phone's GPS alone: speed, distance and time, with no adapter.
+  gps,
+}
+
 /// The adapter the user chose (DESIGN.md 7.11): what to open a link to, and what
 /// to call it.
 class AdapterConfig {
@@ -96,7 +107,7 @@ class AdapterStore {
   final bool recordByDefault;
 
   static const _adapterKey = 'adapter_config';
-  static const _liveKey = 'adapter_use_live';
+  static const _sourceKey = 'drive_source';
   static const _compatKey = 'adapter_compatibility';
   static const _recordKey = 'adapter_record_sessions';
   static const _protocolPrefix = 'adapter_protocol_';
@@ -104,15 +115,16 @@ class AdapterStore {
   final KeyValueStore _store;
 
   final ObservableValue<AdapterConfig?> _adapter = ObservableValue(null);
-  final ObservableValue<bool> _live = ObservableValue(false);
+  final ObservableValue<DriveSource?> _source = ObservableValue(null);
   final ObservableValue<bool> _compat = ObservableValue(false);
   final ObservableValue<bool> _record = ObservableValue(false);
 
   /// The adapter last chosen, or null if none has been.
   Observable<AdapterConfig?> get adapter => _adapter;
 
-  /// Whether the app drives from the adapter (true) or from Demo Mode (false).
-  Observable<bool> get useAdapter => _live;
+  /// Where the drive comes from, or null until the person has chosen: the app then
+  /// asks, and shows nothing in the meantime.
+  Observable<DriveSource?> get source => _source;
 
   /// Compatibility mode forced on (CLAUDE.md 8.1): no batching and a slower pace,
   /// for an adapter that cannot keep up.
@@ -131,7 +143,15 @@ class AdapterStore {
         _adapter.value = null;
       }
     }
-    _live.value = await _store.getBool(_liveKey) ?? false;
+    final stored = await _store.getString(_sourceKey);
+    var source = DriveSource.values.where((s) => s.name == stored).firstOrNull;
+    // An adapter cannot be the source without one chosen.
+    if (source == DriveSource.obd && _adapter.value == null) source = null;
+    // Builds from before the source was a setting had two states, the adapter
+    // (when one was chosen and in use) or the demo. The demo is gone: an adapter
+    // that was chosen is the source.
+    if (source == null && _adapter.value != null) source = DriveSource.obd;
+    _source.value = source;
     _compat.value = await _store.getBool(_compatKey) ?? false;
     _record.value = await _store.getBool(_recordKey) ?? recordByDefault;
   }
@@ -139,25 +159,30 @@ class AdapterStore {
   /// Remembers [config] as the adapter, and switches to driving from it.
   Future<void> choose(AdapterConfig config) async {
     _adapter.value = config;
-    _live.value = true;
+    _source.value = DriveSource.obd;
     await _store.setString(_adapterKey, jsonEncode(config.toJson()));
-    await _store.setBool(_liveKey, true);
+    await _store.setString(_sourceKey, DriveSource.obd.name);
   }
 
-  /// Forgets the adapter, and goes back to Demo Mode.
+  /// Forgets the adapter. If it was the source, there is none until the person
+  /// chooses again (an adapter, or the GPS).
   Future<void> forget() async {
     final was = _adapter.value;
     _adapter.value = null;
-    _live.value = false;
     await _store.remove(_adapterKey);
-    await _store.setBool(_liveKey, false);
+    if (_source.value == DriveSource.obd) {
+      _source.value = null;
+      await _store.remove(_sourceKey);
+    }
     if (was != null) await _store.remove('$_protocolPrefix${was.id}');
   }
 
-  /// Drives from Demo Mode or from the adapter, without forgetting it.
-  Future<void> setUseAdapter(bool use) async {
-    _live.value = use && _adapter.value != null;
-    await _store.setBool(_liveKey, _live.value);
+  /// Drives from the adapter or from the GPS alone, without forgetting the
+  /// adapter. The adapter cannot be the source until one is chosen.
+  Future<void> setSource(DriveSource source) async {
+    if (source == DriveSource.obd && _adapter.value == null) return;
+    _source.value = source;
+    await _store.setString(_sourceKey, source.name);
   }
 
   Future<void> setCompatibilityMode(bool on) async {

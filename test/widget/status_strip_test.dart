@@ -279,9 +279,8 @@ void main() {
       });
     });
 
-    testWidgets('the DEMO badge shows only when Demo Mode is on', (
-      tester,
-    ) async {
+    testWidgets('the right flank has no badge: only the clock draws, in the '
+        'label colour', (tester) async {
       setWindow(tester, const Size(300, 60));
       final time = ValueNotifier(DateTime(2026, 1, 1, 10, 0));
       addTearDown(time.dispose);
@@ -307,29 +306,42 @@ void main() {
       expect(
         (await pixels(tester)).where((v) => v == accentCoreArgb).length,
         0,
+        reason: 'the accent was the DEMO badge\'s; nothing draws it now',
       );
+    });
 
-      await tester.pumpWidget(
-        tapeHarness(
-          kit: kit,
-          motion: motion,
-          theme: TapeThemeData(livery: Liveries.ion),
-          child: Center(
-            child: StatusStripRight(
-              time: time,
-              use24Hour: true,
-              phoneHot: phoneHot,
-              parkedShare: ValueNotifier(0),
-              demoMode: true,
-            ),
+    testWidgets('the left flank without an adapter is the GPS glyph alone', (
+      tester,
+    ) async {
+      setWindow(tester, const Size(200, 60));
+      final fix = ValueNotifier(true);
+      addTearDown(fix.dispose);
+      Widget flank({required bool adapter}) => tapeHarness(
+        kit: kit,
+        motion: motion,
+        theme: TapeThemeData(livery: Liveries.ion),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: StatusStripLeft(
+            adapter: adapter ? ValueNotifier(AdapterLinkState.flowing) : null,
+            gpsHasFix: fix,
+            parkedShare: ValueNotifier(0),
           ),
         ),
       );
+      await tester.pumpWidget(flank(adapter: true));
       await tester.pump();
+      final both = tester.getSize(find.byType(StatusStripLeft));
+      await tester.pumpWidget(flank(adapter: false));
+      await tester.pump();
+      final gpsOnly = tester.getSize(find.byType(StatusStripLeft));
+      expect(gpsOnly.width, lessThan(both.width));
       expect(
-        (await pixels(tester)).where((v) => v == accentCoreArgb).length,
-        greaterThan(5),
+        gpsOnly.width,
+        glyphColumnWidth(0),
+        reason: 'one column, no gap and no adapter beside it',
       );
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('the clock repaints on a live tick with no rebuild', (
@@ -373,7 +385,7 @@ void main() {
       addTearDown(time.dispose);
       final phoneHot = ValueNotifier(false);
       addTearDown(phoneHot.dispose);
-      for (final demo in [false, true]) {
+      for (final hot in [false, true]) {
         await tester.pumpWidget(
           tapeHarness(
             kit: kit,
@@ -386,11 +398,11 @@ void main() {
                 use24Hour: true,
                 phoneHot: phoneHot,
                 parkedShare: ValueNotifier(0),
-                demoMode: demo,
               ),
             ),
           ),
         );
+        phoneHot.value = hot;
         await tester.pump();
         final px = await pixels(tester);
         var maxX = -1;
@@ -401,8 +413,8 @@ void main() {
           }
         }
         // Drawn, and inside the frame, against the right edge (640 px).
-        expect(maxX, greaterThan(640 - 16), reason: 'demo=$demo');
-        expect(maxX, lessThan(640), reason: 'demo=$demo');
+        expect(maxX, greaterThan(640 - 16), reason: 'hot=$hot');
+        expect(maxX, lessThan(640), reason: 'hot=$hot');
       }
     });
   });

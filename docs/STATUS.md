@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-10-18, with the Insights ("Insights" below). Before that, 2026-10-16, with the survey drive ("The survey drive" below). Before that, 2026-09-30, after the first real drives (see "First real drive" and "The second drives" below) and the replay and the engine sound ("After the map"). Before it, at the end of phase 6, **the app was ready for real-hardware testing** (CLAUDE.md 11). Phases 0 to 6 are built, tested and committed, on the simulator. The app opens on a cold open and a choice: **TRY A DEMO DRIVE** (a simulated car, no hardware) or **CONNECT MY CAR** (a WiFi, Bluetooth or BLE ELM327), and then drives, records trips, works out where the money goes, coaches, and shows Review, Coach, History, Garage and Diagnostics. **Nothing here has met a real phone, adapter or car.** The next step is yours: `docs/HARDWARE_HANDOFF.md`.
+Updated 2026-10-23, with the removal of Demo Mode, the GPS-only source and the steadier Bluetooth ("No demo mode, a GPS-only source, and a steadier Bluetooth" below). Before that, 2026-10-18, with the Insights ("Insights" below). Before that, 2026-10-16, with the survey drive ("The survey drive" below). Before that, 2026-09-30, after the first real drives (see "First real drive" and "The second drives" below) and the replay and the engine sound ("After the map"). Before it, at the end of phase 6, **the app was ready for real-hardware testing** (CLAUDE.md 11). Phases 0 to 6 are built, tested and committed, on the simulator. The app opens on a cold open and a choice: **CONNECT MY CAR** (a WiFi, Bluetooth or BLE ELM327) or **GPS SPEED ONLY** (the demo that used to be here was removed on 2026-10-23), and then drives, records trips, works out where the money goes, coaches, and shows Review, Coach, History, Garage and Diagnostics. **Nothing here has met a real phone, adapter or car.** The next step is yours: `docs/HARDWARE_HANDOFF.md`.
 
 ## Where we are
 
@@ -17,6 +17,21 @@ Updated 2026-10-18, with the Insights ("Insights" below). Before that, 2026-10-1
 | 7. After hardware | **Started**: the first real drive is in; recordings, tuning and the fixes below are next |
 
 **Suggested tags, none created** (placing them is your call; none has been pushed): `v0.1.0-sim` on `d5016d6`, `v0.2.0-design` on `62fb1bb`, `v0.3.0-sim` on `57cd4e2`, `v0.4.0-sim` on `f0105e3`, `v0.5.0-sim` on `2db202f`, `v0.6.0-handoff` on the commit that adds `docs/HARDWARE_HANDOFF.md`.
+
+## No demo mode, a GPS-only source, and a steadier Bluetooth (2026-10-23)
+
+The human's request, after the connection problem persisted on the real adapters: remove demo mode (some fallbacks still landed in it), add a mode that shows speed from the GPS alone, make the Bluetooth steadier (the adapter shows up as `OBDBLE` and `OBDII`), and build a clean APK. Reasons and choices are in `docs/DECISIONS.md` ("Demo Mode removed, a GPS-only source, and a steadier Bluetooth").
+
+**What exists now**
+- **No Demo Mode.** The app asks (CONNECT MY CAR or GPS SPEED ONLY) until a source is chosen, then keeps it. An adapter that will not connect stays "looking for your adapter" and retries; it is never replaced by anything. Garage → **Speed from** switches between the car's adapter and the GPS. A phone that was last in the old demo, with an adapter chosen, now drives from the adapter.
+- **GPS only:** the speed as the hero, with distance, moving time, average, fastest and heading, the dock (Garage, HUD, Reset trip) and the HUD with the speed alone. Words for a missing permission, no receiver and no fix yet. No tach, money, coach, trips or sound. Tests: `test/unit/location/gps_drive_test.dart` (the rules, and a simulated city drive whose distance is within 3% of the car's ground truth), `test/widget/gps_app_test.dart` (the whole app on a fake receiver at 640, 720 and 800 wide).
+- **One Bluetooth choice that finds both radios**, each adapter marked Classic or Low Energy and Close / Near / Far, tried before it is taken (Low Energy too), with "Try OBDBLE" offered when the pick will not open.
+- **Steadier native links** (`BleChannel.kt`, `BtClassicChannel.kt`): a proper release before every reconnect, bounded retries, an optional MTU step, delayed service discovery, a short connection interval, four socket kinds with the last good one first, a watchdog on a hung connect, discovery stopped first. A 75 s limit in Dart on any open.
+- **A connection log** (Garage → Adapter → Connection log, newest first) and the same lines in the debug build's recording (`@ link ...`): each attempt, the radio's status code, which socket kind worked or failed, the services the adapter lists. **If it still will not connect, a screenshot of the log says why.**
+
+**Verified here:** the Dart side, headlessly (analyze, format, the whole test suite, the offline check; see the commit). **Not verified, and not claimed:** both Kotlin channels (they compile in the APK build; neither has met a phone since these changes), the new retry and release timings, which of the two radios your adapter does best, GPS speed on a real phone, and everything on the GPS screen as seen by an eye (I looked at one render of it at 800x360 only; the design review package is waived as for phases 4 to 6). The first thing to check with the new APK is the connection log after a failed attempt.
+
+**Owed:** the Design Lab has no page for the GPS screen (only a capture test, `test/design/capture/gps_cluster_capture_test.dart`); no golden for it; the GPS screen at the oldest-device frame budget has not been timed; `integration_test/sim_drive_perf_test.dart` (the old demo perf test, now over WiFi to the simulator) has not been run since the change.
 
 ## A pairing gone wrong (2026-10-22)
 

@@ -1,12 +1,15 @@
 // First launch (DESIGN.md 7.11): the cold open's length and drawing, the
-// wordmark, the choice, the benchmark hand-off, and the demo path into the
+// wordmark, the choice, the benchmark hand-off, and the GPS path into the
 // drive on a fake clock.
 import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/app/app.dart';
+import 'package:tapedash/app/app_services.dart';
+import 'package:tapedash/app/gps_shell.dart';
 import 'package:tapedash/core/fake_clock.dart';
+import 'package:tapedash/obd/adapter_config.dart';
 import 'package:tapedash/ui/brand/wordmark.dart';
 import 'package:tapedash/ui/design/components/controls/tape_button.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
@@ -16,6 +19,7 @@ import 'package:tapedash/ui/onboarding/onboarding_screen.dart';
 import 'package:tapedash/ui/pages/drive/drive_page.dart';
 
 import '../design/support/harness.dart';
+import '../support/fake_location.dart';
 
 void main() {
   setUpAll(loadTapeFonts);
@@ -57,7 +61,7 @@ void main() {
 
   Future<void> show(
     WidgetTester tester, {
-    VoidCallback? onDemo,
+    VoidCallback? onGps,
     VoidCallback? onConnect,
     void Function(List<double>)? onBenchmark,
     bool skip = false,
@@ -71,7 +75,7 @@ void main() {
           width: 720,
           height: 360,
           skipColdOpen: skip,
-          onDemo: onDemo ?? () {},
+          onGps: onGps ?? () {},
           onConnect: onConnect,
           onBenchmark: onBenchmark,
         ),
@@ -144,8 +148,8 @@ void main() {
   testWidgets('the choice is not pressable during the cold open', (
     tester,
   ) async {
-    var demos = 0;
-    await show(tester, onDemo: () => demos++);
+    var picks = 0;
+    await show(tester, onGps: () => picks++);
     await tester.pump();
     run(400);
     await tester.pump();
@@ -153,8 +157,8 @@ void main() {
       find.byType(OnboardingScreen),
     );
     expect(state.choiceReady, isFalse);
-    await tester.tap(find.text('TRY A DEMO DRIVE'), warnIfMissed: false);
-    expect(demos, 0);
+    await tester.tap(find.text('GPS SPEED ONLY'), warnIfMissed: false);
+    expect(picks, 0);
     run(1500);
     await tester.pump();
     expect(state.choiceReady, isTrue);
@@ -179,28 +183,31 @@ void main() {
   });
 
   testWidgets(
-    'after the cold open: demo is primary and works, and connect waits with no flow',
+    'after the cold open: connect is primary, GPS only works, and connect '
+    'waits with no flow',
     (tester) async {
-      var demos = 0;
-      await show(tester, onDemo: () => demos++);
+      var picks = 0;
+      await show(tester, onGps: () => picks++);
       await tester.pump();
       run(3000);
       await tester.pump();
-      final demo = tester.widget<TapeButton>(
-        find.widgetWithText(TapeButton, 'TRY A DEMO DRIVE'),
+      final gps = tester.widget<TapeButton>(
+        find.widgetWithText(TapeButton, 'GPS SPEED ONLY'),
       );
       final connect = tester.widget<TapeButton>(
         find.widgetWithText(TapeButton, 'CONNECT MY CAR'),
       );
-      expect(demo.primary, isTrue);
-      expect(demo.enabled, isTrue);
+      expect(connect.primary, isTrue);
+      expect(gps.primary, isFalse);
+      expect(gps.enabled, isTrue);
       expect(connect.enabled, isFalse);
       expect(
         find.text('ADAPTER SETUP ARRIVES IN A LATER UPDATE'),
         findsOneWidget,
       );
-      await tester.tap(find.text('TRY A DEMO DRIVE'));
-      expect(demos, 1);
+      expect(find.textContaining('DEMO'), findsNothing);
+      await tester.tap(find.text('GPS SPEED ONLY'));
+      expect(picks, 1);
     },
   );
 
@@ -247,7 +254,7 @@ void main() {
             width: width,
             height: 360,
             skipColdOpen: true,
-            onDemo: () {},
+            onGps: () {},
           ),
         ),
       );
@@ -263,37 +270,45 @@ void main() {
     });
   }
 
-  testWidgets('the demo path: choice, then a live drive with ignition', (
+  testWidgets('the GPS path: choice, then the GPS screen, remembered', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1280, 720);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
     final clock = FakeClock()..advance(const Duration(seconds: 100));
+    final app = await AppServices.memory();
+    final location = FakeLocation();
+    addTearDown(location.close);
     await tester.pumpWidget(
-      TapeDashApp(clock: clock, scheduler: clock, skipColdOpen: true),
+      TapeDashApp(
+        clock: clock,
+        scheduler: clock,
+        services: app,
+        location: location,
+        skipColdOpen: true,
+      ),
     );
-    // The choice is up for a few seconds, and the drive connects behind it.
     for (var i = 0; i < 50; i++) {
       clock.advance(const Duration(milliseconds: 100));
       await tester.pump(const Duration(milliseconds: 100));
     }
+    expect(find.byType(GpsShell), findsNothing);
     expect(find.byType(DrivePage), findsNothing);
-    await tester.tap(find.text('TRY A DEMO DRIVE'));
+    expect(find.textContaining('DEMO'), findsNothing);
+    expect(
+      app.adapters.source.value,
+      isNull,
+      reason: 'nothing chosen for them',
+    );
+
+    await tester.tap(find.text('GPS SPEED ONLY'));
     await tester.pump();
-    expect(find.byType(DrivePage), findsOneWidget);
-    final drive = tester.widget<DrivePage>(find.byType(DrivePage));
-    // The drive was connecting behind the choice, so the ignition starts
-    // within a second of the tap (DESIGN.md 7.11).
-    var ms = 0;
-    while (!drive.signals.ignition.hasPlayed && ms < 3000) {
-      clock.advance(const Duration(milliseconds: 50));
-      await tester.pump(const Duration(milliseconds: 50));
-      ms += 50;
-    }
-    expect(ms, lessThanOrEqualTo(1000));
-    expect(drive.signals.vehicle.rpm.value, isNotNull);
-    expect(drive.signals.ignition.hasPlayed, isTrue);
+    await tester.pump();
+    expect(find.byType(GpsShell), findsOneWidget);
+    expect(app.adapters.source.value, DriveSource.gps);
+    expect(app.settings.onboarded.value, isTrue);
+    expect(location.started, 1);
     expect(tester.takeException(), isNull);
   });
 }

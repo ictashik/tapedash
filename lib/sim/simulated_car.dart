@@ -31,7 +31,7 @@ class SimulatedCar {
 
   /// Brakes to a stop once the scenario's time is up, rather than carrying on
   /// with the plan: a scenario that is cut off mid-drive then ends parked, as a
-  /// looping demo needs (its trip can end, and Review opens). Off by default, so
+  /// looping simulated drive needs (its trip can end, and Review opens). Off by default, so
   /// the ground truth of a test drive is the plan's, however it ends.
   final bool stopWhenFinished;
 
@@ -60,7 +60,7 @@ class SimulatedCar {
   }
 
   /// Starts again from the beginning, with a fresh car and driver, as a
-  /// looping demo does.
+  /// looping simulated drive does.
   void restart() => _reset();
 
   VehicleSnapshot get state => model.state;

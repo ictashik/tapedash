@@ -36,8 +36,9 @@ class Trip {
   /// be resumed.
   final DateTime? endedAt;
 
-  /// Driven in Demo Mode: stored, but never counted in real statistics
-  /// (CLAUDE.md 7.6).
+  /// A simulated drive, from a build that had Demo Mode (removed on 2026-10-23).
+  /// Such a trip is kept in the file but never listed or counted; nothing in the
+  /// app makes one now.
   final bool isDemo;
 
   final double distanceKm;

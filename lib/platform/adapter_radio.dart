@@ -51,6 +51,7 @@ class FoundAdapter {
     required this.address,
     required this.kind,
     this.paired = false,
+    this.rssi,
   });
 
   /// The name it advertises. Empty for a device that says none.
@@ -60,6 +61,11 @@ class FoundAdapter {
   final String address;
   final RadioKind kind;
   final bool paired;
+
+  /// How strong the signal was when it was found, in dBm (about -40 close by, -90
+  /// at the edge of range), or null for one the phone only remembers. When two
+  /// adapters of the same make answer, the nearer one is the one in your own car.
+  final int? rssi;
 
   /// What to call it on screen.
   String get displayName => name.isEmpty ? address : name;
@@ -108,6 +114,7 @@ class AdapterRadio {
   final StreamController<FoundAdapter> _found = StreamController.broadcast();
   final StreamController<String> _data = StreamController.broadcast(sync: true);
   final StreamController<void> _lost = StreamController.broadcast(sync: true);
+  final StreamController<String> _diag = StreamController.broadcast(sync: true);
   StreamSubscription<Object?>? _subscription;
   int _listeners = 0;
 
@@ -137,8 +144,12 @@ class AdapterRadio {
             address: address,
             kind: kind,
             paired: event['paired'] == true,
+            rssi: (event['rssi'] as num?)?.toInt(),
           ),
         );
+      case 'diag':
+        final text = event['text'];
+        if (text is String) _diag.add(text);
       case 'data':
         final text = event['text'];
         if (text is String) _data.add(text);
@@ -260,6 +271,9 @@ class _ChannelLink implements NativeLink {
 
   @override
   Stream<void> get lost => _radio._lost.stream;
+
+  @override
+  Stream<String> get diagnostics => _radio._diag.stream;
 
   @override
   Future<void> open() async {

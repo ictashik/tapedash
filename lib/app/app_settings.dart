@@ -29,7 +29,7 @@ enum CoachPreset {
 }
 
 /// Everything the user sets that is not about the car's fuel or the price (those
-/// are `AppServices`'): the look, the HUD, the coach and the demo. Each value is
+/// are `AppServices`'): the look, the HUD, the coach and the engine sound. Each value is
 /// a [ValueNotifier] the screens listen to, and each change is written to the
 /// phone's settings at once (CLAUDE.md 5: `shared_preferences`; defaults over
 /// settings, so nothing here has to be set).
@@ -45,8 +45,6 @@ class AppSettings {
   static const _clusterKey = 'display_cluster';
   static const _presetKey = 'coach_preset';
   static const _limitKey = 'coach_speed_limit';
-  static const _scenarioKey = 'demo_scenario';
-  static const _profileKey = 'demo_profile';
   static const _onboardedKey = 'onboarded';
   static const _soundKey = 'sound_enabled';
   static const _soundProfileKey = 'sound_profile';
@@ -85,8 +83,6 @@ class AppSettings {
     CoachPreset.normal,
   );
   final ValueNotifier<double> speedLimitKmh = ValueNotifier(100);
-  final ValueNotifier<String> demoScenario = ValueNotifier('city_stop_go');
-  final ValueNotifier<String> demoProfile = ValueNotifier('');
 
   /// The engine sound (lib/sound): off until it is turned on, the engine it makes,
   /// how loud (0 to 1 of full scale, under the phone's own volume), and whether it
@@ -143,8 +139,6 @@ class AppSettings {
       CoachPreset.normal,
     );
     speedLimitKmh.value = await _store.getDouble(_limitKey) ?? 100;
-    demoScenario.value = await _store.getString(_scenarioKey) ?? 'city_stop_go';
-    demoProfile.value = await _store.getString(_profileKey) ?? '';
     onboarded.value = await _store.getBool(_onboardedKey) ?? false;
     soundEnabled.value = await _store.getBool(_soundKey) ?? false;
     soundProfile.value = await _store.getString(_soundProfileKey) ?? 'inline4';
@@ -209,12 +203,6 @@ class AppSettings {
     speedLimitKmh.addListener(
       () => _store.setDouble(_limitKey, speedLimitKmh.value),
     );
-    demoScenario.addListener(
-      () => _store.setString(_scenarioKey, demoScenario.value),
-    );
-    demoProfile.addListener(
-      () => _store.setString(_profileKey, demoProfile.value),
-    );
     onboarded.addListener(() => _store.setBool(_onboardedKey, onboarded.value));
     soundEnabled.addListener(
       () => _store.setBool(_soundKey, soundEnabled.value),
@@ -250,8 +238,6 @@ class AppSettings {
       cluster,
       coachPreset,
       speedLimitKmh,
-      demoScenario,
-      demoProfile,
       onboarded,
       soundEnabled,
       soundProfile,

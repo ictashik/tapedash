@@ -5,13 +5,13 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tapedash/app/drive_shell.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
 import 'package:tapedash/ui/design/theme/tape_theme.dart';
 import 'package:tapedash/ui/design/tokens/livery.dart';
 import 'package:tapedash/ui/pages/strip/the_strip.dart';
+import '../../support/sim_shell.dart';
 
 import '../support/harness.dart';
 
@@ -35,7 +35,11 @@ void main() {
         kit: kit,
         motion: motion,
         theme: TapeThemeData(livery: Liveries.ion),
-        child: DriveShell(clock: clock, scheduler: clock, scenario: scenario),
+        child: SimDriveShell(
+          clock: clock,
+          scheduler: clock,
+          scenario: scenario,
+        ),
       ),
     );
     Future<void> run(int ms) async {

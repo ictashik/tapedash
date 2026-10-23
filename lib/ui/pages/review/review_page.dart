@@ -640,8 +640,8 @@ class ReviewPageState extends State<ReviewPage> {
         onTap: _skip,
         child: Stack(
           children: [
-            // The heading: when, and the DEMO badge for a demo trip; the readouts
-            // at the cursor take its right-hand side while scrubbing.
+            // The heading: when; the readouts at the cursor take its right-hand
+            // side while scrubbing.
             Positioned(
               left: margin,
               top: TapeSpace.s2,
@@ -654,10 +654,6 @@ class ReviewPageState extends State<ReviewPage> {
                     style: TapeTextStyle.small,
                     color: palette.inkMid,
                   ),
-                  if (trip.isDemo) ...[
-                    const SizedBox(width: TapeSpace.s2),
-                    const TapeLabel('Demo', size: 11),
-                  ],
                   // The readout takes what is left of the row and scales down to it:
                   // four readings are wider than the row on a 720 lp screen.
                   Expanded(

@@ -44,7 +44,6 @@ class DriveSignals {
     required Observable<ConnectionStatus> connection,
     IgnitionMode ignitionMode = IgnitionMode.full,
     bool reduceMotion = false,
-    this.demoMode = false,
     this.money,
     ValueListenable<bool>? gpsHasFix,
     ValueListenable<bool>? phoneHot,
@@ -223,10 +222,6 @@ class DriveSignals {
   /// Lab capture of a bare cluster); the clusters then leave those slots empty.
   /// Owned by whoever built it, not disposed here.
   final MoneySignals? money;
-
-  /// Whether the data is Demo Mode's simulated car (CLAUDE.md 7.6): the DEMO
-  /// badge is always visible while it is.
-  final bool demoMode;
 
   /// The status strip's clock (DESIGN.md 6.9), ticking on the same injected
   /// [Clock] and [Scheduler] as everything else, not `DateTime.now()`.

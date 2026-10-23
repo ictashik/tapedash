@@ -9,6 +9,7 @@ import '../../../core/observable.dart';
 import '../../../fuel/fuel_constants.dart';
 import '../../../money/calibration.dart';
 import '../../../obd/adapter_config.dart';
+import '../../../obd/link_diary.dart';
 import '../../../sound/engine_profile.dart';
 import '../../../sound/engine_sound.dart' show SoundStatus;
 import '../../../trips/trip_library.dart';
@@ -30,17 +31,15 @@ import '../../design/theme/tape_theme.dart';
 import '../../design/tokens/colors.dart' show HudColor;
 import '../../design/tokens/livery.dart';
 import '../../design/tokens/spacing.dart';
-import '../../dev/demo_control.dart';
 
 /// Garage (DESIGN.md 7.8): the settings, in groups under bracketed headers.
 ///
-/// Car, the drive cluster and its look, the HUD, the fuel price, the coach, the
-/// display, the demo, the data and what the app is. Each control changes its
+/// Car, where the speed comes from, the drive cluster and its look, the HUD, the
+/// fuel price, the coach, the display, the data and what the app is. Each control changes its
 /// setting at once and it is remembered (defaults over settings: nothing here has to
 /// be touched). Parked only: it closes itself if the car starts to move.
 ///
-/// Not here yet, and said so in `docs/STATUS.md`: the adapter (phase 6 puts it
-/// here), currency and units, shift-light settings, automatic brightness, CSV
+/// Not here yet, and said so in `docs/STATUS.md`: currency and units, shift-light settings, automatic brightness, CSV
 /// export, and the licence screen's QR code.
 class GaragePage extends StatefulWidget {
   const GaragePage({
@@ -56,9 +55,9 @@ class GaragePage extends StatefulWidget {
     this.adapters,
     this.onChangeAdapter,
     this.onSurvey,
+    this.diary,
     this.phoneTemperature,
-    this.demo,
-    this.onEndTrip,
+    this.gpsOnly = false,
     this.onAlignment,
     this.sound,
     this.version = 'dev',
@@ -69,7 +68,7 @@ class GaragePage extends StatefulWidget {
 
   final AppSettings settings;
 
-  /// The car's own settings and money: the real ones (a demo drive has its own).
+  /// The car's own settings and money.
   final AppServices services;
   final TripLibrary library;
   final ValueListenable<DrivingMode> mode;
@@ -90,14 +89,17 @@ class GaragePage extends StatefulWidget {
   /// no real adapter to survey.
   final VoidCallback? onSurvey;
 
+  /// What the app has done to reach the adapter, for the connection log row. Null
+  /// leaves the row out.
+  final LinkDiary? diary;
+
   /// The battery temperature, for the suggestion when the phone is hot.
   final Observable<double?>? phoneTemperature;
 
-  /// The demo's controls, when there is one.
-  final DemoControl? demo;
-
-  /// Ends the trip that is going, now (demo).
-  final VoidCallback? onEndTrip;
+  /// Whether the drive is on the GPS alone: the groups about the car (its fuel,
+  /// the price, the coach, the cluster's layout, the trips) have nothing to
+  /// change and are left out.
+  final bool gpsOnly;
 
   /// Puts the HUD's alignment pattern up.
   final VoidCallback? onAlignment;
@@ -110,10 +112,13 @@ class GaragePage extends StatefulWidget {
 
 /// A list to pick one of, in place of the Garage while it is open.
 class _Choice {
-  const _Choice(this.title, this.entries);
+  const _Choice(this.title, this.entries, {this.lines});
 
   final String title;
   final List<({String label, bool selected, VoidCallback pick})> entries;
+
+  /// Plain lines to read instead of entries to pick (the connection log).
+  final List<String>? lines;
 }
 
 class GaragePageState extends State<GaragePage> {
@@ -136,8 +141,6 @@ class GaragePageState extends State<GaragePage> {
       s.cluster,
       s.coachPreset,
       s.speedLimitKmh,
-      s.demoScenario,
-      s.demoProfile,
       s.hud,
       s.soundEnabled,
       s.soundProfile,
@@ -154,7 +157,7 @@ class GaragePageState extends State<GaragePage> {
         ObservableListenable(widget.phoneTemperature!),
       if (widget.adapters != null) ...[
         ObservableListenable(widget.adapters!.adapter),
-        ObservableListenable(widget.adapters!.useAdapter),
+        ObservableListenable(widget.adapters!.source),
         ObservableListenable(widget.adapters!.compatibilityMode),
         ObservableListenable(widget.adapters!.recordSessions),
       ],
@@ -257,6 +260,17 @@ class GaragePageState extends State<GaragePage> {
     key: ValueKey(choice.title),
     physics: const ClampingScrollPhysics(),
     children: [
+      if (choice.lines != null)
+        for (final line in choice.lines!)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: TapeText(
+              line,
+              style: TapeTextStyle.caption,
+              color: TapeTheme.of(context).palette.inkMid,
+              maxLines: 2,
+            ),
+          ),
       for (final e in choice.entries)
         TapeListRow(
           label: e.label,
@@ -273,8 +287,8 @@ class GaragePageState extends State<GaragePage> {
     final setup = app.setup.value;
     final price = app.money.price.value;
     final confidence = app.ledger.confidence.value;
-    final demo = widget.demo;
     final adapters = widget.adapters;
+    final gpsOnly = widget.gpsOnly;
 
     return ListView(
       key: const ValueKey('groups'),
@@ -282,84 +296,88 @@ class GaragePageState extends State<GaragePage> {
       physics: const ClampingScrollPhysics(),
       padding: const EdgeInsets.only(bottom: TapeSpace.s8),
       children: [
-        _Group('Car', [
-          _Field(
-            'Fuel',
-            TapeSegmented<FuelType>(
-              height: 40,
-              value: setup.fuelType,
-              onChanged: (t) =>
-                  app.setVehicleSetup(setup.copyWith(fuelType: t)),
-              segments: const [
-                TapeSegment(FuelType.petrol, 'Petrol'),
-                TapeSegment(FuelType.diesel, 'Diesel'),
-              ],
-            ),
-          ),
-          if (setup.fuelType == FuelType.petrol)
-            _Field(
-              'Ethanol in the petrol',
-              TapeSegmented<PetrolBlend>(
-                height: 40,
-                value: setup.blend,
-                onChanged: (b) => app.setVehicleSetup(setup.copyWith(blend: b)),
-                segments: [
-                  for (final b in PetrolBlend.values) TapeSegment(b, b.label),
-                ],
-              ),
-            ),
-          TapeSlider(
-            label: 'Engine size',
-            value: setup.displacementLitres,
-            min: 0.6,
-            max: 6,
-            format: (v) => '${v.toStringAsFixed(1)} L',
-            onChanged: (v) => app.setVehicleSetup(
-              setup.copyWith(displacementLitres: (v * 10).round() / 10),
-            ),
-          ),
-          TapeSlider(
-            label: 'Tank',
-            value: setup.tankLitres,
-            min: 20,
-            max: 120,
-            format: (v) => '${v.round()} L',
-            onChanged: (v) => app.setVehicleSetup(
-              setup.copyWith(tankLitres: v.roundToDouble()),
-            ),
-          ),
-          _Info('Fuel figures', switch (confidence) {
-            CalibrationConfidence.uncalibrated =>
-              'Estimates. Two full tanks in Pit Stop check them.',
-            CalibrationConfidence.calibrating =>
-              'Estimates, checked once. One more full tank helps.',
-            CalibrationConfidence.calibrated => 'Estimates, checked twice.',
-          }),
-        ]),
         if (adapters != null) _adapterGroup(adapters),
-        _Group('Fuel price', [
-          TapeListRow(
-            label: 'Price a litre',
-            value: price == null ? 'Not set' : '₹${price.toStringAsFixed(2)}',
-            onTap: widget.onSetPrice,
-          ),
-        ]),
-        _Group('Cluster', [
-          TapeListRow(
-            label: 'Layout',
-            value: clusterNames[s.cluster.value],
-            onTap: () => _pick(
-              _choose<int>(
-                'Layout',
-                [
-                  for (var i = 0; i < clusterNames.length; i++)
-                    (i, clusterNames[i]),
+        if (!gpsOnly)
+          _Group('Car', [
+            _Field(
+              'Fuel',
+              TapeSegmented<FuelType>(
+                height: 40,
+                value: setup.fuelType,
+                onChanged: (t) =>
+                    app.setVehicleSetup(setup.copyWith(fuelType: t)),
+                segments: const [
+                  TapeSegment(FuelType.petrol, 'Petrol'),
+                  TapeSegment(FuelType.diesel, 'Diesel'),
                 ],
-                s.cluster.value,
-                (i) => s.cluster.value = i,
               ),
             ),
-          ),
+            if (setup.fuelType == FuelType.petrol)
+              _Field(
+                'Ethanol in the petrol',
+                TapeSegmented<PetrolBlend>(
+                  height: 40,
+                  value: setup.blend,
+                  onChanged: (b) =>
+                      app.setVehicleSetup(setup.copyWith(blend: b)),
+                  segments: [
+                    for (final b in PetrolBlend.values) TapeSegment(b, b.label),
+                  ],
+                ),
+              ),
+            TapeSlider(
+              label: 'Engine size',
+              value: setup.displacementLitres,
+              min: 0.6,
+              max: 6,
+              format: (v) => '${v.toStringAsFixed(1)} L',
+              onChanged: (v) => app.setVehicleSetup(
+                setup.copyWith(displacementLitres: (v * 10).round() / 10),
+              ),
+            ),
+            TapeSlider(
+              label: 'Tank',
+              value: setup.tankLitres,
+              min: 20,
+              max: 120,
+              format: (v) => '${v.round()} L',
+              onChanged: (v) => app.setVehicleSetup(
+                setup.copyWith(tankLitres: v.roundToDouble()),
+              ),
+            ),
+            _Info('Fuel figures', switch (confidence) {
+              CalibrationConfidence.uncalibrated =>
+                'Estimates. Two full tanks in Pit Stop check them.',
+              CalibrationConfidence.calibrating =>
+                'Estimates, checked once. One more full tank helps.',
+              CalibrationConfidence.calibrated => 'Estimates, checked twice.',
+            }),
+          ]),
+        if (!gpsOnly)
+          _Group('Fuel price', [
+            TapeListRow(
+              label: 'Price a litre',
+              value: price == null ? 'Not set' : '₹${price.toStringAsFixed(2)}',
+              onTap: widget.onSetPrice,
+            ),
+          ]),
+        _Group('Cluster', [
+          if (!gpsOnly)
+            TapeListRow(
+              label: 'Layout',
+              value: clusterNames[s.cluster.value],
+              onTap: () => _pick(
+                _choose<int>(
+                  'Layout',
+                  [
+                    for (var i = 0; i < clusterNames.length; i++)
+                      (i, clusterNames[i]),
+                  ],
+                  s.cluster.value,
+                  (i) => s.cluster.value = i,
+                ),
+              ),
+            ),
           TapeListRow(
             label: 'Livery',
             value: Liveries.byId(s.livery.value).name,
@@ -440,27 +458,28 @@ class GaragePageState extends State<GaragePage> {
                   },
           ),
         ]),
-        _Group('Coach', [
-          _Field(
-            'Hard acceleration and braking',
-            TapeSegmented<CoachPreset>(
-              height: 40,
-              value: s.coachPreset.value,
-              onChanged: (v) => s.coachPreset.value = v,
-              segments: [
-                for (final p in CoachPreset.values) TapeSegment(p, p.label),
-              ],
+        if (!gpsOnly)
+          _Group('Coach', [
+            _Field(
+              'Hard acceleration and braking',
+              TapeSegmented<CoachPreset>(
+                height: 40,
+                value: s.coachPreset.value,
+                onChanged: (v) => s.coachPreset.value = v,
+                segments: [
+                  for (final p in CoachPreset.values) TapeSegment(p, p.label),
+                ],
+              ),
             ),
-          ),
-          TapeSlider(
-            label: 'Speed threshold',
-            value: s.speedLimitKmh.value,
-            min: 60,
-            max: 160,
-            format: (v) => '${v.round()} km/h',
-            onChanged: (v) => s.speedLimitKmh.value = (v / 5).round() * 5.0,
-          ),
-        ]),
+            TapeSlider(
+              label: 'Speed threshold',
+              value: s.speedLimitKmh.value,
+              min: 60,
+              max: 160,
+              format: (v) => '${v.round()} km/h',
+              onChanged: (v) => s.speedLimitKmh.value = (v / 5).round() * 5.0,
+            ),
+          ]),
         if (widget.sound != null) _soundGroup(s, widget.sound!),
         _Group('Display', [
           _Field(
@@ -512,63 +531,20 @@ class GaragePageState extends State<GaragePage> {
             ),
           ),
         ]),
-        if (demo != null)
-          _Group('Demo mode', [
-            TapeListRow(
-              label: 'Drive',
-              value: demo.scenario.value,
-              onTap: () => _pick(
-                _choose<String>(
-                  'Demo drive',
-                  [for (final n in demo.scenarios) (n, n)],
-                  demo.scenario.value,
-                  (n) {
-                    s.demoScenario.value = n;
-                    demo.select(scenario: n);
-                  },
-                ),
+        if (!gpsOnly)
+          _Group('Data', [
+            const _Info(
+              'Everything stays on this phone',
+              'Trips, fill-ups and settings are stored here and nowhere else.',
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: TapeSpace.s2),
+              child: SlideToConfirm(
+                label: 'Slide to delete all trips and fill-ups',
+                onConfirmed: _deleteAll,
               ),
             ),
-            TapeListRow(
-              label: 'Car',
-              value: demo.profile.value.isEmpty
-                  ? 'Default'
-                  : demo.profile.value,
-              onTap: () => _pick(
-                _choose<String>(
-                  'Demo car',
-                  [('', 'Default'), for (final n in demo.profiles) (n, n)],
-                  demo.profile.value,
-                  (n) {
-                    s.demoProfile.value = n;
-                    demo.select(profile: n);
-                  },
-                ),
-              ),
-            ),
-            if (widget.onEndTrip != null)
-              TapeListRow(
-                label: 'End this trip now',
-                chevron: false,
-                onTap: () {
-                  widget.onEndTrip!();
-                  widget.onClose();
-                },
-              ),
           ]),
-        _Group('Data', [
-          const _Info(
-            'Everything stays on this phone',
-            'Trips, fill-ups and settings are stored here and nowhere else.',
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: TapeSpace.s2),
-            child: SlideToConfirm(
-              label: 'Slide to delete all trips and fill-ups',
-              onConfirmed: _deleteAll,
-            ),
-          ),
-        ]),
         _Group('About', [
           _Info(
             'TapeDash ${widget.version}',
@@ -581,22 +557,47 @@ class GaragePageState extends State<GaragePage> {
     );
   }
 
+  /// Where the speed comes from, and the adapter it may come from. The car's
+  /// adapter and the phone's GPS are chosen between here; neither is ever
+  /// swapped for the other by itself.
   Widget _adapterGroup(AdapterStore adapters) {
     final chosen = adapters.adapter.value;
-    return _Group('Adapter', [
+    final source = adapters.source.value;
+    return _Group('Speed from', [
+      _Field(
+        'Source',
+        TapeSegmented<DriveSource>(
+          height: 40,
+          value: source ?? DriveSource.obd,
+          onChanged: (v) {
+            // The car needs an adapter; with none chosen the way to it is the
+            // connect flow, and the source changes when it finishes.
+            if (v == DriveSource.obd && chosen == null) {
+              widget.onChangeAdapter?.call();
+            } else {
+              adapters.setSource(v);
+            }
+          },
+          segments: const [
+            TapeSegment(DriveSource.obd, 'Car adapter'),
+            TapeSegment(DriveSource.gps, 'GPS only'),
+          ],
+        ),
+      ),
+      if (source == DriveSource.gps)
+        const _Info(
+          'GPS only',
+          'Speed, distance and time from the phone\'s GPS. Nothing is read from '
+              'the car, so there is no RPM, fuel or money.',
+        ),
       TapeListRow(
         label: 'Adapter',
         value: chosen == null
-            ? 'None: demo mode'
+            ? 'None'
             : '${chosen.displayName}  ·  ${chosen.kind.label}',
         onTap: widget.onChangeAdapter,
       ),
       if (chosen != null) ...[
-        _Toggle(
-          'Drive from this adapter',
-          adapters.useAdapter.value,
-          (v) => adapters.setUseAdapter(v),
-        ),
         _Toggle(
           'Compatibility mode (slower, for fussy adapters)',
           adapters.compatibilityMode.value,
@@ -613,11 +614,25 @@ class GaragePageState extends State<GaragePage> {
             'One file for each drive, in Android/data/io.github.ictashik.tapedash/'
                 'files/recordings. Nothing leaves the phone by itself.',
           ),
-        if (widget.onSurvey != null && adapters.useAdapter.value)
+        if (widget.onSurvey != null && source == DriveSource.obd)
           TapeListRow(
             label: 'Survey drive',
             value: 'Find out what your car reports',
             onTap: widget.onSurvey,
+          ),
+        if (widget.diary != null)
+          TapeListRow(
+            label: 'Connection log',
+            value: widget.diary!.lines.value.isEmpty
+                ? 'Nothing yet'
+                : '${widget.diary!.lines.value.length} lines, newest first',
+            onTap: () => _pick(
+              _Choice(
+                'Connection log',
+                const [],
+                lines: widget.diary!.lines.value.reversed.toList(),
+              ),
+            ),
           ),
         TapeListRow(
           label: 'Forget this adapter',

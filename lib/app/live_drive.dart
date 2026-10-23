@@ -4,6 +4,7 @@ import '../core/clock.dart';
 import '../core/observable.dart';
 import '../core/scheduler.dart';
 import '../obd/adapter_config.dart';
+import '../obd/link_diary.dart';
 import '../obd/obd_session.dart';
 import '../obd/transport/recording_transport.dart';
 import '../obd/transport/session_sink.dart';
@@ -12,8 +13,8 @@ import '../obd/transport_factory.dart';
 import '../vehicle/vehicle_state.dart';
 import 'drive_feed.dart';
 
-/// A real car, on a real adapter (CLAUDE.md 7, 8.1): the same OBD stack the demo
-/// drive uses, over the transport for the adapter the user chose. What it fills is
+/// A real car, on a real adapter (CLAUDE.md 7, 8.1): the same OBD stack the
+/// simulated drive in the tests uses, over the transport for the adapter the user chose. What it fills is
 /// the [vehicle] the whole UI reads, so nothing else in the app changes.
 ///
 /// The session finds the adapter, starts it up, and, if the link drops, opens it
@@ -35,6 +36,7 @@ class LiveDrive implements DriveFeed {
     this.sink,
     this.flushEvery = const Duration(seconds: 20),
     this.appVersion = '',
+    this.diary,
   }) : vehicle = VehicleState(clock: clock, scheduler: scheduler);
 
   final AdapterConfig adapter;
@@ -48,6 +50,10 @@ class LiveDrive implements DriveFeed {
   /// Compatibility mode from the start: no batching, and a slower pace.
   final bool compatibility;
 
+  /// Where what the app does to reach the adapter is written, for Garage to show
+  /// (`LinkDiary`). It is kept whether or not the session is recorded.
+  final LinkDiary? diary;
+
   final bool recordSessions;
   final SessionSink? sink;
   final Duration flushEvery;
@@ -55,9 +61,6 @@ class LiveDrive implements DriveFeed {
 
   @override
   final VehicleState vehicle;
-
-  @override
-  bool get isDemo => false;
 
   final ObservableValue<ConnectionStatus> _connection = ObservableValue(
     ConnectionStatus.stopped,
@@ -75,6 +78,8 @@ class LiveDrive implements DriveFeed {
   String? _recordingName;
   void Function()? _statusListener;
   void Function()? _rateListener;
+  StreamSubscription<String>? _diagSub;
+  StreamSubscription<TransportState>? _stateSub;
   bool _started = false;
 
   @override
@@ -99,12 +104,27 @@ class LiveDrive implements DriveFeed {
   /// made of the car, and when (see `SessionDirection.note`). Nothing otherwise.
   void note(String text) => _recorder?.note(text);
 
+  // A line about the link: into the diary Garage shows, and into the recording if
+  // there is one.
+  void _say(String text) {
+    diary?.add(text);
+    _recorder?.note('link $text');
+  }
+
   @override
   void start() {
     if (_started) return;
     _started = true;
     Transport transport = transports.create(adapter);
     _transport = transport;
+    diary?.add(
+      'drive started: ${adapter.kind.label} ${adapter.displayName} '
+      '(${adapter.address})${compatibility ? ', compatibility mode' : ''}',
+    );
+    if (transport is LinkDiagnostics) {
+      _diagSub = (transport as LinkDiagnostics).diagnostics.listen(_say);
+    }
+    _stateSub = transport.state.listen((s) => _say('transport $s'));
     if (recordSessions && sink != null) {
       final now = clock.now().toUtc();
       _recordingName = 'session-${_stamp(now)}-${adapter.kind.name}.log';
@@ -134,7 +154,10 @@ class LiveDrive implements DriveFeed {
     );
     _session = session;
     _sessions.value = session;
-    _statusListener = () => _connection.value = session.status.value;
+    _statusListener = () {
+      _connection.value = session.status.value;
+      _say('status ${session.status.value.name}');
+    };
     _rateListener = () => _pollRate.value = session.pollRate.value;
     session.status.addListener(_statusListener!);
     session.pollRate.addListener(_rateListener!);
@@ -164,6 +187,10 @@ class LiveDrive implements DriveFeed {
   Future<void> stop() async {
     _flush?.cancel();
     _flush = null;
+    unawaited(_diagSub?.cancel());
+    unawaited(_stateSub?.cancel());
+    _diagSub = null;
+    _stateSub = null;
     final session = _session;
     if (session != null) {
       if (_statusListener != null) {

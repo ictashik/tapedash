@@ -57,7 +57,7 @@ class DriveScenario {
   final double fuelLevelFraction;
 
   /// Whether the engine is already running when the scenario begins, as it is
-  /// when a demo picks up a drive part way through.
+  /// when a simulated drive picks up a drive part way through.
   final bool engineRunningAtStart;
 
   Driver newDriver() => driverBuilder();

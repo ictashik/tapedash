@@ -1,7 +1,9 @@
-// A demo drive on a real device or emulator, with frame timings per cluster
-// (CLAUDE.md 10, layer 5; DESIGN.md 9.4). Real time: about two minutes.
+// A simulated drive on a real device or emulator, with frame timings per cluster
+// (CLAUDE.md 10, layer 5; DESIGN.md 9.4). Real time: about two minutes. The car is
+// the simulator, reached through the real WiFi transport:
 //
-//   flutter test integration_test/demo_drive_perf_test.dart -d <device>
+//   dart run tool/sim_server.dart --port 35000 --scenario city_stop_go
+//   flutter test integration_test/sim_drive_perf_test.dart -d <device>
 //
 // It prints `PERF` lines (p50, p90 and p99 of the frame cost, the longer of
 // the build and the raster time) for each cluster and for the HUD, and the
@@ -19,6 +21,8 @@ import 'package:tapedash/ui/design/theme/tape_theme.dart';
 import 'package:tapedash/ui/onboarding/onboarding_screen.dart';
 import 'package:tapedash/ui/pages/drive/drive_page.dart';
 
+import 'sim_connect.dart';
+
 double _percentile(List<double> sorted, double p) => sorted.isEmpty
     ? double.nan
     : sorted[math.min(sorted.length - 1, (sorted.length * p).floor())];
@@ -26,28 +30,27 @@ double _percentile(List<double> sorted, double p) => sorted.isEmpty
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('a demo drive through every cluster and the HUD', (tester) async {
+  testWidgets('a simulated drive through every cluster and the HUD', (
+    tester,
+  ) async {
     await app.main();
     final costs = <double>[];
     void onTimings(List<FrameTiming> t) =>
         costs.addAll(t.map(FrameProbe.costOf));
     SchedulerBinding.instance.addTimingsCallback(onTimings);
 
-    // The cold open, then the choice, then the demo.
-    var waited = 0;
-    while (find.byType(DrivePage).evaluate().isEmpty && waited < 30) {
-      await tester.pump(const Duration(milliseconds: 500));
-      waited++;
-      if (tester
-              .stateList<OnboardingScreenState>(find.byType(OnboardingScreen))
-              .any((s) => s.choiceReady) &&
-          find.text('TRY A DEMO DRIVE').evaluate().isNotEmpty) {
-        break;
-      }
-    }
+    // The cold open, then the choice; the frames are judged for the cold open
+    // alone. Then the connect flow, to the simulator.
+    await until(
+      tester,
+      () => tester
+          .stateList<OnboardingScreenState>(find.byType(OnboardingScreen))
+          .any((s) => s.choiceReady),
+      'the choice after the cold open',
+    );
     final coldOpen = List.of(costs);
     costs.clear();
-    await tester.tap(find.text('TRY A DEMO DRIVE'));
+    await connectToSimulator(tester);
     await tester.pump(const Duration(milliseconds: 500));
 
     void report(String name, List<double> c) {

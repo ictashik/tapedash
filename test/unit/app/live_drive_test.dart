@@ -1,10 +1,13 @@
 // A real-adapter drive, with a simulated adapter behind the transport factory: the
 // same stack as the demo, the session found and kept, the protocol remembered, the
 // recording written for the handoff, and the drive stopped and started again.
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/app/live_drive.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/obd/adapter_config.dart';
+import 'package:tapedash/obd/link_diary.dart';
 import 'package:tapedash/obd/obd_session.dart';
 import 'package:tapedash/obd/transport/session_log.dart';
 import 'package:tapedash/obd/transport/session_sink.dart';
@@ -15,6 +18,20 @@ import 'package:tapedash/sim/scenarios.dart';
 import 'package:tapedash/sim/simulated_car.dart';
 import 'package:tapedash/vehicle/sensor.dart';
 
+/// A simulated adapter that, like a radio, says what it is doing.
+class DiagTransport extends SimTransport implements LinkDiagnostics {
+  DiagTransport({required super.car, required super.scheduler});
+
+  // A test transport: nothing holds it open past the test.
+  // ignore: close_sinks
+  final StreamController<String> lines = StreamController<String>.broadcast(
+    sync: true,
+  );
+
+  @override
+  Stream<String> get diagnostics => lines.stream;
+}
+
 class SimFactory implements TransportFactory {
   SimFactory(this.car, this.clock);
 
@@ -22,9 +39,18 @@ class SimFactory implements TransportFactory {
   final FakeClock clock;
   final List<AdapterConfig> asked = [];
 
+  /// The last transport made, when it is one that says what it is doing.
+  DiagTransport? diag;
+
+  /// Whether to make transports that say what they are doing.
+  bool sayWhatIsHappening = false;
+
   @override
   Transport create(AdapterConfig config) {
     asked.add(config);
+    if (sayWhatIsHappening) {
+      return diag = DiagTransport(car: car, scheduler: clock);
+    }
     return SimTransport(car: car, scheduler: clock);
   }
 }
@@ -71,7 +97,6 @@ void main() {
     () async {
       final d = drive();
       addTearDown(d.dispose);
-      expect(d.isDemo, isFalse);
       expect(d.connection.value, ConnectionStatus.stopped);
       expect(d.description.value, 'OBDII');
 
@@ -196,6 +221,70 @@ void main() {
     expect(factory.asked.length, 2);
     clock.advance(const Duration(seconds: 30));
     expect(d.connection.value, ConnectionStatus.connected);
+  });
+
+  group('the connection log', () {
+    test('it says what the drive does to reach the adapter, and what the '
+        'radio says, whether or not the session is recorded', () async {
+      factory.sayWhatIsHappening = true;
+      final diary = LinkDiary(clock: clock);
+      final d = LiveDrive(
+        adapter: _adapter,
+        transports: factory,
+        clock: clock,
+        scheduler: clock,
+        diary: diary,
+      );
+      addTearDown(d.dispose);
+      d.start();
+      factory.diag!.lines.add('classic: connected by channel 1 (round 2)');
+      clock.advance(const Duration(seconds: 30));
+
+      final text = diary.format();
+      expect(text, contains('drive started: Bluetooth OBDII'));
+      expect(text, contains('00:1D:A5:00:00:01'));
+      expect(text, contains('classic: connected by channel 1 (round 2)'));
+      expect(text, contains('transport connecting'));
+      expect(text, contains('transport connected'));
+      expect(text, contains('status connected'));
+    });
+
+    test(
+      'with the session recorded the same lines are in the recording',
+      () async {
+        factory.sayWhatIsHappening = true;
+        final sink = MemorySessionSink();
+        final d = LiveDrive(
+          adapter: _adapter,
+          transports: factory,
+          clock: clock,
+          scheduler: clock,
+          recordSessions: true,
+          sink: sink,
+        );
+        d.start();
+        factory.diag!.lines.add('ble: link status=133 state=disconnected');
+        clock.advance(const Duration(seconds: 25));
+        final name = d.recordingName!;
+        await d.dispose();
+        final log = SessionLog.parse(sink.files[name]!);
+        final notes = [
+          for (final e in log.entries)
+            if (e.direction == SessionDirection.note) e.text,
+        ];
+        expect(notes, contains('link ble: link status=133 state=disconnected'));
+      },
+    );
+
+    test('a drive with no diary and no recording just drives', () async {
+      factory.sayWhatIsHappening = true;
+      final d = drive();
+      addTearDown(d.dispose);
+      d.start();
+      factory.diag!.lines.add('anything');
+      clock.advance(const Duration(seconds: 30));
+      expect(d.connection.value, ConnectionStatus.connected);
+    });
   });
 }
 

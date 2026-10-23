@@ -159,7 +159,7 @@ android/app/src/main/kotlin/.../  # GpsChannel, BtClassicChannel, DeviceChannel,
 assets/fonts/ assets/dtc/
 tool/                  # check_offline.sh, sim_server.dart, record/replay helpers, font subsetting script
 test/                  # unit/, e2e/, widget/, design/ (goldens + design lint)
-integration_test/      # on-device/emulator tests using Demo Mode
+integration_test/      # on-device/emulator tests: the app on tool/sim_server.dart over WiFi
 recordings/            # replayable raw ELM sessions (sim-generated now, real later)
 docs/                  # DECISIONS.md, STATUS.md, DEV_SETUP.md, HARDWARE_HANDOFF.md, RELEASE_CHECKLIST.md, design-review/
 ```
@@ -176,7 +176,7 @@ docs/                  # DECISIONS.md, STATUS.md, DEV_SETUP.md, HARDWARE_HANDOFF
 
 ## 7. The simulator (build this first)
 
-The simulator is a first-class, shipped feature. It powers every test, feeds the Design Lab, and appears in the app as **Demo Mode** so users can try TapeDash without a car.
+The simulator is a first-class development feature. It powers every test, feeds the Design Lab, and serves the real WiFi transport on the dev machine (`tool/sim_server.dart`). **It is not in the app.** Demo Mode was removed on 2026-10-23 at the human's instruction (docs/DECISIONS.md): the app drives from the user's adapter or, by their choice, from the phone's GPS alone, and never shows simulated data as if it were the car's.
 
 ### 7.1 `VehicleModel`: a simple physical car
 Deterministic given a seed and a stream of driver inputs (throttle 0–1, brake 0–1, ignition on or off). It updates at a fixed step (e.g. 50 ms) on the injected clock.
@@ -236,8 +236,10 @@ It takes raw command strings and produces **byte-accurate ELM327 text output**:
   Run it on the dev machine and point the **real WiFi transport** at it. From an Android emulator the host is `10.0.2.2`, which is a private range and passes the guard. This tests the production WiFi code path end-to-end without hardware.
 - Optional cross-check: the open-source Python ELM327-emulator over TCP, to make sure our parser also accepts another implementation's output.
 
-### 7.6 Demo Mode in the app
-Garage → Demo mode, and the "Try a demo drive" onboarding path (DESIGN.md §7.11). Pick a scenario, which loops, and a profile. The DEMO badge is always visible (DESIGN.md §6.9). Demo trips are stored but flagged and excluded from real statistics.
+### 7.6 No Demo Mode in the app
+There is no demo drive, no DEMO badge and no demo setting. The widget tests run the whole app on a simulated car through the production path (`test/support/sim_shell.dart`: a chosen adapter whose transport is `SimTransport`), and `integration_test/` runs it on `tool/sim_server.dart` over WiFi. Trips flagged `is_demo` by older builds stay in the database file, are never listed or counted, and nothing makes one now.
+
+**The source is chosen, never guessed.** The app asks (cold open: CONNECT MY CAR or GPS SPEED ONLY) until a source is chosen, then keeps it. An adapter that will not connect stays an adapter drive that is looking for its adapter; it never turns into another source. Garage → Speed from switches between the car's adapter and the GPS alone.
 
 ---
 
@@ -321,7 +323,7 @@ Wording rules: idling is "avoidable". The other buckets say "spent during hard a
 - Every threshold lives in `CoachThresholds`, is configurable (Gentle / Normal / Sporty presets in Garage), and is covered by tests.
 
 ### 8.9 Sweet spot and tips
-- **Sweet spot:** from all real, non-demo trips, collect steady-state samples (absolute acceleration below 0.3 m/s² and throttle change below 5% per second), bin them by 10 km/h speed band, and report km/L per band once a band has at least 3 km of data. This feeds the efficiency curve (DESIGN.md §6.13).
+- **Sweet spot:** from all real trips, collect steady-state samples (absolute acceleration below 0.3 m/s² and throttle change below 5% per second), bin them by 10 km/h speed band, and report km/L per band once a band has at least 3 km of data. This feeds the efficiency curve (DESIGN.md §6.13).
 - **Tips** are rule-based templates, shown **only when stopped or after the trip**, at most 2 per trip, picked by rupee impact. For example: "₹24 of this trip went on idling — about 14 minutes with the engine on." Never shame; keep it factual.
 - **Live cue while driving:** the eco bar (DESIGN.md §6.7), based on instant km/L relative to the car's own average. No text.
 
@@ -342,6 +344,8 @@ The app is one continuous strip of pages: `REVIEW · MONEY · [DRIVE] · COACH �
 3. **Review** (parked only): route trail, telemetry scrubber, receipt, where-it-went breakdown, one coach tip, and the Debrief when a trip ends (DESIGN.md §7.5).
 4. **Coach** (parked only): efficiency curve and sweet spot, weekly spend, ₹/km trend, recent tips (DESIGN.md §7.6).
 5. **History** (parked only): trip list with mini routes and mini Money Tapes (DESIGN.md §7.7).
+
+**GPS only** (a source chosen at the cold open or in Garage → Speed from): one screen, not the strip. The speed as the hero, and what a GPS can honestly add up to (distance, moving time, average and fastest speed, heading); the parked dock with Garage, HUD and Reset trip; the HUD with the speed alone. No tach, money, coach, trips or engine sound, because nothing reads them, and none is invented. The speed is the receiver's Doppler speed (below about 1.5 km/h it is zero), the distance is that speed over time and never the positions, and a fix less accurate than 100 m is not used. Pure Dart in `lib/location/gps_drive.dart`, tested against the simulator's ground truth.
 
 Also, from the parked dock: **Garage** (settings, DESIGN.md §7.8), **Pit Stop** (fill-up, DESIGN.md §7.9), **Diagnostics** (DESIGN.md §7.10), and the HUD toggle. Plus **Onboarding** (DESIGN.md §7.11).
 
@@ -423,10 +427,10 @@ Full stack: `SimTransport` → ELM layer → poller → vehicle → fuel → mon
 - Goldens load the real bundled fonts and are generated on CI Linux only. Tag golden tests `golden`. On Linux, run everything; on macOS or Windows, run `flutter test --exclude-tags golden` locally and rely on CI for the goldens, so the commit rule in section 2 stays achievable.
 
 ### Layer 5: Device and emulator (`integration_test/`, run when an emulator or device is available)
-- The app launches in Demo Mode and cycles all pages and clusters
+- The app connects to `tool/sim_server.dart` over WiFi and cycles all pages and clusters
 - The WiFi transport connects to `tool/sim_server.dart` via `10.0.2.2:35000` and shows live values
-- Profile-mode frame timings are logged per fidelity tier for a 2-minute demo drive. **Document the results** in `docs/STATUS.md` and the design review package. If no emulator is available, say so explicitly rather than skipping silently.
-- A 60–90 s screen recording of a demo drive for the design review package (DESIGN.md §14.4).
+- Profile-mode frame timings are logged per fidelity tier for a 2-minute simulated drive. **Document the results** in `docs/STATUS.md` and the design review package. If no emulator is available, say so explicitly rather than skipping silently.
+- A 60–90 s screen recording of a simulated drive for the design review package (DESIGN.md §14.4).
 
 ### Recordings
 - `tool/record_sim.dart` generates `recordings/sim/*.log` (timestamped raw ELM traffic) from scenarios.
@@ -506,7 +510,7 @@ Each bullet is one or more commits. Don't start a phase until the previous phase
 - Components: rolling numerals, tach arc, tapes, shift horizon, bar gauges, telemetry tiles, eco bar, status strip, alerts, road view
 - The Strip navigation, Motion ↔ Parked, all five Drive clusters, ignition and shutdown sequences, connection states
 - HUD layouts, flips, alignment pattern
-- Demo Mode, onboarding with the cold open and demo path, brand (icon, launch, wordmark)
+- Demo Mode (removed 2026-10-23, see 7.6), onboarding with the cold open, brand (icon, launch, wordmark)
 - Layer 4 and 4b tests; design review package
 
 ### Phase 4: Trips, fuel and money (tag `v0.4.0-sim`)

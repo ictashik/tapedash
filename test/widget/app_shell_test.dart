@@ -1,6 +1,6 @@
 // The app boots onto the void canvas with no exceptions, and the dev button
-// opens and closes the Design Lab (DESIGN.md 13.2). The Strip and its pages
-// arrive in phase 3b (CLAUDE.md 13); this is what there is to boot onto so far.
+// opens and closes the Design Lab (DESIGN.md 13.2). Past the choice it opens on the
+// Strip, driven by the chosen adapter (here a simulated one).
 import 'dart:typed_data';
 
 import 'package:flutter/rendering.dart';
@@ -15,6 +15,8 @@ import 'package:tapedash/ui/hud/hud_view.dart';
 import 'package:tapedash/ui/lab/design_lab.dart';
 import 'package:tapedash/ui/pages/drive/drive_page.dart';
 import 'package:tapedash/ui/pages/strip/the_strip.dart';
+
+import '../support/sim_shell.dart';
 
 /// Sets the test surface to a landscape phone size, as DESIGN.md 14.1 checks at.
 void _setPhoneWindow(WidgetTester tester) {
@@ -53,7 +55,7 @@ Future<Color> _cornerColour(WidgetTester tester) async {
 void main() {
   testWidgets('boots to the void canvas with no exceptions', (tester) async {
     _setPhoneWindow(tester);
-    await tester.pumpWidget(const TapeDashApp(onboarding: false));
+    await tester.pumpWidget(const TapeDashApp());
     await tester.pump();
 
     expect(find.byType(TapeBackdrop), findsOneWidget);
@@ -86,8 +88,13 @@ void main() {
   testWidgets('over the drive there is no dev button in the way; the debug '
       'overlay opens the Lab', (tester) async {
     _setPhoneWindow(tester);
-    await tester.pumpWidget(const TapeDashApp(onboarding: false));
+    final clock = FakeClock()..advance(const Duration(seconds: 100));
+    final rig = await SimRig.create(clock);
+    addTearDown(rig.dispose);
+    await tester.pumpWidget(rig.widget());
     await tester.pump();
+    await tester.pump();
+    expect(find.byType(TheStrip), findsOneWidget);
     expect(find.widgetWithText(TapeButton, 'DESIGN LAB'), findsNothing);
 
     await tester.longPressAt(const Offset(320, 180));
@@ -103,14 +110,14 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('opens on the Strip, in Demo Mode, and the demo car drives', (
+  testWidgets('opens on the Strip, and the car on the adapter drives', (
     tester,
   ) async {
     _setPhoneWindow(tester);
     final clock = FakeClock()..advance(const Duration(seconds: 100));
-    await tester.pumpWidget(
-      TapeDashApp(clock: clock, scheduler: clock, onboarding: false),
-    );
+    final rig = await SimRig.create(clock);
+    addTearDown(rig.dispose);
+    await tester.pumpWidget(rig.widget());
     for (var i = 0; i < 300; i++) {
       clock.advance(const Duration(milliseconds: 100));
       await tester.pump(const Duration(milliseconds: 100));
@@ -119,7 +126,6 @@ void main() {
     expect(find.byType(DrivePage), findsOneWidget);
     expect(find.byType(HudView), findsNothing);
     final drive = tester.widget<DrivePage>(find.byType(DrivePage));
-    expect(drive.signals.demoMode, isTrue);
     expect(drive.signals.vehicle.rpm.value, isNotNull);
     expect(drive.signals.vehicle.speed.value, isNotNull);
     expect(tester.takeException(), isNull);
@@ -130,9 +136,10 @@ void main() {
   ) async {
     _setPhoneWindow(tester);
     final clock = FakeClock()..advance(const Duration(seconds: 100));
-    await tester.pumpWidget(
-      TapeDashApp(clock: clock, scheduler: clock, onboarding: false),
-    );
+    final rig = await SimRig.create(clock);
+    addTearDown(rig.dispose);
+    await tester.pumpWidget(rig.widget());
+    await tester.pump();
     await tester.pump();
     Future<void> doubleTap() async {
       await tester.tapAt(const Offset(320, 180));

@@ -126,8 +126,8 @@ class SweetSpot {
   }
 }
 
-/// The curve from every real trip in [trips]: demo trips are left out by the
-/// repository (CLAUDE.md 8.9: "from all real, non-demo trips").
+/// The curve from every real trip in [trips]: simulated trips are left out by the
+/// repository (CLAUDE.md 8.9: "from all real trips").
 Future<SweetSpot> sweetSpotFrom(TripRepository trips) async {
   final all = await trips.all();
   final samples = <List<TripSample>>[];

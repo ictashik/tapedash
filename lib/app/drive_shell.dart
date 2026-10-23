@@ -43,8 +43,6 @@ import '../ui/pages/strip/the_strip.dart';
 import '../vehicle/vehicle_state.dart' show DrivingMode;
 import 'app_info.dart';
 import 'app_services.dart';
-import 'demo_drive.dart';
-import 'demo_location_source.dart';
 import 'drive_feed.dart';
 import 'drive_services.dart';
 import 'drive_sound.dart';
@@ -52,30 +50,24 @@ import 'engine_sound_sources.dart';
 import 'live_drive.dart';
 
 /// Which full-screen form is over the Strip.
-enum _Form { none, pitStop, price, realPrice, garage, diagnostics, insights }
+enum _Form { none, pitStop, price, garage, diagnostics, insights }
 
 /// The app's driving surface: the Strip with its five pages, the parked dock,
-/// Pit Stop, and the HUD over all of them, fed by Demo Mode's simulated car
-/// (CLAUDE.md 7.6).
+/// Pit Stop, and the HUD over all of them, fed by a [DriveFeed]: in the app the
+/// car on the user's adapter ([LiveDrive]), in a test a simulated one.
 ///
-/// It owns the service graph for now: the demo drive, the trip computer and
-/// recorder chained on its vehicle ([DriveServices]), the signals the screens
-/// read, and the HUD's settings; and lets go of it on dispose. A real adapter's
-/// session replaces the demo drive here in phase 6, behind the same
-/// `VehicleState`. Time is injected, so a test drives the whole thing on a
+/// It owns the service graph: the trip computer and recorder chained on the
+/// feed's vehicle ([DriveServices]), the signals the screens read, and the HUD's
+/// settings; and lets go of it on dispose. The feed is someone else's to start
+/// and dispose. Time is injected, so a test drives the whole thing on a
 /// `FakeClock`.
-///
-/// **The demo has its own money:** its price, fill-ups and calibration are in
-/// memory and start from an example price, and only its trips reach the real trip
-/// log, flagged as demo (CLAUDE.md 7.6).
 class DriveShell extends StatefulWidget {
   const DriveShell({
     super.key,
+    required this.feed,
     this.clock = const SystemClock(),
     this.scheduler = const SystemScheduler(),
-    this.scenario = 'city_stop_go',
-    this.demo,
-    this.live,
+    this.location,
     this.app,
     this.onChangeAdapter,
     this.onSurvey,
@@ -98,17 +90,13 @@ class DriveShell extends StatefulWidget {
 
   final Clock clock;
   final Scheduler scheduler;
-  final String scenario;
 
-  /// A demo drive someone else started (and disposes), so that it can be
-  /// connecting while the cold open and the choice are on screen: the ignition
-  /// then plays the moment the drive appears (DESIGN.md 7.11's "within 1 s").
-  /// Null builds and owns one.
-  final DemoDrive? demo;
+  /// Where the readings come from. Someone else starts and disposes it.
+  final DriveFeed feed;
 
-  /// A drive from a real adapter, in place of the demo (someone else starts and
-  /// disposes it). When given, the demo is not built at all.
-  final LiveDrive? live;
+  /// The phone's GPS, for the route of a trip and as the distance's sanity
+  /// check. Null uses the phone's own; a test gives a simulated one.
+  final LocationSource? location;
 
   /// The app's own services (the real trip log and settings). Null uses empty
   /// in-memory ones, for tests.
@@ -139,27 +127,9 @@ class DriveShell extends StatefulWidget {
 }
 
 class _DriveShellState extends State<DriveShell> {
-  /// The demo drive, unless this is a drive from a real adapter.
-  late final DemoDrive? _demo = widget.live != null
-      ? null
-      : widget.demo ??
-            DemoDrive(
-              clock: widget.clock,
-              scheduler: widget.scheduler,
-              scenario: widget.scenario,
-            );
-
-  /// Where the drive screens read from: the adapter's car, or the simulated one.
-  late final DriveFeed _feed = widget.live ?? _demo!;
+  /// Where the drive screens read from.
+  late final DriveFeed _feed = widget.feed;
   late final AppServices _app = widget.app ?? AppServices.inMemory();
-  late final AppServices _demoApp = AppServices.demo(
-    _app.trips,
-    now: widget.clock.now(),
-  );
-
-  /// The money of this drive: the real one for a real car, the demo's own for
-  /// the demo (CLAUDE.md 7.6).
-  late final AppServices _driveApp = _feed.isDemo ? _demoApp : _app;
   late final ImageSharer _sharer = widget.sharer ?? NativeImageSharer();
   late final HudSettings _hud = _app.settings.hud;
   final GlobalKey<DrivePageState> _driveKey = GlobalKey();
@@ -194,26 +164,17 @@ class _DriveShellState extends State<DriveShell> {
     // The signals need the app's motion clock, which is only in scope here.
     if (_signals == null) {
       final motion = MotionScope.of(context);
-      // The demo's GPS follows the demo car, so a demo trip has a route; a real
-      // drive has the phone's own.
-      final LocationSource location = _feed.isDemo
-          ? DemoLocationSource(
-              demo: _demo!,
-              scheduler: widget.scheduler,
-              clock: widget.clock,
-            )
-          : NativeLocationSource();
+      final LocationSource location = widget.location ?? NativeLocationSource();
       _location = location;
       _gps = LocationStatus(source: location, scheduler: widget.scheduler);
       _gpsListenable = ObservableListenable(_gps!.hasFix);
       final services = DriveServices(
         vehicle: _feed.vehicle,
         connection: _feed.connection,
-        app: _driveApp,
+        app: _app,
         clock: widget.clock,
         scheduler: widget.scheduler,
         sessions: _feed.sessions,
-        isDemo: _feed.isDemo,
         location: location,
         note: _feed is LiveDrive ? _feed.note : null,
         thresholds: _app.settings.thresholds,
@@ -223,8 +184,8 @@ class _DriveShellState extends State<DriveShell> {
       _syncTrip();
       _money = MoneySignals(
         trip: services.computer,
-        settings: _driveApp.money,
-        ledger: _driveApp.ledger,
+        settings: _app.money,
+        ledger: _app.ledger,
         motion: motion,
         clock: widget.clock,
         recorder: services.recorder,
@@ -235,7 +196,6 @@ class _DriveShellState extends State<DriveShell> {
         clock: widget.clock,
         scheduler: widget.scheduler,
         connection: _feed.connection,
-        demoMode: _feed.isDemo,
         money: _money,
         gpsHasFix: _gpsListenable,
         phoneHot: widget.phoneHot,
@@ -257,7 +217,7 @@ class _DriveShellState extends State<DriveShell> {
       );
       _restWatcher = RestVoltageWatcher(
         vehicle: _feed.vehicle,
-        log: _driveApp.restVoltage,
+        log: _app.restVoltage,
       );
       _feed.start(); // a no-op if it is already running
       unawaited(_startLocation(location));
@@ -267,8 +227,6 @@ class _DriveShellState extends State<DriveShell> {
       services.recorder
         ..onTripEnded(_onTripEnded)
         ..onTripResumed(_onTripResumed);
-      // The demo drive starting over is the engine going off.
-      _demo?.loops.addListener(_onDemoLoop);
       final settings = _app.settings;
       settings.coachPreset.addListener(_onCoach);
       settings.speedLimitKmh.addListener(_onCoach);
@@ -329,8 +287,6 @@ class _DriveShellState extends State<DriveShell> {
   void _syncTrip() =>
       _tripRunning.value = _services?.recorder.recording ?? false;
 
-  void _onDemoLoop() => _services?.recorder.endNow();
-
   /// Starts the GPS. A phone that will not give it (no permission, no receiver, a
   /// test with no platform) only means no route and the GPS glyph saying no fix:
   /// the drive goes on.
@@ -365,7 +321,6 @@ class _DriveShellState extends State<DriveShell> {
 
   @override
   void dispose() {
-    _demo?.loops.removeListener(_onDemoLoop);
     final settings = _app.settings;
     settings.coachPreset.removeListener(_onCoach);
     settings.speedLimitKmh.removeListener(_onCoach);
@@ -384,13 +339,7 @@ class _DriveShellState extends State<DriveShell> {
     _tripRunning.dispose();
     _gpsListenable?.dispose();
     _gps?.dispose();
-    final location = _location;
-    if (location is DemoLocationSource) {
-      location.dispose();
-    } else {
-      unawaited(location?.stop());
-    }
-    if (widget.demo == null && _demo != null) _demo.dispose();
+    unawaited(_location?.stop());
     super.dispose();
   }
 
@@ -403,14 +352,10 @@ class _DriveShellState extends State<DriveShell> {
   void _close() => setState(() => _form = _Form.none);
 
   Future<void> _save(PitStopForm f) async {
-    if (_form == _Form.realPrice) {
-      await _app.money.setPrice(f.pricePerLitre);
-      return;
-    }
     if (f.priceOnly) {
-      await _driveApp.money.setPrice(f.pricePerLitre);
+      await _app.money.setPrice(f.pricePerLitre);
     } else {
-      await _driveApp.saveFillUp(
+      await _app.saveFillUp(
         at: widget.clock.now(),
         litres: f.litres!,
         amount: f.amount!,
@@ -431,13 +376,12 @@ class _DriveShellState extends State<DriveShell> {
           width: w,
           height: h,
           onClose: _close,
-          onSetPrice: () => setState(() => _form = _Form.realPrice),
-          demo: _demo,
+          onSetPrice: () => setState(() => _form = _Form.price),
           adapters: _app.adapters,
           onChangeAdapter: widget.onChangeAdapter,
           onSurvey: widget.onSurvey,
+          diary: _app.linkDiary,
           phoneTemperature: widget.phoneTemperature,
-          onEndTrip: () => _services?.recorder.endNow(),
           onAlignment: () => _hud.showAlignment = true,
           sound: _sound,
           version: appVersion,
@@ -455,16 +399,15 @@ class _DriveShellState extends State<DriveShell> {
         return InsightsPage(
           load: () => InsightData.load(
             _app.trips,
-            demo: _feed.isDemo,
-            fallbackPrice: _driveApp.money.price.value,
+            fallbackPrice: _app.money.price.value,
           ),
           tank: (trips) => TankReading.of(
-            ledger: _driveApp.ledger,
-            tankLitres: _driveApp.setup.value.tankLitres,
+            ledger: _app.ledger,
+            tankLitres: _app.setup.value.tankLitres,
             trips: trips,
           ),
           selected: () => _library.selected.value,
-          rest: () => _driveApp.restVoltage.readings,
+          rest: () => _app.restVoltage.readings,
           sharer: _sharer,
           now: widget.clock.now,
           mode: signals.mode,
@@ -475,18 +418,14 @@ class _DriveShellState extends State<DriveShell> {
       case _Form.none:
       case _Form.pitStop:
       case _Form.price:
-      case _Form.realPrice:
-        // The price of the car's own fuel is the real one; a demo's Pit Stop is
-        // the demo's.
-        final target = _form == _Form.realPrice ? _app : _driveApp;
         return PitStopPage(
           key: ValueKey(_form),
           width: w,
           height: h,
           mode: signals.mode,
-          priceOnly: _form == _Form.price || _form == _Form.realPrice,
-          tankLitres: target.setup.value.tankLitres,
-          currentPrice: target.money.price.value,
+          priceOnly: _form == _Form.price,
+          tankLitres: _app.setup.value.tankLitres,
+          currentPrice: _app.money.price.value,
           onSave: _save,
           onClose: _close,
         );

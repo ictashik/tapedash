@@ -24,7 +24,7 @@ void main() {
         kit: kit,
         motion: motion,
         child: TapeBackdrop(
-          child: OnboardingScreen(width: 720, height: 360, onDemo: () {}),
+          child: OnboardingScreen(width: 720, height: 360, onGps: () {}),
         ),
       ),
     );

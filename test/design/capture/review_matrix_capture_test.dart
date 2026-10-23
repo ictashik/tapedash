@@ -5,12 +5,12 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tapedash/app/drive_shell.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
 import 'package:tapedash/ui/design/theme/tape_theme.dart';
 import 'package:tapedash/ui/design/tokens/livery.dart';
+import '../../support/sim_shell.dart';
 
 import '../support/harness.dart';
 
@@ -35,7 +35,7 @@ void main() {
             kit: kit,
             motion: motion,
             theme: TapeThemeData(livery: Liveries.ion),
-            child: DriveShell(
+            child: SimDriveShell(
               clock: clock,
               scheduler: clock,
               scenario: entry.value.$1,
@@ -59,7 +59,7 @@ void main() {
           );
           // An upward hand advances the reel to the next cluster.
           await tester.timedDrag(
-            find.byType(DriveShell),
+            find.byType(SimDriveShell),
             const Offset(0, -250),
             const Duration(milliseconds: 250),
           );

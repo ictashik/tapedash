@@ -213,10 +213,9 @@ Future<void> main() async {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the demo has no adapter to survey: no row in Garage', (
-    tester,
-  ) async {
-    await app.adapters.forget();
+  testWidgets('on the GPS alone there is no adapter to survey: no row in '
+      'Garage', (tester) async {
+    await app.adapters.setSource(DriveSource.gps);
     await boot(tester);
     await run(tester, 5000);
 

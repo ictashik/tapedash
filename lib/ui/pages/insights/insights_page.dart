@@ -46,7 +46,7 @@ enum InsightTab {
 /// a time. A scrolling selector across the top, one panel under it, and Close.
 ///
 /// Parked only: it closes itself if the car starts to move. Real drives and the
-/// demo are never mixed (CLAUDE.md 7.6), which [load] decides.
+/// simulated trips are never mixed in, which [load] decides.
 class InsightsPage extends StatefulWidget {
   const InsightsPage({
     super.key,

@@ -9,6 +9,7 @@ import 'package:tapedash/obd/transport/transport.dart';
 class FakeLink implements NativeLink {
   final StreamController<String> in_ = StreamController.broadcast(sync: true);
   final StreamController<void> lost_ = StreamController.broadcast(sync: true);
+  final StreamController<String> diag_ = StreamController.broadcast(sync: true);
   final List<String> sent = [];
   Completer<void>? gate;
   NativeLinkException? openError;
@@ -20,6 +21,8 @@ class FakeLink implements NativeLink {
   Stream<String> get incoming => in_.stream;
   @override
   Stream<void> get lost => lost_.stream;
+  @override
+  Stream<String> get diagnostics => diag_.stream;
 
   @override
   Future<void> open() async {
@@ -34,6 +37,7 @@ class FakeLink implements NativeLink {
   Future<void> dispose() async {
     await in_.close();
     await lost_.close();
+    await diag_.close();
   }
 
   @override
@@ -189,5 +193,70 @@ void main() {
     await transport.connect();
     await transport.connect();
     expect(link.opens, 1);
+  });
+
+  test(
+    'a radio that never answers is a failed connection, not a wait for ever',
+    () async {
+      await transport.dispose();
+      link.gate = Completer<void>();
+      transport = NativeLinkTransport(
+        link,
+        openTimeout: const Duration(milliseconds: 50),
+      );
+      final closesBefore = link.closes;
+      final lines = <String>[];
+      transport.diagnostics.listen(lines.add);
+      await expectLater(
+        transport.connect(),
+        throwsA(
+          isA<TransportException>().having(
+            (e) => e.failure,
+            'failure',
+            TransportFailure.unreachable,
+          ),
+        ),
+      );
+      expect(transport.currentState.failure, TransportFailure.unreachable);
+      expect(
+        link.closes,
+        closesBefore + 1,
+        reason: 'what was half-opened is let go of',
+      );
+      expect(lines.single, contains('did not answer'));
+    },
+  );
+
+  group('diagnostics', () {
+    test('the link\'s lines pass through', () async {
+      final lines = <String>[];
+      transport.diagnostics.listen(lines.add);
+      link.diag_.add('classic: connected by channel 1 (round 2)');
+      expect(lines, ['classic: connected by channel 1 (round 2)']);
+    });
+
+    test('a connection that fails says what the radio said', () async {
+      link.openError = const NativeLinkException(
+        NativeLinkProblem.connectFailed,
+        'read failed, socket might closed or timeout',
+      );
+      final lines = <String>[];
+      transport.diagnostics.listen(lines.add);
+      await expectLater(
+        transport.connect(),
+        throwsA(isA<TransportException>()),
+      );
+      expect(lines, hasLength(1));
+      expect(lines.single, contains('connectFailed'));
+      expect(lines.single, contains('read failed'));
+    });
+
+    test('a link that drops is said to have been lost', () async {
+      await transport.connect();
+      final lines = <String>[];
+      transport.diagnostics.listen(lines.add);
+      link.lost_.add(null);
+      expect(lines, ['the link was lost']);
+    });
   });
 }

@@ -68,7 +68,7 @@ void main() {
     );
   }, skip: !enabled);
 
-  testWidgets('right flank: clock, phone hot, demo', (tester) async {
+  testWidgets('right flank: clock, phone hot', (tester) async {
     await shot(
       tester,
       'status-right-plain',
@@ -81,12 +81,11 @@ void main() {
     );
     await shot(
       tester,
-      'status-right-hot-demo-parked',
+      'status-right-hot-parked',
       () => StatusStripRight(
         time: ValueNotifier(DateTime(2026, 1, 1, 14, 7)),
         use24Hour: false,
         phoneHot: ValueNotifier(true),
-        demoMode: true,
         parkedShare: ValueNotifier(1),
       ),
     );

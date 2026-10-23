@@ -22,17 +22,18 @@ import '../design/tokens/spacing.dart';
 /// benchmark (DESIGN.md 9.2): the frame costs seen while it plays are handed to
 /// [onBenchmark] when it ends.
 ///
-/// **Choice:** two large chamfer buttons, TRY A DEMO DRIVE (primary) and CONNECT
-/// MY CAR. The wordmark stays where the cold open left it and the buttons
-/// reveal beneath it, staggered, so the screen never jumps. CONNECT MY CAR starts
-/// the connect flow (`ConnectFlow`); where a screen has none to offer it is
-/// disabled and says so.
+/// **Choice:** two large chamfer buttons, CONNECT MY CAR (primary) and GPS SPEED
+/// ONLY. The wordmark stays where the cold open left it and the buttons reveal
+/// beneath it, staggered, so the screen never jumps. CONNECT MY CAR starts the
+/// connect flow (`ConnectFlow`); where a screen has none to offer it is disabled
+/// and says so. GPS SPEED ONLY drives from the phone's GPS with no adapter.
+/// Neither is a guess made for the person: the app asks until one is chosen.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({
     super.key,
     required this.width,
     required this.height,
-    required this.onDemo,
+    required this.onGps,
     this.onConnect,
     this.onBenchmark,
     this.skipColdOpen = false,
@@ -41,8 +42,8 @@ class OnboardingScreen extends StatefulWidget {
   final double width;
   final double height;
 
-  /// TRY A DEMO DRIVE.
-  final VoidCallback onDemo;
+  /// GPS SPEED ONLY.
+  final VoidCallback onGps;
 
   /// CONNECT MY CAR. Null disables it.
   final VoidCallback? onConnect;
@@ -179,19 +180,19 @@ class OnboardingScreenState extends State<OnboardingScreen> {
                       SizedBox(
                         width: TapeSpace.s12 * 5,
                         child: TapeButton(
-                          label: 'Try a demo drive',
-                          icon: TapeIcon.hud,
+                          label: 'Connect my car',
+                          icon: TapeIcon.adapter,
                           primary: true,
-                          onPressed: _ready ? widget.onDemo : null,
+                          onPressed: _ready ? widget.onConnect : null,
                         ),
                       ),
                       const SizedBox(width: TapeSpace.s4),
                       SizedBox(
                         width: TapeSpace.s12 * 5,
                         child: TapeButton(
-                          label: 'Connect my car',
-                          icon: TapeIcon.adapter,
-                          onPressed: _ready ? widget.onConnect : null,
+                          label: 'GPS speed only',
+                          icon: TapeIcon.gps,
+                          onPressed: _ready ? widget.onGps : null,
                         ),
                       ),
                     ],

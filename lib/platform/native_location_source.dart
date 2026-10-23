@@ -4,13 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../location/location_source.dart';
 
-/// The phone's location permission is not granted.
-class LocationPermissionException implements Exception {
-  const LocationPermissionException();
-
-  @override
-  String toString() => 'Location permission is not granted';
-}
+export '../location/location_source.dart' show LocationPermissionException;
 
 /// [LocationSource] on the platform channels implemented by `GpsChannel.kt`
 /// (CLAUDE.md 5): the phone's own GNSS receiver, through `LocationManager`, with

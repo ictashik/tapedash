@@ -1,11 +1,10 @@
-// A first look at the Road cluster, against a real DemoDrive (the same OBD
+// A first look at the Road cluster, against a real SimDrive (the same OBD
 // stack a real car would run through). Skipped unless TAPEDASH_CAPTURE_DIR
 // is set.
 import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tapedash/app/demo_drive.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/ui/design/components/backdrop.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
@@ -16,6 +15,7 @@ import 'package:tapedash/ui/design/tokens/livery.dart';
 import 'package:tapedash/ui/pages/drive/drive_signals.dart';
 import 'package:tapedash/ui/pages/drive/road_cluster.dart';
 
+import '../../support/sim_drive.dart';
 import '../support/harness.dart';
 
 void main() {
@@ -32,7 +32,7 @@ void main() {
     final kit = TapeRenderKit();
     final motion = ManualMotionClock();
     final clock = FakeClock();
-    final demo = DemoDrive(
+    final demo = SimDrive(
       clock: clock,
       scheduler: clock,
       scenario: scenario,

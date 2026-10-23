@@ -5,12 +5,13 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/app/app_services.dart';
 import 'package:tapedash/app/app_settings.dart';
-import 'package:tapedash/app/demo_drive.dart';
 import 'package:tapedash/app/drive_sound.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/core/fuel_blend.dart';
 import 'package:tapedash/core/observable.dart';
 import 'package:tapedash/fuel/fuel_constants.dart';
+import 'package:tapedash/obd/adapter_config.dart';
+import 'package:tapedash/obd/link_diary.dart';
 import 'package:tapedash/sound/engine_profile.dart';
 import 'package:tapedash/sound/engine_sound.dart';
 import 'package:tapedash/sound/pcm_sink.dart';
@@ -77,10 +78,9 @@ void main() {
   late AppSettings settings;
   late TripLibrary library;
   late ValueNotifier<DrivingMode> mode;
-  late DemoDrive demo;
   var closed = 0;
   var priceAsked = 0;
-  var endTrips = 0;
+  var adapterAsked = 0;
 
   setUpAll(loadTapeFonts);
 
@@ -92,23 +92,23 @@ void main() {
     settings = app.settings;
     library = TripLibrary(app.trips);
     mode = ValueNotifier(DrivingMode.parked);
-    demo = DemoDrive(clock: clock, scheduler: clock);
     closed = 0;
     priceAsked = 0;
-    endTrips = 0;
+    adapterAsked = 0;
   });
 
   tearDown(() {
     kit.dispose();
     motion.dispose();
     mode.dispose();
-    demo.dispose();
   });
 
   Future<void> show(
     WidgetTester tester, {
     Size size = const Size(720, 360),
-    bool withDemo = true,
+    bool withAdapters = false,
+    bool gpsOnly = false,
+    LinkDiary? diary,
     DriveSound? sound,
   }) async {
     setWindow(tester, size);
@@ -125,8 +125,10 @@ void main() {
           height: size.height,
           onClose: () => closed++,
           onSetPrice: () => priceAsked++,
-          demo: withDemo ? demo : null,
-          onEndTrip: () => endTrips++,
+          adapters: withAdapters ? app.adapters : null,
+          diary: diary,
+          onChangeAdapter: () => adapterAsked++,
+          gpsOnly: gpsOnly,
           sound: sound,
           version: '9.9',
         ),
@@ -422,47 +424,22 @@ void main() {
     expect(settings.speedLimitKmh.value, inInclusiveRange(60, 160));
   });
 
-  testWidgets('demo: the drive and the car are picked, and the trip can end', (
-    tester,
-  ) async {
-    await show(tester);
-    await visible(tester, find.text('Drive'));
-    await tester.tap(find.text('Drive'));
-    await tester.pump();
-    await visible(tester, find.text('highway_cruise'));
-    await tester.tap(find.text('highway_cruise'));
-    await tester.pump();
-    expect(demo.scenario.value, 'highway_cruise');
-    expect(settings.demoScenario.value, 'highway_cruise');
-
-    await visible(tester, find.text('Car'));
-    await tester.tap(find.text('Car'));
-    await tester.pump();
-    await visible(tester, find.text('petrol_manual_sporty'));
-    await tester.tap(find.text('petrol_manual_sporty'));
-    await tester.pump();
-    expect(demo.profile.value, 'petrol_manual_sporty');
-    expect(settings.demoProfile.value, 'petrol_manual_sporty');
-
-    await visible(tester, find.text('End this trip now'));
-    await tester.tap(find.text('End this trip now'));
-    await tester.pump();
-    expect(endTrips, 1);
-    expect(closed, 1);
-  });
-
   testWidgets('a list to pick from starts at its top, and Back returns to '
       'where the page was', (tester) async {
     await show(tester);
-    await visible(tester, find.text('Drive'));
+    await visible(tester, find.text('Colour'));
     final before = tester
         .state<ScrollableState>(find.byType(Scrollable).first)
         .position
         .pixels;
     expect(before, greaterThan(100));
-    await tester.tap(find.text('Drive'));
+    await tester.tap(find.text('Colour'));
     await tester.pump();
-    expect(find.text('cold_start_idle'), findsOneWidget, reason: 'its top');
+    expect(
+      find.text(HudColor.values.first.label),
+      findsOneWidget,
+      reason: 'its top',
+    );
 
     await tester.tap(find.text('BACK'));
     await tester.pump();
@@ -474,10 +451,106 @@ void main() {
     expect(after, before);
   });
 
-  testWidgets('with no demo there is no demo group', (tester) async {
-    await show(tester, withDemo: false);
+  testWidgets('there is no demo group: Garage has no demo to steer', (
+    tester,
+  ) async {
+    await show(tester, withAdapters: true);
     await visible(tester, find.textContaining('TapeDash 9.9'));
+    expect(find.textContaining('Demo', findRichText: true), findsNothing);
     expect(find.text('DEMO MODE'), findsNothing);
+  });
+
+  testWidgets('Speed from: GPS only is chosen, and the adapter kept', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      await app.adapters.choose(
+        const AdapterConfig(
+          kind: AdapterKind.ble,
+          address: 'AA:BB:CC:DD:EE:FF',
+          name: 'OBDBLE',
+        ),
+      );
+    });
+    await show(tester, withAdapters: true);
+    expect(app.adapters.source.value, DriveSource.obd);
+    await visible(tester, find.text('GPS ONLY').first);
+    await tester.tap(find.text('GPS ONLY').first);
+    await tester.pump();
+    expect(app.adapters.source.value, DriveSource.gps);
+    expect(app.adapters.adapter.value, isNotNull, reason: 'still remembered');
+    await visible(tester, find.text('CAR ADAPTER').first);
+    await tester.tap(find.text('CAR ADAPTER').first);
+    await tester.pump();
+    expect(app.adapters.source.value, DriveSource.obd);
+    expect(adapterAsked, 0);
+  });
+
+  testWidgets(
+    'Speed from: Car adapter with none chosen opens the connect flow, '
+    'and changes nothing itself',
+    (tester) async {
+      await tester.runAsync(() => app.adapters.setSource(DriveSource.gps));
+      await show(tester, withAdapters: true);
+      await visible(tester, find.text('CAR ADAPTER').first);
+      await tester.tap(find.text('CAR ADAPTER').first);
+      await tester.pump();
+      expect(adapterAsked, 1);
+      expect(app.adapters.source.value, DriveSource.gps);
+    },
+  );
+
+  testWidgets('on the GPS alone Garage leaves out what is about the car', (
+    tester,
+  ) async {
+    await show(tester, withAdapters: true, gpsOnly: true);
+    expect(find.text('SPEED FROM'), findsOneWidget);
+    expect(find.text('CAR'), findsNothing);
+    await visible(tester, find.text('HUD'));
+    await visible(tester, find.textContaining('TapeDash 9.9'));
+    expect(find.text('FUEL PRICE'), findsNothing);
+    expect(find.text('COACH'), findsNothing);
+    expect(find.text('DATA'), findsNothing);
+  });
+
+  testWidgets('the connection log is a row, opens newest first, and Back '
+      'returns', (tester) async {
+    await tester.runAsync(() async {
+      await app.adapters.choose(
+        const AdapterConfig(
+          kind: AdapterKind.ble,
+          address: 'AA:BB:CC:DD:EE:FF',
+          name: 'OBDBLE',
+        ),
+      );
+    });
+    final diary = LinkDiary(clock: clock);
+    diary.add('ble: attempt 1 of 3: connecting');
+    diary.add('ble: link status=133 state=disconnected');
+    await show(tester, withAdapters: true, diary: diary);
+    await visible(tester, find.text('Connection log'));
+    expect(find.text('2 lines, newest first'), findsOneWidget);
+    await tester.tap(find.text('Connection log'));
+    await tester.pump();
+    final lines = [
+      for (final e in find.byType(Text).evaluate())
+        if ((e.widget as Text).data?.contains('ble:') ?? false)
+          (e.widget as Text).data!,
+    ];
+    expect(lines, hasLength(2));
+    expect(lines.first, contains('status=133'), reason: 'newest first');
+    expect(lines.last, contains('attempt 1'));
+    await tester.tap(find.text('BACK'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Connection log'), findsOneWidget);
+  });
+
+  testWidgets('with no adapter chosen there is no connection log row', (
+    tester,
+  ) async {
+    await show(tester, withAdapters: true, diary: LinkDiary(clock: clock));
+    expect(find.text('Connection log'), findsNothing);
   });
 
   testWidgets('delete all needs the full slide, then the log is empty', (

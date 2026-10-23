@@ -7,7 +7,7 @@ import 'fill_up.dart';
 /// turns each new full-tank fill-up into a calibration factor (CLAUDE.md 8.5).
 ///
 /// The estimate counted is the raw one, before any correction, since the
-/// correction is what is being worked out. Only real driving is counted; demo
+/// correction is what is being worked out. Only real driving is counted; simulated
 /// trips never reach here.
 class FuelLedger {
   FuelLedger({

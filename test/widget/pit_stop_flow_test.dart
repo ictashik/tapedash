@@ -2,7 +2,6 @@
 // typed and saved, and the price it makes is the one the next visit shows.
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tapedash/app/drive_shell.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/ui/design/components/controls/tape_button.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
@@ -10,6 +9,7 @@ import 'package:tapedash/ui/design/render/render_kit.dart';
 import 'package:tapedash/ui/pages/pitstop/pit_stop_page.dart';
 
 import '../design/support/harness.dart';
+import '../support/sim_shell.dart';
 
 void main() {
   setUpAll(loadTapeFonts);
@@ -27,7 +27,7 @@ void main() {
         tapeHarness(
           kit: kit,
           motion: motion,
-          child: DriveShell(
+          child: SimDriveShell(
             clock: clock,
             scheduler: clock,
             scenario: 'cold_start_idle',

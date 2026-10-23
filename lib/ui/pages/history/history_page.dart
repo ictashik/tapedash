@@ -36,8 +36,7 @@ enum HistoryRange {
 /// History (DESIGN.md 7.7): every trip, newest first. A header with THIS MONTH ₹,
 /// distance and average km/L, and a week / month / all selector; rows of 88 lp
 /// with the date, a small route, the distance, the ₹, km/L and a thin barcode of
-/// where the money went. Tapping a row opens its Review. Demo trips carry a DEMO
-/// badge and are left out of every total.
+/// where the money went. Tapping a row opens its Review.
 class HistoryPage extends StatefulWidget {
   const HistoryPage({
     super.key,
@@ -95,7 +94,7 @@ class HistoryPageState extends State<HistoryPage> {
     final palette = TapeTheme.of(context).palette;
     final margin = TapeSpace.margin(widget.height);
     final now = widget.clock.now();
-    final month = TripStatistics.month(widget.library.realTrips, now);
+    final month = TripStatistics.month(widget.library.trips.value, now);
     final trips = shown;
     return SizedBox(
       width: widget.width,
@@ -249,7 +248,6 @@ class _TripRowState extends State<TripRow> {
                     style: TapeTextStyle.small,
                     color: palette.inkBright,
                   ),
-                  if (t.isDemo) const TapeLabel('Demo', size: 10),
                 ],
               ),
             ),

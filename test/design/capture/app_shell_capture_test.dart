@@ -4,8 +4,8 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tapedash/app/app.dart';
 import 'package:tapedash/core/fake_clock.dart';
+import '../../support/sim_shell.dart';
 
 import '../support/harness.dart';
 
@@ -13,14 +13,12 @@ void main() {
   final enabled = Platform.environment['TAPEDASH_CAPTURE_DIR'] != null;
   setUpAll(loadTapeFonts);
 
-  testWidgets('demo drive: parked, moving', (tester) async {
+  testWidgets('simulated drive: parked, moving', (tester) async {
     setWindow(tester, const Size(640, 360));
     final clock = FakeClock()..advance(const Duration(seconds: 100));
-    await tester.pumpWidget(
-      RepaintBoundary(
-        child: TapeDashApp(clock: clock, scheduler: clock, onboarding: false),
-      ),
-    );
+    final rig = await SimRig.create(clock);
+    addTearDown(rig.dispose);
+    await tester.pumpWidget(RepaintBoundary(child: rig.widget()));
     Future<void> run(int seconds) async {
       for (var i = 0; i < seconds * 10; i++) {
         clock.advance(const Duration(milliseconds: 100));

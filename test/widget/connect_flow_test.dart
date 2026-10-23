@@ -95,6 +95,9 @@ class FakeRadio implements AdapterRadio {
 
 class FakeChecker implements AdapterChecker {
   bool reachableNow = true;
+
+  /// Overrides [reachableNow] with an answer for each adapter.
+  bool Function(AdapterConfig config)? reachableFor;
   void Function()? onTry;
   final List<AdapterConfig> tried = [];
 
@@ -105,7 +108,7 @@ class FakeChecker implements AdapterChecker {
   Future<bool> reachable(AdapterConfig config) async {
     tried.add(config);
     onTry?.call();
-    return reachableNow;
+    return reachableFor?.call(config) ?? reachableNow;
   }
 }
 
@@ -210,10 +213,16 @@ void main() {
   }
 
   group('the first step', () {
-    testWidgets('offers the three kinds, and Cancel leaves', (tester) async {
+    testWidgets('offers Bluetooth (both radios) and WiFi, and Cancel leaves', (
+      tester,
+    ) async {
       await show(tester);
       expect(find.text('Bluetooth'), findsOneWidget);
-      expect(find.text('Bluetooth LE'), findsOneWidget);
+      expect(
+        find.text('Bluetooth LE'),
+        findsNothing,
+        reason: 'one Bluetooth choice finds both kinds',
+      );
       expect(find.text('WiFi'), findsOneWidget);
       expect(find.text('STEP 1 OF 5'), findsOneWidget);
       await tester.tap(find.text('CANCEL'));
@@ -249,7 +258,8 @@ void main() {
           order.indexOf('Vgate iCar Pro'),
           lessThan(order.indexOf('Zed speaker')),
         );
-        expect(find.text('Paired'), findsNWidgets(2));
+        expect(find.textContaining('Paired'), findsNWidgets(2));
+        expect(find.textContaining('Classic'), findsNWidgets(3));
       },
     );
 
@@ -398,12 +408,143 @@ void main() {
       final radio = radios[RadioKind.ble]!
         ..nearby = [adapter('Veepeak BLE', 'AA:09', kind: RadioKind.ble)];
       await show(tester);
-      await tester.tap(find.text('Bluetooth LE'));
+      await tester.tap(find.text('Bluetooth').first);
       await settle(tester);
+      expect(find.textContaining('Low Energy'), findsOneWidget);
       await tester.tap(find.text('Veepeak BLE'));
       await settle(tester);
       expect(radio.paired_, isEmpty);
+      expect(
+        checker.tried.single.kind,
+        AdapterKind.ble,
+        reason: 'a Low Energy adapter is tried too, before it is taken',
+      );
       expect(flow(tester).chosen!.kind, AdapterKind.ble);
+      expect(flow(tester).step, ConnectStep.car);
+    });
+
+    testWidgets('both radios are searched at once, and each adapter is its '
+        'radio\'s', (tester) async {
+      final classic = radios[RadioKind.bluetoothClassic]!
+        ..nearby = [adapter('OBDII', 'AA:01')];
+      final ble = radios[RadioKind.ble]!
+        ..nearby = [adapter('OBDBLE', 'AA:02', kind: RadioKind.ble)];
+      await show(tester);
+      await tester.tap(find.text('Bluetooth').first);
+      await settle(tester);
+      expect(classic.scans, 1);
+      expect(ble.scans, 1);
+      expect(find.text('OBDII'), findsOneWidget);
+      expect(find.text('OBDBLE'), findsOneWidget);
+      expect(find.textContaining('Classic'), findsOneWidget);
+      expect(find.textContaining('Low Energy'), findsOneWidget);
+
+      await tester.tap(find.text('OBDBLE'));
+      await settle(tester);
+      expect(classic.scanStops, 1, reason: 'both searches stop on a pick');
+      expect(ble.scanStops, 1);
+      expect(flow(tester).chosen!.kind, AdapterKind.ble);
+      expect(flow(tester).chosen!.address, 'AA:02');
+    });
+
+    testWidgets('a phone with only one of the radios searches that one', (
+      tester,
+    ) async {
+      radios[RadioKind.ble]!.current = const RadioStatus(
+        supported: false,
+        enabled: false,
+        permitted: false,
+      );
+      final classic = radios[RadioKind.bluetoothClassic]!
+        ..nearby = [adapter('OBDII', 'AA:01')];
+      await show(tester);
+      await tester.tap(find.text('Bluetooth').first);
+      await settle(tester);
+      expect(classic.scans, 1);
+      expect(radios[RadioKind.ble]!.scans, 0);
+      expect(find.text('OBDII'), findsOneWidget);
+    });
+
+    testWidgets('the nearer of two is listed first, and says it is close', (
+      tester,
+    ) async {
+      radios[RadioKind.bluetoothClassic]!.nearby = [
+        FoundAdapter(
+          name: 'OBDII',
+          address: 'AA:01',
+          kind: RadioKind.bluetoothClassic,
+          rssi: -85,
+        ),
+        FoundAdapter(
+          name: 'OBDII',
+          address: 'AA:02',
+          kind: RadioKind.bluetoothClassic,
+          rssi: -50,
+        ),
+      ];
+      await show(tester);
+      await tester.tap(find.text('Bluetooth').first);
+      await settle(tester);
+      final rows = [
+        for (final e in find.byType(Text).evaluate())
+          if ((e.widget as Text).data?.contains('AA:0') ?? false)
+            (e.widget as Text).data!,
+      ];
+      expect(rows.first, contains('AA:02'));
+      expect(rows.first, contains('Close'));
+      expect(rows.last, contains('AA:01'));
+      expect(rows.last, contains('Far'));
+    });
+
+    testWidgets('an adapter that will not open offers its other radio', (
+      tester,
+    ) async {
+      radios[RadioKind.bluetoothClassic]!.pairedList = [
+        adapter('OBDII', 'AA:01', paired: true),
+      ];
+      radios[RadioKind.ble]!.nearby = [
+        adapter('OBDBLE', 'AA:02', kind: RadioKind.ble),
+      ];
+      // The Classic socket will not open; the Low Energy link does.
+      checker.reachableFor = (config) => config.kind == AdapterKind.ble;
+      await show(tester);
+      await tester.tap(find.text('Bluetooth').first);
+      await settle(tester);
+      await tester.tap(find.text('OBDII'));
+      await settle(tester);
+      expect(flow(tester).step, ConnectStep.find);
+      expect(find.textContaining('may be the same adapter'), findsOneWidget);
+      expect(find.text('TRY OBDBLE'), findsOneWidget);
+
+      await tester.tap(find.text('TRY OBDBLE'));
+      await settle(tester);
+      expect(flow(tester).step, ConnectStep.car);
+      expect(flow(tester).chosen!.kind, AdapterKind.ble);
+      expect(flow(tester).chosen!.address, 'AA:02');
+    });
+
+    testWidgets('a Low Energy adapter that will not open can be tried again', (
+      tester,
+    ) async {
+      radios[RadioKind.ble]!.nearby = [
+        adapter('OBDBLE', 'AA:02', kind: RadioKind.ble),
+      ];
+      checker.reachableNow = false;
+      await show(tester);
+      await tester.tap(find.text('Bluetooth').first);
+      await settle(tester);
+      await tester.tap(find.text('OBDBLE'));
+      await settle(tester);
+      expect(flow(tester).failed?.address, 'AA:02');
+      expect(
+        find.text('FORGET AND PAIR AGAIN'),
+        findsNothing,
+        reason: 'there is no pairing to forget on Low Energy',
+      );
+      checker.reachableNow = true;
+      await tester.tap(find.text('TRY AGAIN'));
+      await settle(tester);
+      expect(checker.tried, hasLength(2));
       expect(flow(tester).step, ConnectStep.car);
     });
 
@@ -456,18 +597,20 @@ void main() {
       expect(find.text('OBDII'), findsOneWidget);
     });
 
-    testWidgets('a phone with no such radio says so and points at WiFi', (
+    testWidgets('a phone with no Bluetooth at all says so and points at WiFi', (
       tester,
     ) async {
-      radios[RadioKind.ble]!.current = const RadioStatus(
-        supported: false,
-        enabled: false,
-        permitted: false,
-      );
+      for (final r in radios.values) {
+        r.current = const RadioStatus(
+          supported: false,
+          enabled: false,
+          permitted: false,
+        );
+      }
       await show(tester);
-      await tester.tap(find.text('Bluetooth LE'));
+      await tester.tap(find.text('Bluetooth').first);
       await settle(tester);
-      expect(find.textContaining('no Bluetooth LE'), findsOneWidget);
+      expect(find.textContaining('no Bluetooth'), findsOneWidget);
       expect(find.textContaining('WiFi adapter would work'), findsOneWidget);
     });
 
@@ -665,7 +808,7 @@ void main() {
       expect(done, 1);
       expect(app.settings.cluster.value, 4);
       expect(app.settings.onboarded.value, isTrue);
-      expect(app.adapters.useAdapter.value, isTrue);
+      expect(app.adapters.source.value, DriveSource.obd);
       expect(app.adapters.adapter.value!.address, 'AA:01');
     });
 

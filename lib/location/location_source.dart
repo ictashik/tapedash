@@ -37,6 +37,14 @@ class LocationFix {
       '±${accuracyM.toStringAsFixed(1)} m)';
 }
 
+/// The phone's location permission is not granted, or was refused.
+class LocationPermissionException implements Exception {
+  const LocationPermissionException();
+
+  @override
+  String toString() => 'Location permission is not granted';
+}
+
 /// Where the phone is (CLAUDE.md 6): the phone's own GPS, or the simulator's.
 abstract interface class LocationSource {
   /// Fixes, about once a second, while the source is running. It is a

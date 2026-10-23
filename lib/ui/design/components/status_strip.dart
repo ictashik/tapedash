@@ -6,13 +6,11 @@ import 'package:flutter/widgets.dart';
 import '../icons/icons.dart';
 import '../motion/motion_clock.dart';
 import '../motion/motion_scope.dart';
-import '../render/chamfer.dart';
 import '../theme/palette.dart';
 import '../theme/tape_theme.dart';
 import '../tokens/motion_tokens.dart';
 import '../tokens/opacity.dart';
 import '../tokens/status_strip.dart';
-import '../tokens/strokes.dart';
 import '../tokens/typography.dart';
 
 /// The adapter link's state, as the status strip presents it (DESIGN.md 6.9).
@@ -33,7 +31,8 @@ enum AdapterLinkState {
 }
 
 /// The status strip's left flank (DESIGN.md 6.9): the adapter glyph, then the
-/// GPS glyph. Glyphs only in Motion mode; a caption fades in under each one
+/// GPS glyph (or the GPS glyph alone, on a drive that has no adapter). Glyphs only
+/// in Motion mode; a caption fades in under each one
 /// as the parked share rises (the Parked choreography's "glyph labels become
 /// text", DESIGN.md 7.2), and the column widens to fit it on the same share.
 ///
@@ -44,12 +43,14 @@ enum AdapterLinkState {
 class StatusStripLeft extends StatefulWidget {
   const StatusStripLeft({
     super.key,
-    required this.adapter,
+    this.adapter,
     required this.gpsHasFix,
     required this.parkedShare,
   });
 
-  final ValueListenable<AdapterLinkState> adapter;
+  /// The adapter link's state, or null on a drive without an adapter (the GPS
+  /// alone), which leaves the adapter glyph out.
+  final ValueListenable<AdapterLinkState>? adapter;
   final ValueListenable<bool> gpsHasFix;
 
   /// The parked share (DESIGN.md 7.2), 0 in Motion and 1 parked: the
@@ -72,7 +73,7 @@ class StatusStripLeftState extends State<StatusStripLeft>
   @override
   void initState() {
     super.initState();
-    widget.adapter.addListener(_onAdapter);
+    widget.adapter?.addListener(_onAdapter);
   }
 
   @override
@@ -86,14 +87,14 @@ class StatusStripLeftState extends State<StatusStripLeft>
   void didUpdateWidget(StatusStripLeft oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.adapter, widget.adapter)) {
-      oldWidget.adapter.removeListener(_onAdapter);
-      widget.adapter.addListener(_onAdapter);
+      oldWidget.adapter?.removeListener(_onAdapter);
+      widget.adapter?.addListener(_onAdapter);
     }
     _onAdapter();
   }
 
   void _onAdapter() {
-    final searching = widget.adapter.value == AdapterLinkState.searching;
+    final searching = widget.adapter?.value == AdapterLinkState.searching;
     if (searching && !_attached) {
       _attached = true;
       _phase = 0;
@@ -130,7 +131,7 @@ class StatusStripLeftState extends State<StatusStripLeft>
 
   @override
   void dispose() {
-    widget.adapter.removeListener(_onAdapter);
+    widget.adapter?.removeListener(_onAdapter);
     if (_attached) _motion.detach(this);
     repaint.dispose();
     super.dispose();
@@ -148,23 +149,25 @@ class StatusStripLeftState extends State<StatusStripLeft>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: glyphColumnWidth(parked),
-              height: _glyphColumnHeight(parked),
-              child: CustomPaint(
-                painter: AdapterGlyphPainter(
-                  listenable: Listenable.merge([
-                    widget.adapter,
-                    repaint,
-                    share,
-                  ]),
-                  state: this,
-                  palette: palette,
-                  parkedShare: share,
+            if (widget.adapter != null) ...[
+              SizedBox(
+                width: glyphColumnWidth(parked),
+                height: _glyphColumnHeight(parked),
+                child: CustomPaint(
+                  painter: AdapterGlyphPainter(
+                    listenable: Listenable.merge([
+                      widget.adapter!,
+                      repaint,
+                      share,
+                    ]),
+                    state: this,
+                    palette: palette,
+                    parkedShare: share,
+                  ),
                 ),
               ),
-            ),
-            SizedBox(width: TapeStatusStrip.gap * 2),
+              SizedBox(width: TapeStatusStrip.gap * 2),
+            ],
             SizedBox(
               width: glyphColumnWidth(parked),
               height: _glyphColumnHeight(parked),
@@ -264,13 +267,15 @@ class AdapterGlyphPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final (color, caption) = switch (state.widget.adapter.value) {
+    final (color, caption) = switch (state.widget.adapter?.value) {
       AdapterLinkState.flowing => (palette.label, 'linked'),
       AdapterLinkState.searching => (
         palette.label.withValues(alpha: state.pulseAlpha()),
         'searching',
       ),
       AdapterLinkState.lost => (palette.caution, 'lost'),
+      // The glyph is only painted when there is an adapter.
+      null => (palette.label, ''),
     };
     _paintGlyphColumn(
       canvas,
@@ -329,13 +334,12 @@ class GpsGlyphPainter extends CustomPainter {
 }
 
 /// The status strip's right flank (DESIGN.md 6.9): the clock, then the
-/// phone-hot glyph when warm, then the DEMO badge whenever Demo Mode is on.
+/// phone-hot glyph when warm.
 ///
-/// The DEMO badge is not gated by Motion/Parked -- CLAUDE.md 7.6 is explicit
-/// that it "is always visible" -- and neither is the clock, which is already
-/// textual in both modes; only the phone-hot glyph's caption follows the
-/// glyphs-to-text rule, on the same parked share the left flank runs on
-/// (DESIGN.md 7.2), so both flanks move as one choreography.
+/// The clock is not gated by Motion/Parked, being already textual in both modes;
+/// only the phone-hot glyph's caption follows the glyphs-to-text rule, on the
+/// same parked share the left flank runs on (DESIGN.md 7.2), so both flanks move
+/// as one choreography.
 class StatusStripRight extends StatelessWidget {
   const StatusStripRight({
     super.key,
@@ -343,14 +347,12 @@ class StatusStripRight extends StatelessWidget {
     required this.use24Hour,
     required this.phoneHot,
     required this.parkedShare,
-    this.demoMode = false,
   });
 
   final ValueListenable<DateTime> time;
   final bool use24Hour;
   final ValueListenable<bool> phoneHot;
   final ValueListenable<double> parkedShare;
-  final bool demoMode;
 
   @override
   Widget build(BuildContext context) {
@@ -406,29 +408,11 @@ class StatusStripRightPainter extends CustomPainter {
     )..layout();
     final hot = right.phoneHot.value;
     final columnWidth = glyphColumnWidth(parked);
-    final badge = right.demoMode
-        ? (TextPainter(
-            text: TextSpan(
-              text: 'DEMO',
-              style: TapeType.label(
-                size: TapeStatusStrip.captionSize,
-                color: palette.accentCore,
-              ),
-            ),
-            textDirection: TextDirection.ltr,
-          )..layout())
-        : null;
 
     // Measured first, so the flank ends against the margin (it is laid out
     // right-aligned in its reserve, not from the left).
     var total = clock.width;
     if (hot) total += TapeStatusStrip.gap * 2 + columnWidth;
-    if (badge != null) {
-      total +=
-          TapeStatusStrip.gap * 2 +
-          badge.width +
-          TapeStatusStrip.badgePaddingH * 2;
-    }
     var x = size.width - total;
 
     clock.paint(canvas, Offset(x, 0));
@@ -451,41 +435,12 @@ class StatusStripRightPainter extends CustomPainter {
       canvas.restore();
       x += columnWidth;
     }
-
-    if (badge != null) {
-      x += TapeStatusStrip.gap * 2;
-      canvas.save();
-      canvas.translate(x, 0);
-      _paintDemoBadge(canvas, badge);
-      canvas.restore();
-    }
-  }
-
-  void _paintDemoBadge(Canvas canvas, TextPainter text) {
-    final rect = Rect.fromLTWH(
-      0,
-      0,
-      text.width + TapeStatusStrip.badgePaddingH * 2,
-      text.height + TapeStatusStrip.badgePaddingV * 2,
-    );
-    canvas.drawPath(
-      Chamfer.all(rect, TapeStatusStrip.badgeChamfer),
-      Paint()
-        ..color = palette.accentCore
-        ..style = ui.PaintingStyle.stroke
-        ..strokeWidth = TapeStroke.fine * palette.strokeScale,
-    );
-    text.paint(
-      canvas,
-      Offset(TapeStatusStrip.badgePaddingH, TapeStatusStrip.badgePaddingV),
-    );
   }
 
   @override
   bool shouldRepaint(StatusStripRightPainter old) =>
       old.palette != palette ||
       old.right.use24Hour != right.use24Hour ||
-      old.right.demoMode != right.demoMode ||
       !identical(old.right.parkedShare, right.parkedShare) ||
       !identical(old.right.time, right.time) ||
       !identical(old.right.phoneHot, right.phoneHot);

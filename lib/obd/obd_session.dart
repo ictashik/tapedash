@@ -46,7 +46,7 @@ abstract interface class AdapterMemory {
   set protocol(String? value);
 }
 
-/// An [AdapterMemory] that forgets when the program ends, for tests and demos.
+/// An [AdapterMemory] that forgets when the program ends, for tests.
 class InMemoryAdapterMemory implements AdapterMemory {
   InMemoryAdapterMemory([this.protocol]);
 

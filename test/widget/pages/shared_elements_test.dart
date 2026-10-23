@@ -1,12 +1,11 @@
 // The shared-element transition (DESIGN.md 7.1): the flight math, the
 // presence plumbing, the flight itself mid-swipe, and the landings at both
-// ends. Flight tests run against a real DemoDrive with the Strip and the
+// ends. Flight tests run against a real SimDrive with the Strip and the
 // Money page, the same rig the strip's own tests use.
 import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tapedash/app/demo_drive.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/ui/design/components/centered_numeral.dart';
 import 'package:tapedash/ui/design/components/rolling_numerals.dart';
@@ -26,6 +25,7 @@ import 'package:tapedash/vehicle/vehicle_state.dart' show DrivingMode;
 
 import '../../design/support/harness.dart';
 import '../../design/support/numbers.dart';
+import '../../support/sim_drive.dart';
 
 void main() {
   setUpAll(loadTapeFonts);
@@ -138,13 +138,13 @@ void main() {
     late ManualMotionClock motion;
     late FakeClock clock;
     late DriveSignals signals;
-    late DemoDrive demo;
+    late SimDrive demo;
 
     setUp(() {
       kit = TapeRenderKit();
       motion = ManualMotionClock();
       clock = FakeClock()..advance(const Duration(seconds: 100));
-      demo = DemoDrive(
+      demo = SimDrive(
         clock: clock,
         scheduler: clock,
         scenario: 'highway_cruise',

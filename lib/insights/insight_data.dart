@@ -13,8 +13,8 @@ import 'year_on_tape.dart';
 /// The trips the insight pages read, with their samples, and each analysis made
 /// once on demand. It is a snapshot: the page makes a new one when it opens.
 ///
-/// Real drives and the demo are never mixed (CLAUDE.md 7.6): a real car's insights
-/// are from its real trips, and Demo Mode's from the demo's.
+/// Real drives and simulated ones are never mixed: a real car's insights are from
+/// its real trips.
 class InsightData {
   InsightData._(this.trips, this._samples, this.fallbackPrice, this.constants);
 
@@ -41,10 +41,12 @@ class InsightData {
     }
   }
 
-  /// Reads the trips of one kind from [repository].
+  /// Reads the trips of one kind from [repository]: the real ones, unless [demo]
+  /// (the simulated trips that tests record, and that builds from before Demo Mode
+  /// was removed left behind, are never counted as the person's own).
   static Future<InsightData> load(
     TripRepository repository, {
-    required bool demo,
+    bool demo = false,
     double? fallbackPrice,
     InsightConstants constants = const InsightConstants(),
   }) async {

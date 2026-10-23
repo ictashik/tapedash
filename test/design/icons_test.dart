@@ -39,7 +39,6 @@ const _required = [
   'hard-brake',
   'speed',
   'phone-hot',
-  'demo',
   'hud',
   'flip',
   'pit-stop',
@@ -67,9 +66,9 @@ void main() {
       );
     });
 
-    test('has 38 icons, each different from the others', () {
-      expect(TapeIcon.values, hasLength(38));
-      expect({for (final i in TapeIcon.values) i.path}, hasLength(38));
+    test('has 37 icons, each different from the others', () {
+      expect(TapeIcon.values, hasLength(37));
+      expect({for (final i in TapeIcon.values) i.path}, hasLength(37));
     });
 
     test('every icon has marks to draw, and parses without an error', () {

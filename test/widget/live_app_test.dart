@@ -1,18 +1,17 @@
 // The whole app on a chosen adapter (CLAUDE.md 7, 11): a launch that goes straight
 // to the user's own adapter, a car on a simulated adapter behind the transport
-// factory, Garage's adapter group, and the switch back to the demo. Everything
-// but the hardware.
+// factory, Garage's source group, and the switch to the GPS alone and back.
+// Nothing is ever substituted for the source the person chose. Everything but the
+// hardware.
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/app/app.dart';
 import 'package:tapedash/app/app_services.dart';
-import 'package:tapedash/app/radio_transport_factory.dart';
+import 'package:tapedash/app/gps_shell.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/obd/adapter_config.dart';
 import 'package:tapedash/obd/obd_session.dart';
 import 'package:tapedash/obd/transport/session_sink.dart';
-import 'package:tapedash/obd/transport/sim_transport.dart';
-import 'package:tapedash/obd/transport/transport.dart';
 import 'package:tapedash/sim/scenarios.dart';
 import 'package:tapedash/sim/simulated_car.dart';
 import 'package:tapedash/ui/design/components/controls/tape_button.dart';
@@ -22,19 +21,7 @@ import 'package:tapedash/ui/pages/drive/drive_page.dart';
 import 'package:tapedash/ui/pages/garage/garage_page.dart';
 import 'package:tapedash/ui/pages/strip/the_strip.dart';
 
-class SimRadioFactory extends RadioTransportFactory {
-  SimRadioFactory(this.car, this.clock);
-
-  final SimulatedCar car;
-  final FakeClock clock;
-  final List<AdapterConfig> made = [];
-
-  @override
-  Transport create(AdapterConfig config) {
-    made.add(config);
-    return SimTransport(car: car, scheduler: clock);
-  }
-}
+import '../support/sim_shell.dart';
 
 const _adapter = AdapterConfig(
   kind: AdapterKind.bluetoothClassic,
@@ -95,9 +82,8 @@ Future<void> main() async {
     await run(tester, 30000);
 
     expect(find.byType(TheStrip), findsOneWidget);
-    expect(factory.made, [_adapter], reason: 'no demo, no other adapter');
+    expect(factory.made, [_adapter], reason: 'no other adapter was tried');
     final drive = tester.widget<DrivePage>(find.byType(DrivePage));
-    expect(drive.signals.demoMode, isFalse);
     expect(drive.signals.vehicle.rpm.value, isNotNull);
     expect(tester.takeException(), isNull);
   });
@@ -128,17 +114,7 @@ Future<void> main() async {
     },
   );
 
-  testWidgets('the demo does not run behind a real drive', (tester) async {
-    await boot(tester);
-    await run(tester, 30000);
-    // Only the adapter's transport was ever made; the demo builds its own
-    // simulated car, which would show as extra work on the clock. Nothing to
-    // count directly, so check the drive is the adapter's.
-    final drive = tester.widget<DrivePage>(find.byType(DrivePage));
-    expect(drive.signals.demoMode, isFalse);
-  });
-
-  testWidgets('Garage shows the adapter, and can switch to the demo and back', (
+  testWidgets('Garage shows the adapter, and can switch to GPS only and back', (
     tester,
   ) async {
     await boot(tester);
@@ -146,22 +122,45 @@ Future<void> main() async {
     await tester.tap(find.widgetWithText(TapeButton, 'GARAGE'));
     await run(tester, 400);
     expect(find.byType(GaragePage), findsOneWidget);
-    // The list builds what is on screen; the adapter is a little way down.
-    await tester.scrollUntilVisible(
-      find.text('OBDII  ·  Bluetooth'),
-      120,
-      scrollable: find.byType(Scrollable).first,
-    );
+    // The list builds what is on screen; the adapter is at the top.
     expect(find.text('OBDII  ·  Bluetooth'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Drive from this adapter'));
-    await tester.pump();
-    await tester.tap(find.text('Drive from this adapter'));
+    await tester.tap(find.text('GPS ONLY').first);
     await run(tester, 1500);
-    expect(app.adapters.useAdapter.value, isFalse);
+    expect(app.adapters.source.value, DriveSource.gps);
     expect(app.adapters.adapter.value, _adapter, reason: 'still remembered');
-    final demo = tester.widget<DrivePage>(find.byType(DrivePage));
-    expect(demo.signals.demoMode, isTrue);
+    expect(find.byType(GpsShell), findsOneWidget);
+    expect(find.byType(DrivePage), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    // And back to the car: the adapter is opened again, no other source in
+    // between.
+    await run(tester, 8000); // parked, so Garage can open
+    await tester.tap(find.widgetWithText(TapeButton, 'GARAGE'));
+    await run(tester, 600);
+    await tester.tap(find.text('CAR ADAPTER').first);
+    await run(tester, 30000);
+    expect(app.adapters.source.value, DriveSource.obd);
+    expect(find.byType(GpsShell), findsNothing);
+    expect(find.byType(DrivePage), findsOneWidget);
+    expect(factory.made.length, greaterThanOrEqualTo(2));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('an adapter that never answers is not replaced by anything', (
+    tester,
+  ) async {
+    // The adapter is chosen and out of reach: the radio finds nothing to talk to.
+    // The screen stays an adapter drive, searching, and never becomes a
+    // different source.
+    factory.unreachable = true;
+    await boot(tester);
+    await run(tester, 60000);
+    expect(app.adapters.source.value, DriveSource.obd);
+    expect(find.byType(DrivePage), findsOneWidget);
+    expect(find.byType(GpsShell), findsNothing);
+    final drive = tester.widget<DrivePage>(find.byType(DrivePage));
+    expect(drive.signals.connection.value, isNot(ConnectionStatus.connected));
     expect(tester.takeException(), isNull);
   });
 

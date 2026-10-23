@@ -27,7 +27,16 @@ class HudHost extends StatelessWidget {
     this.tripCost,
     this.costPerKm,
     this.alert,
+    this.layout,
+    this.showRpm = true,
   });
+
+  /// The layout to show in place of the one chosen in Garage (see
+  /// `HudView.layout`).
+  final HudLayout? layout;
+
+  /// Whether the Drive layout has its RPM bar.
+  final bool showRpm;
 
   final HudSettings settings;
   final DriveSignals signals;
@@ -53,6 +62,8 @@ class HudHost extends StatelessWidget {
         tripCost: cost,
         costPerKm: perKm,
         alert: alert,
+        layout: layout,
+        showRpm: showRpm,
         moneyNote: note ?? 'MONEY UNAVAILABLE',
       );
 

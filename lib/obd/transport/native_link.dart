@@ -21,6 +21,10 @@ abstract interface class NativeLink {
   /// Fires when the pipe drops underneath the app: the adapter was unplugged, went
   /// out of range or switched off. It does not fire for a [close].
   Stream<void> get lost;
+
+  /// Lines about what the radio is doing, for the connection log. A broadcast
+  /// stream.
+  Stream<String> get diagnostics;
 }
 
 /// Why a [NativeLink] could not do what it was asked.

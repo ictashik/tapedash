@@ -23,7 +23,7 @@ class WeekTotal {
   double? get costPerKm => km >= 0.5 && cost > 0 ? cost / km : null;
 }
 
-/// Sums of trips over time. Demo trips never reach here: the repository leaves
+/// Sums of trips over time. Simulated trips never reach here: the repository leaves
 /// them out, and these functions leave out any that come anyway (CLAUDE.md 7.6).
 abstract final class TripStatistics {
   /// The Monday at or before [d], at midnight.

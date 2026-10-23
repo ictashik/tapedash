@@ -209,7 +209,7 @@ Parked UI uses fixed sizes and honours system font scale up to 1.3×: headline 3
 
 ### 4.8 Iconography
 - Custom glyphs drawn in code on a 24-unit grid: stroke 1.75, square caps, 45° chamfers, no free curves except circles. One file, `icons.dart`. No icon fonts and no Material icons.
-- Required set: adapter, bluetooth, wifi, gps, check-engine, coolant, voltage, fuel pump, clock, lock, back, close, chevron, garage, history, coach, review, rupee, idle (hollow square with a dot), hard accel (double chevron up), hard brake (double bar), speed, phone hot, demo, HUD (windshield), flip, pit stop, end trip (a flag), zoom in, zoom out, fit, play, pause, stop, north (an N: the map is north up), heading (an arrow up: the map turns with the car), insights (bars on two axes) and share (an arrow out of a tray).
+- Required set: adapter, bluetooth, wifi, gps, check-engine, coolant, voltage, fuel pump, clock, lock, back, close, chevron, garage, history, coach, review, rupee, idle (hollow square with a dot), hard accel (double chevron up), hard brake (double bar), speed, phone hot, HUD (windshield), flip, pit stop, end trip (a flag), zoom in, zoom out, fit, play, pause, stop, north (an N: the map is north up), heading (an arrow up: the map turns with the car), insights (bars on two axes) and share (an arrow out of a tray).
 
 ### 4.9 Light and glow
 - Every luminous element has a crisp **core** (L2) and an optional **halo** (L3). A halo is a pre-rendered blurred sprite composited with `BlendMode.plus`. **Never blur at runtime.**
@@ -369,7 +369,7 @@ Aircraft-style vertical tapes for speed and RPM. The product is called TapeDash;
 
 ### 6.7 Eco bar
 - In the floor zone, centred, 0.36W wide and 0.03H tall.
-- A centre notch marks this car's average km/L (from its history; the scenario average in Demo Mode).
+- A centre notch marks this car's average km/L (from its history).
 - A glowing puck moves right (more efficient) or left (thirstier) on `spring.gauge`, over ±50% of the average.
 - Puck colour samples a ramp: right `accent.core`, centre `ink.bright`, left `caution`, far left `critical`.
 - No text in Motion mode. Hidden when fuel data is unavailable or the car is parked.
@@ -391,7 +391,7 @@ Aircraft-style vertical tapes for speed and RPM. The product is called TapeDash;
 ### 6.9 Status strip
 Inside the Horizon zone, on either side of the shift horizon.
 - **Left:** adapter glyph (lit while data flows, pulsing at 0.5 Hz while searching, `caution` when lost) and GPS glyph.
-- **Right:** clock (tabular, following the system's 12/24-hour setting), phone-hot glyph when warm, and a DEMO badge (chamfered outline) whenever Demo Mode is on.
+- **Right:** clock (tabular, following the system's 12/24-hour setting), and the phone-hot glyph when warm. (There was a DEMO badge here for Demo Mode, which was removed on 2026-10-23.) The left flank is the adapter glyph and the GPS glyph; on a drive from the GPS alone it is the GPS glyph alone.
 - Glyphs only in Motion mode; text labels appear in Parked mode.
 
 ### 6.10 Alerts
@@ -546,7 +546,7 @@ Total at most 4.5 s. Tapping anywhere skips to the end state. With reduce motion
 ### 7.7 History
 - Header: THIS MONTH ₹, distance and average km/L. A week / month / all segmented selector.
 - Rows (88 lp): date and time, a 48 lp mini route glyph, distance, ₹, km/L, and a thin mini Money Tape barcode. Tapping a row opens its Review.
-- Demo trips carry the DEMO badge and are excluded from totals.
+- Trips flagged simulated (left by builds that had Demo Mode) are never listed and are excluded from totals.
 
 ### 7.8 Garage (settings)
 Full-width list rows grouped under bracketed headers:
@@ -559,7 +559,7 @@ Full-width list rows grouped under bracketed headers:
 - **Engine sound:** on or off (off to begin with), the engine, the volume, whether the phone's speaker is allowed (no to begin with), a ten second test on whatever output there is, and a line saying where it stands (playing, no car audio, stopped because the output went away). §5.10.
 - **Display:** automatic brightness, Daylight and Night automation, reduce motion, fidelity tier (Auto / Lite / Balanced / Full), ignition sequence (Off / Subtle / Full).
 - **Units and format.**
-- **Demo mode.**
+- **Speed from:** the car's adapter or the GPS alone, the adapter (change, compatibility mode, record, survey drive, forget) and the connection log: what the app did to reach the adapter, newest first, for when it will not connect.
 - **Data:** export trips as CSV to a user-chosen local file; delete all data (slide-to-confirm).
 - **About:** version, open-source licences, and the project URL as text plus an offline-generated QR code.
 
@@ -575,8 +575,8 @@ Full-width list rows grouped under bracketed headers:
 
 ### 7.11 Onboarding and the first wow
 - **Cold open** (at most 1.2 s): void, then a single horizontal line of light draws outwards from the centre (the tape), then the TAPEDASH wordmark resolves above it. This animation doubles as the fidelity benchmark (§9.2).
-- **Choice:** two large chamfer buttons: TRY A DEMO DRIVE (primary) and CONNECT MY CAR.
-- **Demo path:** straight to Drive, with the ignition sequence starting within 1 s. From first launch to a live cluster in under 3 seconds.
+- **Choice:** two large chamfer buttons: CONNECT MY CAR (primary) and GPS SPEED ONLY.
+- **GPS path:** straight to the GPS screen (§7.15), with no adapter. The app keeps asking until a source is chosen, and never picks one for the person.
 - **Connect path:** full-screen scenes, each with a line-art illustration drawn in code in accent (adapter in the port, ignition on, phone on the dash): adapter type → scan and pair → car setup (fuel type, displacement) → fuel price (skippable) → cluster choice (live previews).
 - Progress is shown as a thin tape at the top, not dots.
 
@@ -588,7 +588,7 @@ Full-width list rows grouped under bracketed headers:
 | Waiting for ignition | etch only at 15% brightness; one accent dot breathing at 0.25 Hz in the hero position; "Turn on the ignition" at full label colour |
 | Connected | ignition sequence (§7.13) |
 | Lost | values freeze and fade to `stale`; `caution` line on the horizon; adapter glyph `caution`; "Reconnecting…"; on reconnection, a quick 300 ms re-light instead of the full sweep |
-| Demo | the normal cluster with the DEMO badge |
+| GPS only | the GPS screen (§7.15), with its own words for a missing location or no fix yet |
 
 Never a blank screen. Never a spinner.
 
@@ -618,6 +618,16 @@ What the car and the trips add up to, one picture at a time (docs/DECISIONS.md, 
 - **Ghost** (§6.18): "Ghost commute". This drive's route in light with its start (hollow circle) and end (filled square), the earlier drive of the same route dashed behind it, both fitted together; under them the two Money Tapes, one above the other, each with its date and its ₹. The facts give the difference in rupees ("₹14 less", "₹9 more"), then, in plain words and only when there is one, the minutes standing still and the hard starts. **Rupees, never minutes**: it says nothing about being faster. A route counts as the same when both ends are within 400 m, its length within 1.3 times and 24 points along it within 180 m on average.
 - **Year** (§6.18): "Year on Tape". A poster of the year, and one button. The poster is every trip as a bar of one barcode in the order of the calendar (two on a day share its slot), stacked by where the money went (normal `money.deep`, idling `caution` at 60%, hard acceleration `critical`, high speed `accent.deep`), the months along the foot, and the year's trips, kilometres, spend, idling (₹ and share) and sweet spot under it, marked "Estimates". The tallest bar is the 98th percentile of the trips, so that one trip to another city does not make the rest a hair. **SHARE** (the one primary button of the page, §6.14) draws the same poster at 1920 × 1080 in the current livery (never Daylight or Night), writes it to the app's cache and opens the phone's own share sheet; TapeDash sends nothing, and says so under the button. A year selector appears only when the trips span more than one year. No other control, no text field, no preview of the sheet.
 - **Tank** (§6.18): a column that drains from the top, its surface a champagne line, the reserve (the last eighth) hatched in `caution`; beside it the litres left in Saira at display size and the range. The same count fills the Money page's fuel-left slot for a car that sends no level, marked "≈".
+
+### 7.15 GPS only
+A drive from the phone's GPS with no adapter: one screen, not the strip, because there is nothing for four of the five pages to say. Chosen at the cold open (GPS SPEED ONLY) or in Garage → Speed from, never by the app.
+- **Layout:** the Minimal cluster's, without its RPM line. The hero speed in the centre zone (`bright`, `hero` size, shrinking to `primary` when parked like every cluster's), KM/H under it, and one row of five readouts at `secondary` size: DISTANCE (km, one decimal), MOVING (h:mm), AVERAGE, FASTEST (km/h) and HEADING (N, NE, E…). Each is a label over its number, in the numeral face. The status strip is the usual one with the GPS glyph alone on the left.
+- **Honest numbers:** AVERAGE is a dash until there are ten seconds of moving, and HEADING a dash at a standstill. The speed is the receiver's own (the Doppler speed), zero below 1.5 km/h; the distance is that speed over time and never the sum of positions, which wander by metres at a red light.
+- **Before there is a speed**, the centre says why in words and never shows a zero it does not have: STARTING GPS; LOCATION NEEDED with ALLOW LOCATION (the one button, parked or not, since there is no driving yet); NO GPS; LOOKING FOR GPS ("Give the phone a clear view of the sky; the first fix can take a minute. Check that location is on in the phone's settings."). After the first speed a lost fix (a tunnel) keeps the last number on screen, dimmed as any stale number is, and never swaps it for words.
+- **Parked dock:** Garage, HUD and RESET TRIP (the distance, time and fastest back to nothing). No Pit Stop, Diagnostics or Insights: they are about the car.
+- **HUD:** the Drive HUD's speed and its unit, and no RPM bar.
+- **Garage** shows Speed from, Cluster (livery and driver side only), HUD, Display and About; the groups about the car (its fuel, the price, the coach, the layout, the trips) are left out.
+- **Not here, and not invented:** a tach, money, a coach, trips, an engine sound. They need the car.
 
 ---
 
@@ -680,7 +690,7 @@ Tier 1 must still look intentional and premium. Composition, typography, light h
 
 ### 9.4 Budgets
 Tier 1 on the reference old device:
-- UI thread under 5 ms and raster thread under 9 ms at p90 during a demo drive on Drive / Apex.
+- UI thread under 5 ms and raster thread under 9 ms at p90 during a simulated drive on Drive / Apex.
 - No frame above 32 ms during the ignition sequence, page swipes or Motion ↔ Parked transitions.
 - **Reference device:** a phone from around 2016–2018 with 2 GB RAM, a Snapdragon 4xx-class or similar chip, Android 7–8 and a 720p screen. If none is available, say so in the review package and profile on the lowest-end device available.
 
@@ -722,7 +732,7 @@ Tier 1 on the reference old device:
 - **Wordmark:** TAPEDASH in wide Saira SemiBold, tracking +6%, with a single thin line of light (the tape) beneath, extending past both ends and fading out. Ion by default; inside the app it takes the livery's accent.
 - **App icon** (adaptive): `void` background; foreground is a five-segment fragment of the tach arc with the last segment lit and glowing, above a short chamfered strip. It must read at 48 px. Include a monochrome layer for Android 13 themed icons.
 - **Launch:** Android `LaunchTheme` window background is `void`; the Android 12+ splash shows the icon foreground on `void`; the first Flutter frame is `void`. **No white flash, ever.**
-- **Store screenshots:** real renders from Demo Mode in every livery, captured with the Design Lab. Never mockups.
+- **Store screenshots:** real renders from simulated drives in every livery, captured with the Design Lab. Never mockups.
 
 ---
 
@@ -782,14 +792,14 @@ Done by the agent on renders and recordings:
 - **Squint test:** blur the screenshot — does the hierarchy survive (hero first, secondary second, etch last)?
 - **Daylight test:** Daylight renders are legible at a glance.
 - **Night test:** nothing dazzles; the brightness floor is respected.
-- **Jitter test:** a slow-motion recording of a demo drive shows no digit wobble, no reflow and no needle jumps.
-- **Soak test:** 30 minutes of demo driving on the oldest device holds the frame budget, with no memory growth; note the temperature.
+- **Jitter test:** a slow-motion recording of a simulated drive shows no digit wobble, no reflow and no needle jumps.
+- **Soak test:** 30 minutes of simulated driving on the oldest device holds the frame budget, with no memory growth; note the temperature.
 
 ### 14.4 The design review package
 Required at the end of every UI phase, written to `docs/design-review/<phase>/`:
 - `README.md`: what was built, which signature moments are finished, every deviation from this document and why, and open questions for the human.
 - `screenshots/`: every page × livery × mode (from goldens, plus device captures when available) and the HUD alignment pattern.
-- `video/`: a 60–90 s screen recording (`adb shell screenrecord`) of a demo drive showing the ignition sequence, a swipe to Money, a cluster change, Motion → Parked and the Debrief, when a device or emulator is available.
+- `video/`: a 60–90 s screen recording (`adb shell screenrecord`) of a simulated drive showing the ignition sequence, a swipe to Money, a cluster change, Motion → Parked and the Debrief, when a device or emulator is available.
 - `perf.md`: frame timings per tier (p50, p90, p99), the device used, and the tier auto-selected.
 - If anything couldn't be captured (no device, no emulator), say so plainly. Never present unverified visuals as done.
 

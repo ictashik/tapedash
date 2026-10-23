@@ -2,9 +2,8 @@ import '../core/observable.dart';
 import 'trip.dart';
 
 /// The trips the screens browse (History, Review, Coach), read from the log and
-/// kept current as trips end. It holds them all, demo trips included, since
-/// History shows those with their badge; whatever counts trips towards a
-/// statistic leaves the demo ones out itself (CLAUDE.md 7.6).
+/// kept current as trips end. Trips flagged simulated (`Trip.isDemo`: left in the
+/// file by builds that had Demo Mode) are never listed and never counted.
 class TripLibrary {
   TripLibrary(this.repository);
 
@@ -19,16 +18,10 @@ class TripLibrary {
   /// The trip Review shows: the one chosen in History, or the latest.
   Observable<Trip?> get selected => _selected;
 
-  /// Trips that are not demo, for the statistics.
-  List<Trip> get realTrips => [
-    for (final t in _trips.value)
-      if (!t.isDemo) t,
-  ];
-
   /// Reads the log again. Keeps the selection if that trip is still there, and
   /// otherwise selects the latest.
   Future<void> refresh() async {
-    final all = await repository.all(includeDemo: true);
+    final all = await repository.all();
     _trips.value = all;
     final keep = _selected.value == null
         ? null

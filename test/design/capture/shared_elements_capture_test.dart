@@ -5,7 +5,6 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tapedash/app/demo_drive.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/ui/design/motion/motion_clock.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
@@ -18,6 +17,7 @@ import 'package:tapedash/ui/pages/strip/placeholder_page.dart';
 import 'package:tapedash/ui/pages/strip/the_strip.dart';
 import 'package:tapedash/vehicle/vehicle_state.dart' show DrivingMode;
 
+import '../../support/sim_drive.dart';
 import '../support/harness.dart';
 
 void main() {
@@ -29,7 +29,7 @@ void main() {
     final kit = TapeRenderKit();
     final motion = ManualMotionClock();
     final clock = FakeClock()..advance(const Duration(seconds: 100));
-    final demo = DemoDrive(
+    final demo = SimDrive(
       clock: clock,
       scheduler: clock,
       scenario: 'highway_cruise',

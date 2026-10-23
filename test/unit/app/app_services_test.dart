@@ -74,24 +74,6 @@ void main() {
   );
 
   test(
-    'a demo has its own price and calibration, and shares only the trips',
-    () async {
-      final real = await AppServices.memory(price: 100);
-      final demo = AppServices.demo(real.trips);
-      expect(demo.money.price.value, AppServices.demoPricePerLitre);
-      expect(demo.trips, same(real.trips));
-      await demo.saveFillUp(
-        at: DateTime(2026, 3, 1),
-        litres: 10,
-        amount: 1000,
-        fullTank: true,
-      );
-      expect(real.money.price.value, 100);
-      expect(await real.fills.all(), isEmpty);
-    },
-  );
-
-  test(
     'deleting all data clears trips, fill-ups, calibration and the price',
     () async {
       final app = await AppServices.memory(price: 100);

@@ -39,15 +39,18 @@ void main() {
     expect(library.selected.value?.startedAt.day, 3);
   });
 
-  test('demo trips are held, but are not real trips', () async {
-    final repo = MemoryTripRepository();
-    await add(repo, 1);
-    await add(repo, 2, demo: true);
-    final library = TripLibrary(repo);
-    await library.refresh();
-    expect(library.trips.value.length, 2);
-    expect([for (final t in library.realTrips) t.startedAt.day], [1]);
-  });
+  test(
+    'simulated trips, left by builds that had Demo Mode, are never listed',
+    () async {
+      final repo = MemoryTripRepository();
+      await add(repo, 1);
+      await add(repo, 2, demo: true);
+      final library = TripLibrary(repo);
+      await library.refresh();
+      expect([for (final t in library.trips.value) t.startedAt.day], [1]);
+      expect(library.selected.value?.startedAt.day, 1);
+    },
+  );
 
   test(
     'a refresh keeps the chosen trip, and falls back to the latest',

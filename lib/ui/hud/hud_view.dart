@@ -51,7 +51,17 @@ class HudView extends StatelessWidget {
     this.alert,
     this.alertIcon = TapeIcon.checkEngine,
     this.moneyNote = 'MONEY UNAVAILABLE',
+    this.layout,
+    this.showRpm = true,
   });
+
+  /// The layout to show in place of the one in [settings]: a drive on the GPS
+  /// alone has only the speed to put on the glass.
+  final HudLayout? layout;
+
+  /// Whether the Drive layout has its RPM bar. A drive with no tach leaves it
+  /// out, and does not show an empty track.
+  final bool showRpm;
 
   final DriveSignals signals;
   final HudSettings settings;
@@ -124,11 +134,12 @@ class HudView extends StatelessWidget {
     );
   }
 
-  Widget _layout() => switch (settings.layout) {
+  Widget _layout() => switch (layout ?? settings.layout) {
     HudLayout.drive => _DriveHud(
       signals: signals,
       width: width,
       height: height,
+      showRpm: showRpm,
       alert: alert,
       alertIcon: alertIcon,
       color: settings.color.color,
@@ -284,11 +295,13 @@ class _DriveHud extends StatelessWidget {
     required this.alert,
     required this.alertIcon,
     required this.color,
+    required this.showRpm,
   });
 
   final DriveSignals signals;
   final double width;
   final double height;
+  final bool showRpm;
   final ValueListenable<AlertLevel>? alert;
   final TapeIcon alertIcon;
   final Color color;
@@ -337,22 +350,23 @@ class _DriveHud extends StatelessWidget {
                   ),
           ),
         ),
-        Positioned(
-          top: barTop,
-          left: (width - width * TapeHud.rpmBarWidthShare) / 2,
-          width: width * TapeHud.rpmBarWidthShare,
-          height: barThickness * TapeHud.rpmRedlineRise,
-          child: RepaintBoundary(
-            child: CustomPaint(
-              painter: HudRpmBarPainter(
-                rpm: signals.rpm,
-                color: color,
-                critical: TapeColors.critical,
-                thickness: barThickness,
+        if (showRpm)
+          Positioned(
+            top: barTop,
+            left: (width - width * TapeHud.rpmBarWidthShare) / 2,
+            width: width * TapeHud.rpmBarWidthShare,
+            height: barThickness * TapeHud.rpmRedlineRise,
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: HudRpmBarPainter(
+                  rpm: signals.rpm,
+                  color: color,
+                  critical: TapeColors.critical,
+                  thickness: barThickness,
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }

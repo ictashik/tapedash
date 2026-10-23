@@ -144,16 +144,15 @@ void main() {
   });
 
   group('TripLibrary', () {
-    test('holds every trip newest first, and selects the latest', () async {
+    test('holds the real trips newest first, and selects the latest', () async {
       final repo = MemoryTripRepository();
       await repo.create(Trip(startedAt: DateTime(2026, 3, 1)));
       await repo.create(Trip(startedAt: DateTime(2026, 3, 3), isDemo: true));
       await repo.create(Trip(startedAt: DateTime(2026, 3, 2)));
       final lib = TripLibrary(repo);
       await lib.refresh();
-      expect([for (final t in lib.trips.value) t.startedAt.day], [3, 2, 1]);
-      expect(lib.selected.value!.startedAt.day, 3);
-      expect(lib.realTrips.length, 2);
+      expect([for (final t in lib.trips.value) t.startedAt.day], [2, 1]);
+      expect(lib.selected.value!.startedAt.day, 2);
     });
 
     test('a chosen trip stays chosen across a refresh', () async {

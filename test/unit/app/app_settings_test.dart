@@ -38,8 +38,6 @@ void main() {
     s.cluster.value = 3;
     s.coachPreset.value = CoachPreset.sporty;
     s.speedLimitKmh.value = 80;
-    s.demoScenario.value = 'highway_cruise';
-    s.demoProfile.value = 'petrol_cvt_map';
     s.onboarded.value = true;
     s.hud
       ..color = HudColor.amber
@@ -61,8 +59,6 @@ void main() {
     expect(again.cluster.value, 3);
     expect(again.coachPreset.value, CoachPreset.sporty);
     expect(again.speedLimitKmh.value, 80);
-    expect(again.demoScenario.value, 'highway_cruise');
-    expect(again.demoProfile.value, 'petrol_cvt_map');
     expect(again.onboarded.value, isTrue);
     expect(again.hud.color, HudColor.amber);
     expect(again.hud.layout, HudLayout.money);

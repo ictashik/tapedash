@@ -24,7 +24,7 @@ class YearBar {
 /// A year of driving as a barcode (Year on Tape): a bar for each trip, stacked by
 /// where its money went, and the year's totals.
 ///
-/// Demo trips never count (CLAUDE.md 7.6).
+/// Simulated trips (`Trip.isDemo`, left by older builds) never count.
 class YearOnTape {
   YearOnTape._({
     required this.year,

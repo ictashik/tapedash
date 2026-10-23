@@ -1,25 +1,22 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tapedash/app/demo_drive.dart';
-import 'package:tapedash/app/demo_location_source.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/location/location_source.dart';
 
+import '../../support/sim_drive.dart';
+import '../../support/sim_drive_location.dart';
+
 void main() {
   test(
-    'the demo GPS gives fixes, and carries on when the drive starts over',
+    'the simulated GPS gives fixes, and carries on when the drive starts over',
     () {
       final clock = FakeClock();
-      final demo = DemoDrive(
+      final demo = SimDrive(
         clock: clock,
         scheduler: clock,
         scenario: 'cold_start_idle',
       );
       addTearDown(demo.dispose);
-      final gps = DemoLocationSource(
-        demo: demo,
-        scheduler: clock,
-        clock: clock,
-      );
+      final gps = SimDriveLocation(drive: demo, scheduler: clock, clock: clock);
       addTearDown(gps.dispose);
       final fixes = <LocationFix>[];
       final sub = gps.fixes.listen(fixes.add);

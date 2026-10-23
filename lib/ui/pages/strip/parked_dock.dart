@@ -42,7 +42,18 @@ class ParkedDock extends StatefulWidget {
     this.onInsights,
     this.onEndTrip,
     this.endTripAvailable,
+    this.onReset,
+    this.carButtons = true,
   });
+
+  /// Called by the Reset trip button of a drive on the GPS alone, which puts the
+  /// distance, the time and the fastest speed back to nothing. Null leaves the
+  /// button out.
+  final VoidCallback? onReset;
+
+  /// Whether the dock has the buttons that are about the car: Pit Stop,
+  /// Diagnostics and Insights. A drive on the GPS alone has none of them.
+  final bool carButtons;
 
   /// Called by the End trip button: the trip is over, the engine may still be
   /// running (a stop at the destination). Null, or [endTripAvailable] false,
@@ -147,10 +158,14 @@ class ParkedDockState extends State<ParkedDock> {
     final palette = theme.palette;
     final buttons = <(TapeIcon, String, VoidCallback?)>[
       (TapeIcon.garage, 'Garage', widget.onGarage),
-      (TapeIcon.pitStop, 'Pit Stop', widget.onPitStop),
-      (TapeIcon.checkEngine, 'Diagnostics', widget.onDiagnostics),
-      (TapeIcon.insights, 'Insights', widget.onInsights),
+      if (widget.carButtons) ...[
+        (TapeIcon.pitStop, 'Pit Stop', widget.onPitStop),
+        (TapeIcon.checkEngine, 'Diagnostics', widget.onDiagnostics),
+        (TapeIcon.insights, 'Insights', widget.onInsights),
+      ],
       (TapeIcon.hud, 'HUD', widget.onHud),
+      if (widget.onReset != null)
+        (TapeIcon.endTrip, 'Reset trip', widget.onReset),
       if (widget.onEndTrip != null && widget.endTripAvailable?.value == true)
         (TapeIcon.endTrip, 'End trip', widget.onEndTrip),
     ];

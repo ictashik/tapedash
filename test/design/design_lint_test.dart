@@ -9,7 +9,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Where the rules hold. The app shell composes the UI, so it is held to them too;
-/// the rest of lib/app (service wiring such as the demo drive) is not UI and is
+/// the rest of lib/app (service wiring such as the drive shells) is not UI and is
 /// not linted.
 const _linted = ['lib/ui'];
 const _lintedFiles = ['lib/app/app.dart'];
@@ -294,7 +294,7 @@ final d = Duration.zero;
       'holds the app shell file to the same rules, and leaves the rest of lib/app alone',
       () {
         write('lib/app/app.dart', 'final w = Scaffold(body: b);\n');
-        write('lib/app/demo_drive.dart', 'final w = Scaffold(body: b);\n');
+        write('lib/app/drive_services.dart', 'final w = Scaffold(body: b);\n');
         write('lib/sim/x.dart', 'final w = Scaffold(body: b);\n');
 
         expect(findDesignViolations(root), [
