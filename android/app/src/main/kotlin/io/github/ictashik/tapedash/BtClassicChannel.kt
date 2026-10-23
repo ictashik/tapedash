@@ -13,6 +13,7 @@ import android.app.Activity
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
@@ -34,10 +35,20 @@ import java.util.concurrent.Executors
  *
  *   methods `tapedash/bt_classic`: status, requestPermission, paired, startScan,
  *     stopScan, pair {address}, unpair {address}, open {address}, close, send {text}
- *   events `tapedash/bt_classic/events`: {type: found, name, address, paired},
- *     {type: data, text} and {type: lost}
+ *   events `tapedash/bt_classic/events`: {type: found, name, address, paired, rssi},
+ *     {type: data, text}, {type: lost} and {type: diag, text} (a line for the app's
+ *     connection log: which kind of socket worked or failed, and why)
  *   error codes: permission_denied, radio_off, unsupported, connect_failed,
  *     not_connected
+ *
+ * **Why it connects the way it does.** A cheap ELM327 clone is the fussy end of
+ * Bluetooth: the first connection after it was last used often fails and the second
+ * works, and which kind of socket works varies by adapter and by phone. So: discovery
+ * is stopped first (it makes a connection slow and flaky), four kinds of socket are
+ * tried in turn (the one that worked last time first), the whole round is tried
+ * twice with a pause, each try has a time limit that closes the socket under a
+ * `connect()` that hangs, and an app that closes the link while it is opening stops
+ * the opening at once. Every failure is reported as a `diag` line.
  *
  * **Unverified on hardware until the handoff (CLAUDE.md 11).** Connecting and
  * writing happen on one worker thread, the reader has a thread of its own, and
@@ -61,6 +72,16 @@ class BtClassicChannel(
     @Volatile private var socket: BluetoothSocket? = null
     @Volatile private var output: OutputStream? = null
     @Volatile private var closing = false
+
+    // The socket that is being connected, so that a close can cut the attempt short.
+    @Volatile private var connecting: BluetoothSocket? = null
+
+    // Which open this is. A close (or another open) moves it on, and the one in the
+    // worker thread sees it has been overtaken and stops.
+    @Volatile private var generation = 0
+
+    // The kind of socket that connected to each adapter last time, tried first next.
+    private val lastKind = HashMap<String, Int>()
     private var scanReceiver: BroadcastReceiver? = null
     private var bondReceiver: BroadcastReceiver? = null
 
@@ -98,6 +119,9 @@ class BtClassicChannel(
             "unpair" -> unpair(call.argument<String>("address"), result)
             "open" -> open(call.argument<String>("address"), result)
             "close" -> {
+                generation++
+                // An open that is waiting in connect() is cut short, not waited for.
+                try { connecting?.close() } catch (_: IOException) {}
                 worker.execute {
                     closeSocket()
                     main.post { result.success(null) }
@@ -154,7 +178,10 @@ class BtClassicChannel(
             override fun onReceive(context: Context, intent: Intent) {
                 if (intent.action != BluetoothDevice.ACTION_FOUND) return
                 val device = deviceOf(intent) ?: return
-                val found = describe(device) + ("type" to "found")
+                val rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE)
+                val found = HashMap<String, Any>(describe(device))
+                found["type"] = "found"
+                if (rssi != Short.MIN_VALUE) found["rssi"] = rssi.toInt()
                 sink?.success(found)
             }
         }
@@ -200,6 +227,8 @@ class BtClassicChannel(
             return
         }
         cancelBonding()
+        // A discovery in progress makes a pairing slow or fail.
+        try { adapter!!.cancelDiscovery() } catch (_: SecurityException) {}
         // A pairing left half-done (a wrong PIN, a dialog dismissed) blocks the
         // next one: drop it first.
         if (device.bondState == BluetoothDevice.BOND_BONDING) removeBond(device)
@@ -208,7 +237,15 @@ class BtClassicChannel(
             if (answered) return
             answered = true
             cancelBonding()
-            if (ok) result.success(null) else result.error("connect_failed", "Pairing did not complete", null)
+            if (ok) {
+                diag("paired with ${device.address}")
+                // A connection straight after a pairing often fails: the adapter and
+                // the phone are still settling it.
+                main.postDelayed({ result.success(null) }, AFTER_BOND_MS)
+            } else {
+                diag("pairing with ${device.address} did not complete")
+                result.error("connect_failed", "Pairing did not complete", null)
+            }
         }
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -320,13 +357,21 @@ class BtClassicChannel(
             result.error("connect_failed", "No such device: $address", null)
             return
         }
+        val mine = ++generation
+        // Discovery slows a connection down and makes it fail; stop it now, not on
+        // the worker thread, which may be busy with an earlier open.
+        try { adapter!!.cancelDiscovery() } catch (_: SecurityException) {}
         worker.execute {
             closeSocket()
             closing = false
             try {
-                // A discovery running slows a connection down and makes it fail.
-                adapter!!.cancelDiscovery()
-                val connected = connect(device)
+                val connected = connect(device, mine)
+                if (mine != generation) {
+                    // Closed while it was opening: let go of what was made.
+                    try { connected.close() } catch (_: IOException) {}
+                    main.post { result.error("connect_failed", "The connection was cancelled", null) }
+                    return@execute
+                }
                 socket = connected
                 output = connected.outputStream
                 startReader(connected.inputStream, connected)
@@ -335,41 +380,83 @@ class BtClassicChannel(
                 main.post { result.error("permission_denied", e.message, null) }
             } catch (e: IOException) {
                 closeSocket()
+                diag("open failed: ${e.message}")
                 main.post { result.error("connect_failed", e.message ?: "Could not connect", null) }
             }
         }
     }
 
+    /** One way of making a socket to an adapter. */
+    private class Kind(val name: String, val make: (BluetoothDevice) -> BluetoothSocket)
+
     /**
-     * Cheap ELM327 clones are fussy about how they are connected to, so three ways
-     * are tried in turn: the secure SPP socket, the insecure one, and RFCOMM channel
-     * 1 by reflection (which many clones answer when the service lookup fails).
+     * Cheap ELM327 clones are fussy about how they are connected to, so four ways are
+     * tried in turn: the secure SPP socket, the insecure one, and RFCOMM channel 1 by
+     * reflection, secure and insecure (which many clones answer when the service
+     * lookup fails). The way that worked last time goes first. A whole round that
+     * fails is tried once more after a pause, within [OPEN_BUDGET_MS].
      */
     @SuppressLint("MissingPermission")
-    private fun connect(device: BluetoothDevice): BluetoothSocket {
-        var last: IOException? = null
-        val makers: List<() -> BluetoothSocket> = listOf(
-            { device.createRfcommSocketToServiceRecord(SPP_UUID) },
-            { device.createInsecureRfcommSocketToServiceRecord(SPP_UUID) },
-            {
-                @Suppress("UNCHECKED_CAST")
-                device.javaClass
+    private fun connect(device: BluetoothDevice, mine: Int): BluetoothSocket {
+        val kinds = listOf(
+            Kind("secure SPP") { it.createRfcommSocketToServiceRecord(SPP_UUID) },
+            Kind("insecure SPP") { it.createInsecureRfcommSocketToServiceRecord(SPP_UUID) },
+            Kind("channel 1") {
+                it.javaClass
                     .getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
-                    .invoke(device, 1) as BluetoothSocket
+                    .invoke(it, 1) as BluetoothSocket
+            },
+            Kind("insecure channel 1") {
+                it.javaClass
+                    .getMethod("createInsecureRfcommSocket", Int::class.javaPrimitiveType)
+                    .invoke(it, 1) as BluetoothSocket
             },
         )
-        for (make in makers) {
-            try {
-                val s = make()
+        val remembered = lastKind[device.address]
+        val order = if (remembered == null) kinds.indices.toList()
+        else listOf(remembered) + kinds.indices.filter { it != remembered }
+
+        val bonded = device.bondState == BluetoothDevice.BOND_BONDED
+        diag("opening ${device.address} (${device.name ?: "no name"}), bonded=$bonded")
+        val deadline = SystemClock.elapsedRealtime() + OPEN_BUDGET_MS
+        var last: IOException? = null
+        for (round in 1..ROUNDS) {
+            for (index in order) {
+                if (mine != generation) throw IOException("The connection was cancelled")
+                if (SystemClock.elapsedRealtime() > deadline) break
+                val kind = kinds[index]
+                val s = try {
+                    kind.make(device)
+                } catch (e: ReflectiveOperationException) {
+                    diag("${kind.name}: not available on this phone")
+                    last = IOException("This phone cannot make that kind of socket", e)
+                    continue
+                }
+                connecting = s
+                // A connect() that hangs is ended by closing the socket under it.
+                val watchdog = Runnable { try { s.close() } catch (_: IOException) {} }
+                main.postDelayed(watchdog, ATTEMPT_TIMEOUT_MS)
                 try {
                     s.connect()
+                    main.removeCallbacks(watchdog)
+                    connecting = null
+                    lastKind[device.address] = index
+                    diag("connected by ${kind.name} (round $round)")
                     return s
                 } catch (e: IOException) {
+                    main.removeCallbacks(watchdog)
+                    connecting = null
                     last = e
+                    diag("${kind.name} failed (round $round): ${e.message}")
                     try { s.close() } catch (_: IOException) {}
                 }
-            } catch (e: ReflectiveOperationException) {
-                last = IOException("This phone cannot make that kind of socket", e)
+            }
+            if (round < ROUNDS && SystemClock.elapsedRealtime() < deadline) {
+                try {
+                    Thread.sleep(ROUND_PAUSE_MS)
+                } catch (e: InterruptedException) {
+                    throw IOException("The connection was cancelled")
+                }
             }
         }
         throw last ?: IOException("Could not connect")
@@ -390,6 +477,7 @@ class BtClassicChannel(
             }
             if (socket === owner && !closing) {
                 closeSocket()
+                diag("the link was lost")
                 main.post { sink?.success(mapOf("type" to "lost")) }
             }
         }.apply { isDaemon = true; name = "tapedash-bt-reader" }.start()
@@ -408,6 +496,7 @@ class BtClassicChannel(
                 main.post { result.success(null) }
             } catch (e: IOException) {
                 closeSocket()
+                diag("a write failed, the link is lost: ${e.message}")
                 main.post {
                     result.error("not_connected", e.message, null)
                     sink?.success(mapOf("type" to "lost"))
@@ -440,6 +529,11 @@ class BtClassicChannel(
             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
         }
 
+    /** A line for the app's connection log. */
+    private fun diag(text: String) {
+        main.post { sink?.success(mapOf("type" to "diag", "text" to "classic: $text")) }
+    }
+
     private fun registerReceiver(receiver: BroadcastReceiver, filter: IntentFilter) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             // Only the system sends these.
@@ -462,5 +556,18 @@ class BtClassicChannel(
         private val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
         private const val PAIRING_TIMEOUT_MS = 60_000L
         private const val UNPAIR_TIMEOUT_MS = 8_000L
+
+        /** After a pairing, before the connection: the two are still settling it. */
+        private const val AFTER_BOND_MS = 1_500L
+
+        /** One socket's connect(), before it is closed under the call. */
+        private const val ATTEMPT_TIMEOUT_MS = 10_000L
+
+        /** A whole round is tried this many times, with [ROUND_PAUSE_MS] between. */
+        private const val ROUNDS = 2
+        private const val ROUND_PAUSE_MS = 900L
+
+        /** No new try is started after this long. */
+        private const val OPEN_BUDGET_MS = 30_000L
     }
 }
