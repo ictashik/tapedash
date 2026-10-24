@@ -76,11 +76,14 @@ Each box is checked when it is built, tested and committed. A box that is only b
 - [ ] **The human captures on their own phone** (below) and sends the folder: Android 15's shape, miles or another language, a roundabout, a highway exit. The fixtures for N3 come from both captures (a street name is public data in the emulator's, and the human's is changed before it is committed)
 - [ ] Update N3 to match; record the findings in DECISIONS.md
 
-### N3. Model, parser and simulator (pure Dart, `lib/nav/`)
-- [ ] `NavState`: the turn (arrow mask, distance, text), the street, ETA, time left, distance left, rerouting, when it last changed
-- [ ] The parser for **both shapes**, preferring the numbers when they are there (`shortCriticalText`, `progress` and `progressMax`) and the text when not; distances in m, km, ft, mi, a decimal comma; times in 12 and 24 hour; the raw text kept as the fallback
-- [ ] `NavSimulator`: posts the struct a listener would, from a scripted route, in step with the vehicle simulator's speed (a 20-minute drive runs in seconds on the fake clock), in both shapes
-- [ ] Tests: fixtures from the captures; a parse failure falls back to Google's text; stale after N seconds; the distance counts down between updates by our own speed and snaps back at each update; a reroute
+### N3. Model, parser and simulator (pure Dart, `lib/nav/`) (done)
+- [x] `NavState` (`nav_state.dart`): the phase (idle, starting, rerouting, guiding), the turn (arrow mask, distance as Google wrote it and in metres, instruction), distance left, time left (Google's, or derived from the ETA and marked so), the ETA, and when it was received
+- [x] `NavNotification` (`nav_notification.dart`): the wire format of the channel, with `NavArrow` (the manoeuvre's mask)
+- [x] The parser (`nav_parser.dart`, `nav_text.dart`) for **both shapes**: the numbers where Maps puts numbers (`shortCriticalText`, `progress`, `progressMax`) and the text otherwise; m, km, ft, mi, yd; decimal comma and grouping; 12 and 24 hour clocks (through a narrow no-break space too); digits of the Indian and Arabic scripts; the parts of a classic sub text told apart by what they are, not where. **A unit it has not seen is not guessed**: Google's text is kept and the figure is null (`NavParser(units: ...)` takes more)
+- [x] `NavTracker` (`nav_tracker.dart`): holds the state; **stale** after 15 s of silence with the car moving, 3 minutes standing; counts the distance to the turn down by the car's own speed between posts (a marker that moves smoothly; the text stays Google's); on the fake clock
+- [x] `NavSimulator` and `NavArrows` (`nav_simulator.dart`, `nav_arrows.dart`): a route driven in step with the car, posting both real shapes with the cadence (2 s moving, 7 s standing), the 50 m steps, `Starting navigation…`, `Rerouting...` with the progress back to zero, and the removal at the end; arrows drawn in code at Maps' 126 px
+- [x] Tests (`test/unit/nav/`, 101 with the architecture test): **every real notification in the capture** (`test/fixtures/nav/maps_25_33_android16.jsonl`) parses and the key ones to exact figures; the cases the capture did not have (miles, feet, a 24 hour ETA, an ETA just passed or tomorrow's, an unknown unit); the wire form; stale, the countdown and its limits; a replay of the whole capture through the tracker on a fake clock; the simulator read back by the parser in both shapes
+- *The capture had 17 s of silence while the emulated car stood; the replay test uses the capture's own speed (0 until 93 s, then 14 m/s). The longest gap with the car moving was 5 s.*
 
 ### N4. The channel and the switch
 - [ ] `NavChannel` (Kotlin) and `lib/platform/nav_channel.dart`, with a mocked-channel test; the arrow's bitmap crosses as bytes
