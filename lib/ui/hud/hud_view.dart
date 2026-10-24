@@ -5,8 +5,6 @@ import '../design/components/alerts.dart';
 import '../design/components/rolling_numerals.dart';
 import '../design/icons/icons.dart';
 import '../design/motion/numeral_source.dart';
-import '../design/render/glyph_atlas.dart';
-import '../design/render/render_kit.dart';
 import '../design/theme/palette.dart' show TapeMode;
 import '../design/theme/tape_theme.dart';
 import '../design/tokens/colors.dart';
@@ -17,6 +15,7 @@ import '../design/tokens/strokes.dart';
 import '../design/tokens/typography.dart';
 import '../pages/drive/drive_signals.dart';
 import 'alignment_pattern.dart';
+import 'hud_parts.dart';
 import 'hud_settings.dart';
 
 /// The windshield HUD (DESIGN.md 8): pure black, one user-chosen colour, huge
@@ -163,106 +162,6 @@ class HudView extends StatelessWidget {
   };
 }
 
-/// Puts a numeral of [size] so that the middle of its *ink* is at [centre],
-/// horizontally centred on [centreX]: the numeral's box is much taller than its
-/// ink (the detent and roll room, DESIGN.md 5.6), so a layout laid out by box
-/// would sit the digits well off where they are meant to be.
-Positioned _atInk({
-  required double centreX,
-  required double centreY,
-  required double size,
-  required double boxWidth,
-  required Widget child,
-}) {
-  final m = NumeralMetrics(size);
-  final inkMiddle = m.inkTop + m.inkHeight / 2;
-  return Positioned(
-    left: centreX - boxWidth / 2,
-    width: boxWidth,
-    top: centreY - inkMiddle,
-    // The child is centred in a box as tall as a numeral's own, so that a
-    // dash or a ₹ sits on the same middle as the digits beside it.
-    child: SizedBox(
-      height: m.boxHeight,
-      child: Center(child: child),
-    ),
-  );
-}
-
-/// A HUD label: UPPERCASE Barlow Semi Condensed, at least 0.06H, in the HUD
-/// colour (a dim label would vanish in the glass).
-Widget _label(String text, double height, Color color) => Text(
-  text,
-  style: TapeType.label(size: height * TapeHud.labelShare, color: color),
-  maxLines: 1,
-  softWrap: false,
-);
-
-/// The HUD's numerals: Bold Saira from the glyph atlas, in the HUD colour, no
-/// halo, [typical] integer digits wide and centred on them.
-///
-/// [CenteredNumeral] centres on an *estimate* of a digit's width (its own doc
-/// comment says so), which at the HUD's huge sizes is a whole digit-width
-/// wide of the atlas's real one: a measured 54 lp of drift on a 198 lp "64".
-/// The HUD's numerals are the largest on any screen and sit alone, so this
-/// reads the real advance from the same atlas the numerals draw from.
-class _HudNumerals extends StatelessWidget {
-  const _HudNumerals({
-    required this.source,
-    required this.format,
-    required this.size,
-    required this.typical,
-  });
-
-  final NumeralSource source;
-  final NumeralFormat format;
-  final double size;
-  final int typical;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = TapeTheme.of(context);
-    final atlas = TapeRenderScope.of(context).atlases.get(
-      GlyphAtlasSpec(
-        sizeLp: size,
-        devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
-        weight: theme.livery.numeralWeight,
-      ),
-    );
-    final metrics = NumeralMetrics(size);
-    final numeral = RollingNumerals(
-      source: source,
-      format: format,
-      size: size,
-      role: NumeralRole.accent,
-    );
-    // The typical digits, plus the format's separators and decimals, at their
-    // real advances: the width the lit part of the readout occupies.
-    final lit = typical + format.decimals;
-    var width = lit * atlas.digitAdvance;
-    if (format.grouping != DigitGrouping.none) {
-      final commas = format.grouping == DigitGrouping.indian
-          ? (typical - 1) ~/ 2
-          : (typical - 1) ~/ 3;
-      width += commas * (atlas.glyph(0x2C)?.advance ?? 0);
-    }
-    if (format.decimals > 0) width += atlas.glyph(0x2E)?.advance ?? 0;
-    final full =
-        (format.integerDigits + format.decimals) * atlas.digitAdvance * 2;
-    return SizedBox(
-      width: width,
-      height: metrics.boxHeight,
-      child: OverflowBox(
-        minWidth: 0,
-        maxWidth: full,
-        maxHeight: metrics.boxHeight * 1.5,
-        alignment: Alignment.centerRight,
-        child: numeral,
-      ),
-    );
-  }
-}
-
 /// What a money readout shows with no source: a Bold dash, in the HUD colour.
 Widget _dash(double size, Color color) => Text(
   '—',
@@ -316,12 +215,12 @@ class _DriveHud extends StatelessWidget {
     final barTop = height * 0.86;
     return Stack(
       children: [
-        _atInk(
+        hudAtInk(
           centreX: width / 2,
           centreY: speedY,
           size: size,
           boxWidth: width,
-          child: _HudNumerals(
+          child: HudNumerals(
             source: signals.speed,
             format: const NumeralFormat(integerDigits: 3),
             size: size,
@@ -332,7 +231,7 @@ class _DriveHud extends StatelessWidget {
           top: labelTop,
           left: 0,
           right: 0,
-          child: Center(child: _label('KM/H', height, color)),
+          child: Center(child: hudLabel('KM/H', height, color)),
         ),
         // The alert slot: centre-top, out of the way of the speed, nothing at
         // all with no alert.
@@ -454,12 +353,12 @@ class _DriveMoneyHud extends StatelessWidget {
     final half = width / 2;
     return Stack(
       children: [
-        _atInk(
+        hudAtInk(
           centreX: half / 2,
           centreY: y,
           size: size,
           boxWidth: half,
-          child: _HudNumerals(
+          child: HudNumerals(
             source: signals.speed,
             format: const NumeralFormat(integerDigits: 3),
             size: size,
@@ -470,7 +369,7 @@ class _DriveMoneyHud extends StatelessWidget {
           top: labelTop,
           left: 0,
           width: half,
-          child: Center(child: _label('KM/H', height, color)),
+          child: Center(child: hudLabel('KM/H', height, color)),
         ),
         _moneyHalf(size: size, y: y, half: half, labelTop: labelTop),
       ],
@@ -487,7 +386,7 @@ class _DriveMoneyHud extends StatelessWidget {
     return Stack(
       children: [
         if (source == null)
-          _atInk(
+          hudAtInk(
             centreX: half + half / 2,
             centreY: y,
             size: size,
@@ -495,7 +394,7 @@ class _DriveMoneyHud extends StatelessWidget {
             child: _dash(size * 0.8, color),
           )
         else
-          _atInk(
+          hudAtInk(
             centreX: half + half / 2,
             centreY: y,
             size: size,
@@ -505,7 +404,7 @@ class _DriveMoneyHud extends StatelessWidget {
               children: [
                 _rupee(size * 0.5, color),
                 const SizedBox(width: TapeSpace.s2),
-                _HudNumerals(
+                HudNumerals(
                   source: source,
                   format: const NumeralFormat(
                     integerDigits: 5,
@@ -522,7 +421,7 @@ class _DriveMoneyHud extends StatelessWidget {
           left: half,
           width: half,
           child: Center(
-            child: _label(source == null ? note : 'THIS TRIP', height, color),
+            child: hudLabel(source == null ? note : 'THIS TRIP', height, color),
           ),
         ),
       ],
@@ -558,7 +457,7 @@ class _MoneyHud extends StatelessWidget {
     final perKmY = y + ink / 2 + height * 0.16;
     return Stack(
       children: [
-        _atInk(
+        hudAtInk(
           centreX: width / 2,
           centreY: y,
           size: size,
@@ -570,7 +469,7 @@ class _MoneyHud extends StatelessWidget {
                   children: [
                     _rupee(size * 0.5, color),
                     const SizedBox(width: TapeSpace.s2),
-                    _HudNumerals(
+                    HudNumerals(
                       source: trip,
                       format: const NumeralFormat(
                         integerDigits: 5,
@@ -583,7 +482,7 @@ class _MoneyHud extends StatelessWidget {
                 ),
         ),
         if (perKm != null)
-          _atInk(
+          hudAtInk(
             centreX: width / 2,
             centreY: perKmY,
             size: small,
@@ -593,14 +492,14 @@ class _MoneyHud extends StatelessWidget {
               children: [
                 _rupee(small * 0.6, color),
                 const SizedBox(width: TapeSpace.s1),
-                _HudNumerals(
+                HudNumerals(
                   source: perKm,
                   format: const NumeralFormat(integerDigits: 2, decimals: 1),
                   size: small,
                   typical: 1,
                 ),
                 const SizedBox(width: TapeSpace.s2),
-                _label('/KM', height, color),
+                hudLabel('/KM', height, color),
               ],
             ),
           ),
@@ -609,7 +508,7 @@ class _MoneyHud extends StatelessWidget {
           left: 0,
           right: 0,
           child: Center(
-            child: _label(trip == null ? note : 'THIS TRIP', height, color),
+            child: hudLabel(trip == null ? note : 'THIS TRIP', height, color),
           ),
         ),
       ],
