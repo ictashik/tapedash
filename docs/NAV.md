@@ -85,11 +85,15 @@ Each box is checked when it is built, tested and committed. A box that is only b
 - [x] Tests (`test/unit/nav/`, 101 with the architecture test): **every real notification in the capture** (`test/fixtures/nav/maps_25_33_android16.jsonl`) parses and the key ones to exact figures; the cases the capture did not have (miles, feet, a 24 hour ETA, an ETA just passed or tomorrow's, an unknown unit); the wire form; stale, the countdown and its limits; a replay of the whole capture through the tracker on a fake clock; the simulator read back by the parser in both shapes
 - *The capture had 17 s of silence while the emulated car stood; the replay test uses the capture's own speed (0 until 93 s, then 14 m/s). The longest gap with the car moving was 5 s.*
 
-### N4. The channel and the switch
-- [ ] `NavChannel` (Kotlin) and `lib/platform/nav_channel.dart`, with a mocked-channel test; the arrow's bitmap crosses as bytes
-- [ ] The access state (granted or not) and a button that opens Android's Notification access screen
-- [ ] Garage → Navigation (parked only, off by default, the explanation in CLAUDE.md 4; not offered where Maps cannot run); settings in `AppSettings`
-- [ ] Nothing from navigation reaches trips, recordings, the exchange file or logs (a test that drives a trip and greps what was written)
+### N4. The channel and the switch (done, native side verified on an emulator below)
+- [x] `NavReader`, `NavBridge`, `NavChannel` (Kotlin) and `lib/platform/nav_channel.dart` with a fake: the title, text, sub text, short critical text, progress, template and the arrow's alpha mask cross as one map. **Nothing is read unless Dart is listening** (`NavBridge.posted` returns before it touches the notification), so a switch that is off opens no notification even with access granted
+- [x] The access state (`access`) and a button that opens Android's own screen for it (the page of TapeDash's listener on Android 11 and later, the list before)
+- [x] `<queries>` for Google Maps' package only, so that Garage can say when it is not on the phone (`mapsVersion`). No permission, and no other package becomes visible
+- [x] `NavService` (`lib/app/nav_service.dart`): follows the switch, listens only while it is on, keeps the tracker, feeds it the car's speed, asks again when the app comes back to the screen (the person may have been to Android's settings); the link's status: off, no Maps, needs access, waiting, guiding, stale. In the car shell and the GPS-only shell
+- [x] Garage → **Navigation** (off by default; parked only, like all of Garage): the switch, the status in words, a row that opens Android's screen when access is missing, and the plain explanation, including that access lets an app see every notification
+- [x] A row in the debug overlay (the link's state only, never what Maps said)
+- [x] Nothing from navigation reaches trips, recordings, the exchange file or logs: a test that pushes a distinctive street through the service and looks through everything the settings wrote, and an import-graph test that fails if any code that stores or sends data imports the navigation code (`test/unit/nav/nav_privacy_test.dart`)
+- [x] `tool/check_offline.sh` now also covers `NavBridge` hand-offs and the allowlist as `setOf(GOOGLE_MAPS)`
 
 ### N5. The HUD layout
 - [ ] DESIGN.md: the navigation HUD (optics rules of §8: one colour, strokes of 5 lp or more, no filled panels); the schematic line; the stale state; Garage copy
