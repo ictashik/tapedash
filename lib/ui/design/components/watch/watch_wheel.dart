@@ -199,7 +199,9 @@ class WatchWheelState extends State<WatchWheel> {
           children: [
             if (widget.title != null)
               Positioned(
-                top: face.crownY - type.label / 2,
+                // High in the circle, above the row that sits over the chosen
+                // one, so that the two never touch.
+                top: face.diameter * 0.12 - type.label / 2,
                 left: 0,
                 right: 0,
                 child: Center(

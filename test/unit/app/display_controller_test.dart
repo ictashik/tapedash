@@ -277,6 +277,76 @@ void main() {
     });
   });
 
+  group('a watch (DESIGN.md 16.9)', () {
+    late DisplayController watch;
+
+    setUp(() {
+      watch = DisplayController(
+        device: device,
+        clock: clock,
+        scheduler: clock,
+        settings: settings,
+        watchFrames: false,
+        watch: true,
+        hotAt: 41,
+        tooHotAt: 45,
+      );
+    });
+
+    tearDown(() async => watch.dispose());
+
+    test('starts at Lite, where a phone starts at Balanced', () {
+      expect(watch.tier.value.tier, FidelityTier.lite);
+      expect(display.tier.value.tier, FidelityTier.balanced);
+    });
+
+    test('is held to Balanced however fast the cold open was', () {
+      watch.onDetected(
+        const TierDecision(
+          tier: FidelityTier.full,
+          fpsCap: null,
+          p90Milliseconds: 3,
+        ),
+      );
+      expect(watch.tier.value.tier, FidelityTier.balanced);
+      expect(watch.tier.value.fpsCap, 60);
+      // Lite and Balanced are taken as they come.
+      watch.onDetected(
+        const TierDecision(
+          tier: FidelityTier.lite,
+          fpsCap: 30,
+          p90Milliseconds: 20,
+        ),
+      );
+      expect(watch.tier.value.tier, FidelityTier.lite);
+      expect(watch.tier.value.fpsCap, 30);
+    });
+
+    test(
+      'is warm at 41 degrees and too hot, dimmed and at Lite, at 45',
+      () async {
+        device.batteryTemperature = 42;
+        await watch.start();
+        expect(watch.phoneHot.value, isTrue);
+        expect(watch.phoneTooHot.value, isFalse);
+        expect(watch.brightness, isNull);
+
+        device.batteryTemperature = 46;
+        clock.advance(const Duration(seconds: 31));
+        await Future<void>.delayed(Duration.zero);
+        expect(watch.phoneTooHot.value, isTrue);
+        expect(watch.brightness, 0.5);
+        expect(watch.tier.value.tier, FidelityTier.lite);
+      },
+    );
+
+    test('a phone is not warm at 42 degrees', () async {
+      device.batteryTemperature = 42;
+      await display.start();
+      expect(display.phoneHot.value, isFalse);
+    });
+  });
+
   test('a phone that fails at everything is a reason to carry on', () async {
     final broken = BrokenPhone();
     final shaky = DisplayController(

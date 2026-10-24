@@ -143,12 +143,17 @@ class _Row extends StatelessWidget {
         ),
         SizedBox(width: label * 0.6),
         Expanded(child: TapeLabel(name, size: label * 0.92)),
-        LabeledNumeral(
-          source: cost,
-          format: const NumeralFormat(integerDigits: 4),
-          size: size,
-          prefix: '₹',
-          role: NumeralRole.money,
+        // The figures' ink is centred in a tall box and the capitals of the name
+        // sit a little high in theirs: lift the figures to the name's line.
+        Transform.translate(
+          offset: Offset(0, -label * 0.22),
+          child: LabeledNumeral(
+            source: cost,
+            format: const NumeralFormat(integerDigits: 4),
+            size: size,
+            prefix: '₹',
+            role: NumeralRole.money,
+          ),
         ),
       ],
     );

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
@@ -5,6 +7,7 @@ import '../brand/wordmark.dart';
 import '../design/components/controls/tape_button.dart';
 import '../design/components/presence.dart';
 import '../design/components/tape_label.dart';
+import '../design/components/watch/watch_face.dart';
 import '../design/fidelity/frame_probe.dart';
 import '../design/icons/icons.dart';
 import '../design/motion/motion_scope.dart';
@@ -37,7 +40,12 @@ class OnboardingScreen extends StatefulWidget {
     this.onConnect,
     this.onBenchmark,
     this.skipColdOpen = false,
+    this.watch = false,
   });
+
+  /// Laid out for a round watch face (DESIGN.md 16.8): the two buttons stacked
+  /// inside the circle, not side by side.
+  final bool watch;
 
   final double width;
   final double height;
@@ -59,6 +67,87 @@ class OnboardingScreen extends StatefulWidget {
 
   @override
   State<OnboardingScreen> createState() => OnboardingScreenState();
+}
+
+/// The watch's choice (DESIGN.md 16.8): the wordmark high in the circle, and the two
+/// buttons one above the other, each as wide as the circle is at its lower edge.
+extension _WatchChoice on OnboardingScreenState {
+  Widget _buildWatch(BuildContext context) {
+    final face = WatchFace.of(widget.width, widget.height);
+    final size = face.diameter * 0.08;
+    // Each button is as wide as its words need, and sits where the circle is wide
+    // enough for it at its lower edge (the choice has no rim to keep clear of).
+    const buttonHeight = 48.0;
+    // Low in the circle where it is large, and as low as the second button's
+    // lower corners allow where it is small: a dense button is about 140 lp wide.
+    const buttonWidth = 140.0;
+    final room = face.radius * face.radius - math.pow(buttonWidth / 2 + 4, 2);
+    final lowest =
+        face.radius +
+        math.sqrt(math.max(0, room)) -
+        (2 * buttonHeight + TapeSpace.s2) -
+        TapeSpace.s1;
+    final firstTop = math.min(face.diameter * 0.37, lowest);
+    final secondTop = firstTop + buttonHeight + TapeSpace.s2;
+    return Center(
+      child: SizedBox.square(
+        dimension: face.diameter,
+        child: Stack(
+          children: [
+            Positioned(
+              // Just over the first button: the wordmark is about 1.1 of its size
+              // and 10 lp tall, with its line.
+              top: firstTop - (1.1 * size + 10) - TapeSpace.s2,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Wordmark(size: size, lineShare: _line, textShare: _text),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              top: firstTop,
+              child: Presence(
+                share: _choice,
+                child: Center(
+                  child: SizedBox(
+                    height: buttonHeight,
+                    child: TapeButton(
+                      label: 'Connect my car',
+                      icon: TapeIcon.adapter,
+                      primary: true,
+                      dense: true,
+                      onPressed: _ready ? widget.onConnect : null,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              top: secondTop,
+              child: Presence(
+                share: _choice,
+                child: Center(
+                  child: SizedBox(
+                    height: buttonHeight,
+                    child: TapeButton(
+                      label: 'GPS speed only',
+                      icon: TapeIcon.gps,
+                      dense: true,
+                      onPressed: _ready ? widget.onGps : null,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _Share extends ChangeNotifier implements ValueListenable<double> {
@@ -149,6 +238,7 @@ class OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.watch) return _buildWatch(context);
     final palette = TapeTheme.of(context).palette;
     final size = widget.height * 0.11;
     final wordmarkTop = widget.height * OnboardingScreen.wordmarkCentre - size;

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
@@ -16,11 +17,19 @@ import '../design/components/controls/tape_numpad.dart';
 import '../design/components/controls/tape_segmented.dart';
 import '../design/components/controls/tape_slider.dart';
 import '../design/components/tape_label.dart';
+import '../design/components/watch/watch_face.dart';
+import '../design/components/watch/watch_wheel.dart';
 import '../design/icons/icons.dart';
+import '../design/motion/motion_clock.dart';
+import '../design/motion/motion_scope.dart';
 import '../design/theme/palette.dart';
 import '../design/theme/tape_theme.dart';
 import '../design/tokens/spacing.dart';
 import '../design/tokens/strokes.dart';
+import '../design/tokens/typography.dart';
+import '../pages/watch/watch_sheets.dart' show WatchSheet;
+
+part 'connect_flow_watch.dart';
 
 /// The connect path (DESIGN.md 7.11): adapter type, find and pair it, the car,
 /// the price of fuel (skippable), and the layout to start on. A thin tape across
@@ -51,7 +60,17 @@ class ConnectFlow extends StatefulWidget {
     required this.height,
     required this.onDone,
     required this.onCancel,
+    this.watch = false,
+    this.rotary,
   });
+
+  /// Laid out for a round watch face (DESIGN.md 16.8): type, find, and done. The
+  /// car's setup, the price and the layout are not asked on a wrist (no keypad
+  /// fits it): they have their defaults and arrive by import or from the menu.
+  final bool watch;
+
+  /// The bezel, for a watch.
+  final Stream<int>? rotary;
 
   final AppServices services;
 
@@ -81,7 +100,7 @@ enum ConnectStep { type, find, car, price, layout }
 const String _defaultHost = '192.168.0.10';
 const int _defaultPort = 35000;
 
-class ConnectFlowState extends State<ConnectFlow> {
+class ConnectFlowState extends State<ConnectFlow> with WidgetsBindingObserver {
   ConnectStep _step = ConnectStep.type;
   AdapterKind? _kind;
   AdapterConfig? _chosen;
@@ -123,9 +142,40 @@ class ConnectFlowState extends State<ConnectFlow> {
   FoundAdapter? get failed => _failed;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.watch) WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _stopScan();
     super.dispose();
+  }
+
+  /// The Back button on a watch steps back, as the swipe to the right does.
+  @override
+  Future<bool> didPopRoute() async {
+    if (!widget.watch) return false;
+    _back();
+    return true;
+  }
+
+  /// Puts away the offer to recover from an adapter that would not open.
+  void _dismissFailure() => setState(() {
+    _failed = null;
+    _note = null;
+  });
+
+  /// Once an adapter is chosen: the car's setup comes next on a phone; a watch is
+  /// done, with the defaults.
+  void _afterAdapter() {
+    if (widget.watch) {
+      unawaited(_finish());
+    } else {
+      _go(ConnectStep.car);
+    }
   }
 
   /// Whether a search is going on.
@@ -381,7 +431,7 @@ class ConnectFlowState extends State<ConnectFlow> {
     }
     setState(() => _checking = false);
     _chosen = _configOf(adapter);
-    _go(ConnectStep.car);
+    _afterAdapter();
   }
 
   /// Drops the pairing with the adapter that would not connect, and pairs it again
@@ -422,7 +472,7 @@ class ConnectFlowState extends State<ConnectFlow> {
     if (adapter == null) return;
     _stopScan();
     _chosen = _configOf(adapter);
-    _go(ConnectStep.car);
+    _afterAdapter();
   }
 
   // WiFi.
@@ -473,7 +523,7 @@ class ConnectFlowState extends State<ConnectFlow> {
       return;
     }
     _chosen = config;
-    _go(ConnectStep.car);
+    _afterAdapter();
   }
 
   // ---- steps 3 to 5 ------------------------------------------------------
@@ -504,6 +554,7 @@ class ConnectFlowState extends State<ConnectFlow> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.watch) return _buildWatch(context);
     final palette = TapeTheme.of(context).palette;
     final margin = TapeSpace.margin(widget.height);
     final leftW = widget.width * 0.34 - margin;

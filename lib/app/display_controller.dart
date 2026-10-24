@@ -66,12 +66,15 @@ class DisplayController {
     this.tooHotAt = 50,
     this.checkEvery = const Duration(seconds: 30),
     this.watchFrames = true,
+    this.watch = false,
   }) {
     _modes = ModeController(clock: clock)..setting = settings.modeSetting.value;
     _governor = TierGovernor(
       clock: clock,
-      initial: const TierDecision(
-        tier: FidelityTier.balanced,
+      // A watch starts at Lite and is held to Balanced (DESIGN.md 16.9): a watch's
+      // chip and battery are small, and the face looks the same in every tier.
+      initial: TierDecision(
+        tier: watch ? FidelityTier.lite : FidelityTier.balanced,
         fpsCap: null,
         p90Milliseconds: 0,
       ),
@@ -94,6 +97,9 @@ class DisplayController {
 
   /// Whether to watch the engine's frame timings for the governor (off in tests).
   final bool watchFrames;
+
+  /// The device is a watch: the tier starts at Lite and never goes above Balanced.
+  final bool watch;
 
   late final ModeController _modes;
   late final TierGovernor _governor;
@@ -202,7 +208,15 @@ class DisplayController {
   }
 
   /// The tier the cold open's frame timings chose.
-  void onDetected(TierDecision decision) => _governor.onDetected(decision);
+  void onDetected(TierDecision decision) => _governor.onDetected(
+    watch && decision.tier == FidelityTier.full
+        ? TierDecision(
+            tier: FidelityTier.balanced,
+            fpsCap: decision.fpsCap ?? 60,
+            p90Milliseconds: decision.p90Milliseconds,
+          )
+        : decision,
+  );
 
   Future<void> _checkBattery() async {
     double? celsius;

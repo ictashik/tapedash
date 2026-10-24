@@ -46,6 +46,7 @@ import 'live_drive.dart';
 import 'radio_transport_factory.dart';
 import 'survey_drive.dart';
 import 'transport_adapter_checker.dart';
+import 'watch_gps_shell.dart';
 import 'watch_shell.dart';
 
 /// Root widget.
@@ -170,6 +171,9 @@ class _ShellState extends State<_Shell> with WidgetsBindingObserver {
   late final TapeRenderKit _kit = TapeRenderKit();
   bool _labOpen = false;
 
+  /// Whether the screens are the watch's, known at the start (DESIGN.md 16.2).
+  late final bool _watchAtStart;
+
   /// Moves the app's data out and in (docs/EXCHANGE.md): Garage's rows, the watch's
   /// Data row and what adb asks at the launch. Made once the form factor is known.
   ExchangeCoordinator? _exchange;
@@ -190,6 +194,10 @@ class _ShellState extends State<_Shell> with WidgetsBindingObserver {
 
   /// The light, the brightness, the heat and the fidelity tier (DESIGN.md 4.4, 9.2).
   late final DisplayController _display = DisplayController(
+    watch: _watchAtStart,
+    // A watch gets hot sooner than a phone (DESIGN.md 16.9).
+    hotAt: _watchAtStart ? TapeWatch.hotAt : 45,
+    tooHotAt: _watchAtStart ? TapeWatch.tooHotAt : 50,
     device: widget.device ?? FakeDeviceFeatures(),
     clock: widget.clock,
     scheduler: widget.scheduler,
@@ -281,6 +289,15 @@ class _ShellState extends State<_Shell> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    // Before anything touches the display controller, which is made for a watch
+    // or a phone: the view's own size says which (DESIGN.md 16.2).
+    final view = WidgetsBinding.instance.platformDispatcher.implicitView;
+    final logical = view == null
+        ? const Size(1000, 1000)
+        : view.physicalSize / view.devicePixelRatio;
+    _watchAtStart = widget.formFactor != null
+        ? widget.formFactor == FormFactor.watch
+        : FormFactor.ofSize(logical.width, logical.height) == FormFactor.watch;
     WidgetsBinding.instance.addObserver(this);
     _arrivals = _exchangeHost.arrivals.listen(
       (_) => unawaited(_exchange?.checkRequest()),
@@ -465,17 +482,26 @@ class _ShellState extends State<_Shell> with WidgetsBindingObserver {
     return FormFactor.ofSize(size.width, size.height) == FormFactor.watch;
   }
 
+  /// The canvas under a first screen: the vignette and grain on a phone, and plain
+  /// `void` on a watch (DESIGN.md 16.9), whose corners must be exactly black.
+  Widget _backdrop(bool watch, Widget child) => watch
+      ? ColoredBox(color: TapeColors.voidColor, child: child)
+      : TapeBackdrop(child: child);
+
   Widget _screen() {
     final watch = _isWatch(context);
     if (_connecting) {
       return LayoutBuilder(
-        builder: (context, box) => TapeBackdrop(
-          child: ConnectFlow(
+        builder: (context, box) => _backdrop(
+          watch,
+          ConnectFlow(
             services: _services,
             checker: TransportAdapterChecker(_transports),
             radios: _transports.radio,
             width: box.maxWidth,
             height: box.maxHeight,
+            watch: watch,
+            rotary: widget.device?.rotary,
             onCancel: () => _closeConnect(done: false),
             onDone: () => _closeConnect(done: true),
           ),
@@ -487,8 +513,9 @@ class _ShellState extends State<_Shell> with WidgetsBindingObserver {
       // The dashboard is letting go of the adapter, or the survey is.
       if (survey == null) return const SizedBox.shrink();
       return LayoutBuilder(
-        builder: (context, box) => TapeBackdrop(
-          child: SurveyPage(
+        builder: (context, box) => _backdrop(
+          watch,
+          SurveyPage(
             drive: survey,
             width: box.maxWidth,
             height: box.maxHeight,
@@ -535,6 +562,19 @@ class _ShellState extends State<_Shell> with WidgetsBindingObserver {
       case DriveSource.gps:
         final gps = _gps;
         if (gps == null) return const SizedBox.shrink();
+        if (watch) {
+          return WatchGpsShell(
+            key: ValueKey(gps),
+            gps: gps,
+            app: _services,
+            clock: widget.clock,
+            scheduler: widget.scheduler,
+            device: widget.device,
+            onChangeAdapter: _openConnect,
+            phoneHot: _phoneHot,
+            exchange: _exchange,
+          );
+        }
         return GpsShell(
           key: ValueKey(gps),
           exchange: _exchange,
@@ -550,8 +590,10 @@ class _ShellState extends State<_Shell> with WidgetsBindingObserver {
         );
       case null:
         return LayoutBuilder(
-          builder: (context, box) => TapeBackdrop(
-            child: OnboardingScreen(
+          builder: (context, box) => _backdrop(
+            watch,
+            OnboardingScreen(
+              watch: watch,
               width: box.maxWidth,
               height: box.maxHeight,
               // A person who has seen the cold open once does not see it again
@@ -602,7 +644,9 @@ class _ShellState extends State<_Shell> with WidgetsBindingObserver {
                           // Only on the first screens: over the drive it would sit on the
                           // connect flow's and Garage's buttons, and the debug overlay (a
                           // long-press) opens the Lab from there.
+                          // Not on a watch: its corner is not there to press.
                           if (DevMode.buttonVisible &&
+                              !_isWatch(context) &&
                               _adapters.source.value == null &&
                               !_connecting)
                             Positioned(
