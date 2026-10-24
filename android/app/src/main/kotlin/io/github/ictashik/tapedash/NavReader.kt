@@ -4,6 +4,7 @@ import android.app.Notification
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.os.Build
 import android.graphics.drawable.BitmapDrawable
 
 /**
@@ -55,8 +56,10 @@ object NavReader {
             drawable.draw(Canvas(drawn))
             drawn
         }
-        // A hardware bitmap cannot be read pixel by pixel.
-        if (bitmap.config == Bitmap.Config.HARDWARE) {
+        // A hardware bitmap cannot be read pixel by pixel. There are none before Android 8,
+        // and the constant does not exist there: naming it on Android 7 is an Error that
+        // would bring the app down.
+        if (Build.VERSION.SDK_INT >= 26 && bitmap.config == Bitmap.Config.HARDWARE) {
             bitmap = bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: return null
         }
 

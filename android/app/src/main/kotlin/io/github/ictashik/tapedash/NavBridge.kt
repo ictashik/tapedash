@@ -39,6 +39,14 @@ object NavBridge {
     /** The key of the navigation notification being followed. */
     private var followed: String? = null
 
+    /**
+     * A debug build's way of saying what the bridge did with a notification: that it
+     * was passed on, or left alone and why. Never what it said. A release build has
+     * none.
+     */
+    @Volatile
+    var note: ((String) -> Unit)? = null
+
     /** Dart is listening: send events to [send], starting with where things are. */
     fun attach(send: (Map<String, Any?>) -> Unit) {
         sink = send
@@ -56,20 +64,41 @@ object NavBridge {
     val listening: Boolean get() = sink != null
 
     fun posted(context: Context, sbn: StatusBarNotification) {
-        if (sink == null) return
+        if (sink == null) {
+            note?.invoke("bridge: not listening")
+            return
+        }
         val notification = sbn.notification
-        if (notification.category != Notification.CATEGORY_NAVIGATION) return
+        if (notification.category != Notification.CATEGORY_NAVIGATION) {
+            note?.invoke("bridge: left alone, category ${notification.category}")
+            return
+        }
         followed = sbn.key
-        val event = HashMap(NavReader.read(context, notification))
+        // One notification that cannot be read (a field a phone's Android lacks, a picture
+        // that will not load) is left out, and never takes the app down.
+        val event = try {
+            HashMap(NavReader.read(context, notification))
+        } catch (e: Exception) {
+            note?.invoke("bridge: could not read it, ${e.javaClass.simpleName}")
+            return
+        } catch (e: LinkageError) {
+            note?.invoke("bridge: could not read it, ${e.javaClass.simpleName}")
+            return
+        }
         event["event"] = "posted"
+        note?.invoke("bridge: sent a navigation notification")
         deliver(event)
     }
 
     fun removed(sbn: StatusBarNotification) {
         if (sink == null) return
         // Another of Maps' notifications going away is not the end of the route.
-        if (sbn.key != followed) return
+        if (sbn.key != followed) {
+            note?.invoke("bridge: another notification went away")
+            return
+        }
         followed = null
+        note?.invoke("bridge: the navigation notification went away")
         deliver(mapOf("event" to "removed"))
     }
 

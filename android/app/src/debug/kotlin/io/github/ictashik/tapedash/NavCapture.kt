@@ -287,7 +287,8 @@ class NavCapture(private val context: Context) : NavTap {
 
     /** Saves [source] once as a PNG named by its pixels; says how it is made. */
     private fun saveBitmap(source: Bitmap): JSONObject {
-        val bitmap = if (source.config == Bitmap.Config.HARDWARE) {
+        // (Bitmap.Config.HARDWARE is Android 8's: not to be named on Android 7.)
+        val bitmap = if (Build.VERSION.SDK_INT >= 26 && source.config == Bitmap.Config.HARDWARE) {
             source.copy(Bitmap.Config.ARGB_8888, false)
         } else {
             source
