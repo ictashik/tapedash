@@ -137,6 +137,9 @@ void main() {
     );
     expect(find.textContaining('see every'), findsOneWidget);
     expect(find.textContaining('at any time'), findsOneWidget);
+    // And the one thing that can spoil the glass.
+    await visible(tester, find.text('If a small map floats over the HUD'));
+    expect(find.textContaining('Picture-in-picture'), findsOneWidget);
   });
 
   testWidgets('the switch turns it on and the service listens', (tester) async {

@@ -749,6 +749,7 @@ class GaragePageState extends State<GaragePage> {
           onTap: () => nav.openAccessSettings(),
         ),
       const _Info('What this does', _navNote),
+      const _Info('If a small map floats over the HUD', _navFloating),
     ]);
   }
 
@@ -758,6 +759,13 @@ class GaragePageState extends State<GaragePage> {
       'and keeps nothing. Android\'s notification access lets an app see every '
       'notification; TapeDash looks at Google Maps\' only. You can take the access '
       'away in Android\'s settings at any time.';
+
+  // Google Maps shrinks to a floating window by itself when you leave it during a
+  // route; a bright map on the glass is the one thing the HUD cannot have.
+  static const String _navFloating =
+      'Google Maps shows a small floating map when you switch away from it during a '
+      'route. Turn that off in Android\'s settings (Apps, Special app access, '
+      'Picture-in-picture), so that the HUD stays black.';
 
   static (String, String) _navStatus(NavLinkStatus status) => switch (status) {
     NavLinkStatus.off => ('Off', 'TapeDash is not reading any notification.'),
