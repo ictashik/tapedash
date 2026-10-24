@@ -5,13 +5,17 @@
 //   dart run tool/tdx.dart check from-device/*.tdx.gz        the checksum and every line
 //   dart run tool/tdx.dart merge a.tdx b.tdx.gz -o all.tdx   trips and fill-ups by key
 //   dart run tool/tdx.dart csv   all.tdx > trips.csv         one row a trip
+//   dart run tool/tdx.dart setup --price 110 --blend e20 -o setup.tdx
+//                                                            a setup to import, no typing
 //
 // `check` exits 1 if a file is refused or has a line that cannot be used, and `info`
 // exits 1 if a file is refused, so a script can tell.
 import 'dart:async';
+import 'dart:convert' show jsonEncode;
 import 'dart:io';
 
 import 'package:tapedash/exchange/tdx_format.dart';
+import 'package:tapedash/exchange/tdx_profile.dart';
 import 'package:tapedash/exchange/tdx_reader.dart';
 import 'package:tapedash/exchange/tdx_writer.dart';
 import 'package:tapedash/insights/rest_voltage_log.dart';
@@ -25,6 +29,12 @@ Usage: dart run tool/tdx.dart <command> [options] <file>...
   check <file>...             verify each file; exit 1 if any cannot be used
   merge <file>... -o <out>    one file with every trip and fill-up; .gz compresses
   csv   <file>...             a spreadsheet of the trips, to standard output
+  setup [options] -o <out>    a file that holds only a setup, to import on a phone
+                              or a watch (Garage/Menu -> Data, or tool/adb_exchange.sh)
+        --price <n>           fuel price a litre, in the currency
+        --blend <e0|e10|e20>  the petrol's ethanol
+        --fuel <petrol|diesel>  --displacement <litres>  --tank <litres>
+        --livery <ion|ember|vfd|mono>
 ''';
 
 Future<int> main(List<String> args) async {
@@ -43,6 +53,8 @@ Future<int> main(List<String> args) async {
       return _merge(rest);
     case 'csv':
       return _csv(rest);
+    case 'setup':
+      return _setup(rest);
     default:
       stderr.writeln('Unknown command "$command".\n$_usage');
       return 64;
@@ -295,6 +307,92 @@ Future<int> _csv(List<String> paths) async {
       ].join(','),
     );
   }
+  return 0;
+}
+
+/// A file with a setup and nothing else: the parts named on the command line, checked
+/// by the same rules the app applies, so that what is written is what will be applied.
+Future<int> _setup(List<String> args) async {
+  String? out;
+  final flags = <String, String>{};
+  for (var i = 0; i < args.length; i++) {
+    final a = args[i];
+    if (a == '-o' && i + 1 < args.length) {
+      out = args[++i];
+    } else if (a.startsWith('--') && i + 1 < args.length) {
+      flags[a.substring(2)] = args[++i];
+    } else {
+      stderr.writeln('Do not know "$a".\n$_usage');
+      return 64;
+    }
+  }
+  if (out == null || flags.isEmpty) {
+    stderr.writeln('setup needs -o <out> and at least one option.\n$_usage');
+    return 64;
+  }
+  final price = flags['price'] == null
+      ? null
+      : double.tryParse(flags['price']!);
+  final displacement = flags['displacement'] == null
+      ? null
+      : double.tryParse(flags['displacement']!);
+  final tank = flags['tank'] == null ? null : double.tryParse(flags['tank']!);
+  final raw = <String, Object?>{
+    if (flags.containsKey('fuel') ||
+        flags.containsKey('blend') ||
+        displacement != null ||
+        tank != null)
+      'vehicle': {
+        'fuelType': ?flags['fuel'],
+        'blend': ?flags['blend'],
+        'displacementL': ?displacement,
+        'tankL': ?tank,
+      },
+    if (price != null) 'money': {'pricePerLitre': price},
+    if (flags.containsKey('livery')) 'look': {'livery': flags['livery']},
+  };
+  final clean = TdxProfile.cleanProfile(raw);
+  final unknown = flags.keys.where(
+    (k) => !const {
+      'price',
+      'blend',
+      'fuel',
+      'displacement',
+      'tank',
+      'livery',
+    }.contains(k),
+  );
+  if (unknown.isNotEmpty ||
+      clean.problems.isNotEmpty ||
+      clean.isEmpty ||
+      (flags.containsKey('price') && price == null)) {
+    for (final k in unknown) {
+      stderr.writeln('Do not know --$k.');
+    }
+    for (final p in clean.problems) {
+      stderr.writeln('Not usable: $p.');
+    }
+    if (flags.containsKey('price') && price == null) {
+      stderr.writeln('--price is not a number.');
+    }
+    return 64;
+  }
+  final bytes = <int>[];
+  TdxWriter(bytes.addAll)
+    ..header(
+      appVersion: 'tdx tool',
+      created: DateTime.now().toUtc(),
+      device: const TdxDeviceInfo(
+        id: 'setup',
+        kind: 'phone',
+        name: 'tdx setup',
+      ),
+      scopes: {TdxScope.profile},
+    )
+    ..profile(clean.values)
+    ..finish();
+  await File(out).writeAsBytes(bytes);
+  stdout.writeln('$out: ${jsonEncode(clean.values)}');
   return 0;
 }
 

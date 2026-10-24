@@ -126,9 +126,10 @@ dart run tool/tdx.dart info  from-device/*.tdx.gz        # header, counts, date 
 dart run tool/tdx.dart check from-device/*.tdx.gz        # the CRC and every record
 dart run tool/tdx.dart merge a.tdx b.tdx.gz -o all.tdx   # trips and fill-ups by key
 dart run tool/tdx.dart csv   all.tdx > trips.csv         # one row a trip, for a spreadsheet
+dart run tool/tdx.dart setup --price 110 --blend e20 -o setup.tdx   # a setup alone, to import (checked as the app checks it)
 ```
 
-`merge` is how a phone and a watch's trips become one file. `csv` is the "export trips as CSV" that DESIGN.md 7.8 promised: the numbers are the stored ones, unrounded.
+`merge` is how a phone and a watch's trips become one file. `csv` is the "export trips as CSV" that DESIGN.md 7.8 promised: the numbers are the stored ones, unrounded. `setup` writes a file with only the options given (`--price`, `--blend`, `--fuel`, `--displacement`, `--tank`, `--livery`), which is how a price or a petrol blend reaches a watch with no keyboard: `tool/adb_exchange.sh push setup.tdx && tool/adb_exchange.sh import --apply`.
 
 ## 6. In the app
 

@@ -45,7 +45,7 @@ void main(List<String> args) {
         'tankL': 40.0,
         'blend': 'e20',
       },
-      'money': {'pricePerLitre': 115.0, 'currency': 'INR'},
+      'money': {'pricePerLitre': 110.0, 'currency': 'INR'},
       'adapter': {
         'kind': 'wifi',
         'address': '10.0.2.2',
@@ -70,7 +70,7 @@ void main(List<String> args) {
     final secs = (km / (22 + rnd.nextDouble() * 12) * 3600).round();
     final idle = 60.0 + rnd.nextInt(300);
     final blocks = <SpendBucket>[
-      for (var i = 0; i < (litres * 115).round(); i++)
+      for (var i = 0; i < (litres * 110).round(); i++)
         i % 11 == 3
             ? SpendBucket.idling
             : i % 17 == 5
@@ -83,8 +83,8 @@ void main(List<String> args) {
       distanceKm: km,
       litres: litres,
       uncalibratedLitres: litres * .97,
-      cost: litres * 115,
-      pricePerLitre: 115,
+      cost: litres * 110,
+      pricePerLitre: 110,
       idleSeconds: idle,
       engineSeconds: secs.toDouble(),
       bucketLitres: {
@@ -117,7 +117,7 @@ void main(List<String> args) {
       FillUp(
         at: DateTime.utc(2026, 10, 10),
         litres: 28.4,
-        amount: 3266,
+        amount: 3124,
         fullTank: true,
       ),
     )
@@ -125,7 +125,7 @@ void main(List<String> args) {
       FillUp(
         at: DateTime.utc(2026, 10, 18),
         litres: 31.2,
-        amount: 3588,
+        amount: 3432,
         fullTank: true,
         factor: 1.02,
       ),
