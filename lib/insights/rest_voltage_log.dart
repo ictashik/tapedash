@@ -82,6 +82,31 @@ class RestVoltageLog {
     return true;
   }
 
+  /// Adds readings that came from elsewhere (an exchange file): those at a time
+  /// the log has no reading for, oldest first, keeping the newest [keep]. Returns
+  /// how many were new and are still in the log.
+  Future<int> merge(List<RestReading> incoming) async {
+    final have = {for (final r in _readings) r.at.millisecondsSinceEpoch};
+    final fresh = [
+      for (final r in incoming)
+        if (have.add(r.at.millisecondsSinceEpoch)) r,
+    ];
+    if (fresh.isEmpty) return 0;
+    final all = [..._readings, ...fresh]..sort((a, b) => a.at.compareTo(b.at));
+    _readings = all.length > keep ? all.sublist(all.length - keep) : all;
+    await store.setString(
+      _key,
+      jsonEncode([
+        for (final r in _readings) [r.at.millisecondsSinceEpoch, r.volts],
+      ]),
+    );
+    // Readings older than the newest [keep] were dropped at once: not new.
+    final kept = {for (final r in _readings) r.at.millisecondsSinceEpoch};
+    return fresh
+        .where((r) => kept.contains(r.at.millisecondsSinceEpoch))
+        .length;
+  }
+
   Future<void> clear() async {
     _readings = const [];
     await store.remove(_key);

@@ -62,6 +62,14 @@ class FuelLedger {
     _confidence.value = calibration.confidence;
   }
 
+  /// Works the calibration and the tank count out again from the fill-up log, after
+  /// fill-ups came in from elsewhere (an exchange file). The count of fuel
+  /// estimated since the last full tank is this device's own and is kept.
+  Future<void> rebuild() async {
+    calibration.clear();
+    await load();
+  }
+
   /// Forgets everything it holds: the fill-ups, the calibration and the count
   /// (Garage → Data → delete all).
   Future<void> clear() async {

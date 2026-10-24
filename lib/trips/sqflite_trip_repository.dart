@@ -30,6 +30,26 @@ class SqfliteTripRepository implements TripRepository {
   @override
   Future<void> addSamples(int tripId, List<TripSample> samples) async {
     final batch = _db.batch();
+    _insertSamples(batch, tripId, samples);
+    await batch.commit(noResult: true);
+  }
+
+  @override
+  Future<Trip> createWithSamples(Trip trip, List<TripSample> samples) {
+    return _db.transaction((txn) async {
+      final id = await txn.insert('trips', _toRow(trip));
+      final batch = txn.batch();
+      _insertSamples(batch, id, samples);
+      await batch.commit(noResult: true);
+      return trip.copyWith(id: id);
+    });
+  }
+
+  static void _insertSamples(
+    Batch batch,
+    int tripId,
+    List<TripSample> samples,
+  ) {
     for (final s in samples) {
       batch.insert('trip_samples', {
         'trip_id': tripId,
@@ -45,7 +65,6 @@ class SqfliteTripRepository implements TripRepository {
         'voltage': s.voltage,
       });
     }
-    await batch.commit(noResult: true);
   }
 
   @override

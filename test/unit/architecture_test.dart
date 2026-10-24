@@ -23,6 +23,7 @@ const _pureDirs = [
   'insights',
   'trips',
   'sound',
+  'exchange',
 ];
 
 /// The only files that may touch real time: the real implementations of the

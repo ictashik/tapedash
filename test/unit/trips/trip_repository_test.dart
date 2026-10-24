@@ -49,6 +49,39 @@ void tripContract(String name, Future<TripRepository> Function() make) {
     late TripRepository repo;
     setUp(() async => repo = await make());
 
+    test('createWithSamples saves a trip and its samples together', () async {
+      final saved = await repo.createWithSamples(
+        sample().copyWith(endedAt: DateTime(2026, 3, 1, 9)),
+        const [
+          TripSample(
+            seconds: 0,
+            speedKmh: 0,
+            rpm: 800,
+            throttle: 0,
+            litresPerHour: 0.7,
+          ),
+          TripSample(
+            seconds: 1,
+            speedKmh: 4,
+            rpm: 1100,
+            throttle: 12,
+            litresPerHour: 1.4,
+            latitude: 12.97,
+            longitude: 77.59,
+            load: 30,
+            coolantC: 48,
+            voltage: 14.1,
+          ),
+        ],
+      );
+      expect(saved.id, isNotNull);
+      expect((await repo.get(saved.id!))!.endedAt, DateTime(2026, 3, 1, 9));
+      final samples = await repo.samples(saved.id!);
+      expect(samples.map((s) => s.rpm), [800, 1100]);
+      expect(samples.last.voltage, 14.1);
+      expect(samples.first.latitude, isNull);
+    });
+
     test('create gives an id, and get returns what was saved', () async {
       final saved = await repo.create(sample());
       expect(saved.id, isNotNull);

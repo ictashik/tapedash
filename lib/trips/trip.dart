@@ -181,6 +181,10 @@ abstract interface class TripRepository {
   /// Adds samples to a trip, in order.
   Future<void> addSamples(int tripId, List<TripSample> samples);
 
+  /// Saves a finished trip and its samples together: both, or neither. It is how a
+  /// trip comes in from an exchange file (docs/EXCHANGE.md 3).
+  Future<Trip> createWithSamples(Trip trip, List<TripSample> samples);
+
   /// Trips, newest first. Demo trips are left out unless [includeDemo].
   Future<List<Trip>> all({bool includeDemo = false});
 
@@ -201,6 +205,13 @@ class MemoryTripRepository implements TripRepository {
     final saved = trip.copyWith(id: _next++);
     _trips[saved.id!] = saved;
     _samples[saved.id!] = [];
+    return saved;
+  }
+
+  @override
+  Future<Trip> createWithSamples(Trip trip, List<TripSample> samples) async {
+    final saved = await create(trip);
+    _samples[saved.id!]!.addAll(samples);
     return saved;
   }
 
