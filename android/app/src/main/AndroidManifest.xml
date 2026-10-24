@@ -64,6 +64,21 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/share_paths" />
         </provider>
+        <!-- Reads the navigation notification of Google Maps for the HUD (docs/NAV.md).
+             It does nothing until the person grants TapeDash Notification access in
+             Android's settings. It is not a permission this file requests, so the
+             allowed list in CLAUDE.md 4 is unchanged; it looks at one package's
+             notifications and sends nothing anywhere (CLAUDE.md 4, "Navigation
+             notification"). The system, and only the system, may bind to it. -->
+        <service
+            android:name=".NavListenerService"
+            android:label="TapeDash"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

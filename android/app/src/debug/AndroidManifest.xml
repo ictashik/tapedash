@@ -4,4 +4,14 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Debug builds only: the stand-in for Google Maps' navigation notification
+         (NavStandInReceiver) posts a notification of its own, which Android 13 and
+         later lets an app do only with this. Not in a release build. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <application>
+        <!-- Debug builds only (docs/NAV.md, N1). Exported so that adb can drive it. -->
+        <receiver
+            android:name=".NavStandInReceiver"
+            android:exported="true" />
+    </application>
 </manifest>
