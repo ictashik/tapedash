@@ -84,11 +84,13 @@ class MoneyReadout extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         // The pips have no text baseline of their own, so a row aligned on
-        // baselines put them at the top of the digits' tall box: this gives
-        // them one, at their bottom edge, on the digits' baseline.
-        Baseline(
-          baseline: TapeMoney.confidencePipSize,
-          baselineType: TextBaseline.alphabetic,
+        // baselines puts them at the top of the digits' tall box (which is two
+        // pitches high, so at 44 lp they floated 50 lp above the digits). Their
+        // bottom edge is put on the digits' baseline by hand.
+        Padding(
+          padding: EdgeInsets.only(
+            top: NumeralMetrics(size).baseline - TapeMoney.confidencePipSize,
+          ),
           child: ConfidencePips(confidence: confidence, palette: palette),
         ),
       ],
