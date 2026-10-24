@@ -64,8 +64,14 @@ case "$cmd" in
   disable)
     "${ADB[@]}" shell cmd notification disallow_listener "$COMPONENT" > /dev/null 2>&1 || true
     if is_enabled; then
-      value="$(listeners | tr ':' '\n' | grep -vxF "$COMPONENT" | paste -sd: -)"
-      "${ADB[@]}" shell settings put secure enabled_notification_listeners "${value:-}"
+      # Ours may be the only one (on Android 7 it is), and then there is nothing left
+      # to write: the setting is deleted (`put` takes no empty value there).
+      value="$(listeners | tr ':' '\n' | grep -vxF "$COMPONENT" | paste -sd: - || true)"
+      if [ -n "$value" ]; then
+        "${ADB[@]}" shell settings put secure enabled_notification_listeners "$value"
+      else
+        "${ADB[@]}" shell settings delete secure enabled_notification_listeners > /dev/null
+      fi
     fi
     if is_enabled; then
       echo "Could not turn notification access off. Settings > Notifications > Notification access." >&2
@@ -135,7 +141,14 @@ case "$cmd" in
     fi
     ;;
   other)
-    "${ADB[@]}" shell cmd notification post -t "Not navigation" tapedash_other "A notification from another package. TapeDash must not read this." > /dev/null
+    # `cmd notification post` is Android 8's; there is nothing like it on Android 7.
+    out="$("${ADB[@]}" shell cmd notification post -t "Not navigation" tapedash_other "A notification from another package. TapeDash must not read this." 2>&1 || true)"
+    case "$out" in
+      *"No shell command implementation"* | *"Can't find service"* | *"not found"*)
+        echo "cannot post a notification from another package on this Android" >&2
+        exit 3
+        ;;
+    esac
     ;;
   *)
     echo "unknown command: $cmd" >&2

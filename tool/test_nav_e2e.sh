@@ -20,9 +20,10 @@
 # would be read as well as the stand-in's, and its floating window would sit over
 # the HUD.
 #
-# **Emulators only.** It clears the app's data (`pm clear`), and `flutter test`
-# uninstalls the app when it is done, which would erase a phone's trips, price and
-# adapter. It refuses any device that is not an emulator.
+# **Emulators only.** It clears the app's data (`pm clear`), which would erase a
+# phone's trips, price and adapter. It refuses any device that is not an emulator.
+# (The app is left installed afterwards, with its capture file in the app's external
+# files, to look at.)
 #
 # The emulator has to reach the host at 10.0.2.2, which it does by default.
 
@@ -131,7 +132,7 @@ if [ "$ONLY" != "filter" ]; then
 
   echo "== the test: a drive"
   set +e
-  flutter test integration_test/nav_hud_e2e_test.dart ${FLUTTER_DEVICE[@]+"${FLUTTER_DEVICE[@]}"} > "$LOG" 2>&1
+  flutter test --no-uninstall integration_test/nav_hud_e2e_test.dart ${FLUTTER_DEVICE[@]+"${FLUTTER_DEVICE[@]}"} > "$LOG" 2>&1
   STATUS=$?
   set -e
   kill "$SHOT_PID" 2> /dev/null || true
@@ -149,7 +150,7 @@ if [ "$STATUS" -eq 0 ] && [ "$ONLY" != "drive" ]; then
   fresh_launch
   start_server
   set +e
-  flutter test integration_test/nav_hud_filter_test.dart ${FLUTTER_DEVICE[@]+"${FLUTTER_DEVICE[@]}"} > "$SHOTS/filter.log" 2>&1
+  flutter test --no-uninstall integration_test/nav_hud_filter_test.dart ${FLUTTER_DEVICE[@]+"${FLUTTER_DEVICE[@]}"} > "$SHOTS/filter.log" 2>&1
   STATUS=$?
   set -e
   [ "$STATUS" -ne 0 ] && LOG="$SHOTS/filter.log"

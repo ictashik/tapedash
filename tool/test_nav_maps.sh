@@ -141,7 +141,7 @@ SHOT_PID=$!
 
 echo "== the test: real Maps on the HUD"
 set +e
-flutter test integration_test/nav_hud_maps_test.dart ${FLUTTER_DEVICE[@]+"${FLUTTER_DEVICE[@]}"} > "$LOG" 2>&1
+flutter test --no-uninstall integration_test/nav_hud_maps_test.dart ${FLUTTER_DEVICE[@]+"${FLUTTER_DEVICE[@]}"} > "$LOG" 2>&1
 STATUS=$?
 set -e
 grep -E "^NAV" "$LOG" || true

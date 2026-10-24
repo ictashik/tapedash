@@ -81,13 +81,17 @@ if ! wait_for 'o.get("event") == "connected"' 12; then
 fi
 pass "the listener connected"
 
-# 1. Another package.
-spike other
-sleep 4
-if [ "$(records 'o.get("package") not in (None, "'"$PKG"'", "com.google.android.apps.maps")')" != 0 ]; then
-  fail "a notification from another package was read"
+# 1. Another package. (Android 7 has no `cmd notification post`, and so no way to
+# post one from outside: say so, rather than pass.)
+if spike other 2> /dev/null; then
+  sleep 4
+  if [ "$(records 'o.get("package") not in (None, "'"$PKG"'", "com.google.android.apps.maps")')" != 0 ]; then
+    fail "a notification from another package was read"
+  fi
+  pass "a notification from another package was ignored"
+else
+  echo "skip  a notification from another package: this Android cannot post one from outside"
 fi
-pass "a notification from another package was ignored"
 
 # 2. The stand-in.
 spike standin --title "300 m · Turn left onto MG Road" --short "300 m" --sub "Arrive 3:45 PM" --progress 100 --max 5000 --arrow left
