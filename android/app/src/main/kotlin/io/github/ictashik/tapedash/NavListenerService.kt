@@ -54,7 +54,7 @@ class NavListenerService : NotificationListenerService() {
         if (sbn == null) return
         if (!NavSources.isAllowed(sbn.packageName, allowed)) return
         tap?.removed(sbn)
-        NavBridge.removed()
+        NavBridge.removed(sbn)
     }
 
     /** Shows what is on the phone's shade now, each notification through the filter. */
