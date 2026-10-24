@@ -9,6 +9,10 @@
 #      socket outside lib/obd/transport/wifi_transport.dart
 #   3. an Android manifest requests a permission outside the allowed list
 #   4. the Gradle release classpath contains a banned SDK
+#   5. the navigation listener (docs/NAV.md) has network code, more than one
+#      notification listener service exists, the release allowlist is not exactly
+#      Google Maps, a release build adds a package or a capture tool, or a
+#      notification is handed on before its package is checked
 #
 # Usage: tool/check_offline.sh [--strict] [--skip-gradle] [--root DIR]
 #   --strict       CI mode. Requires a built release manifest and always runs the
@@ -274,11 +278,112 @@ check_gradle() {
   printf '%s\n' "$inputs" > "$stamp"
 }
 
+# ---- 5. The navigation listener ---------------------------------------------
+
+# CLAUDE.md 4, "Navigation notification": TapeDash may read one navigation app's
+# notification and nothing else, and sends nothing. With no listener there is
+# nothing to check.
+NAV_SRC=android/app/src
+NAV_DIR=kotlin/io/github/ictashik/tapedash
+MAPS_PACKAGE=com.google.android.apps.maps
+
+# A Kotlin file's code: // comments and documentation lines (/** ... */, ` *`)
+# removed, so that a word in a comment is not a use.
+nav_code() { sed -E -e 's://.*$::' -e '/^[[:space:]]*(\/\*|\*)/d' "$1"; }
+
+check_nav() {
+  local service="$NAV_SRC/main/$NAV_DIR/NavListenerService.kt"
+  local sources="$NAV_SRC/main/$NAV_DIR/NavSources.kt"
+  if [ ! -f "$service" ]; then
+    return
+  fi
+  local before=$FAILED
+  FAILED=0
+
+  # a. No network code in anything the navigation feature adds.
+  local file hits line
+  while IFS= read -r file; do
+    if [ -z "$file" ]; then continue; fi
+    hits=$(nav_code "$file" | grep -nE '(^|[^A-Za-z0-9_.])(java\.net|javax\.net|okhttp3?|android\.net\.(http|wifi)|org\.apache\.http)|HttpURLConnection|HttpsURLConnection|(^|[^A-Za-z0-9_])(Socket|ServerSocket|DatagramSocket|URL)\(' || true)
+    if [ -n "$hits" ]; then
+      while IFS= read -r line; do
+        fail "$file:$line  [network code in the navigation listener]"
+      done <<< "$hits"
+    fi
+  done <<< "$(find "$NAV_SRC" -name 'Nav*.kt' -type f 2> /dev/null | sort)"
+
+  # b. Exactly one notification listener service, and it is ours.
+  local manifest tag services count=0
+  while IFS= read -r manifest; do
+    if [ -z "$manifest" ]; then continue; fi
+    services=$(tr '\n' ' ' < "$manifest" | grep -oE '<service[^>]*>' | grep 'BIND_NOTIFICATION_LISTENER_SERVICE' || true)
+    if [ -z "$services" ]; then continue; fi
+    while IFS= read -r tag; do
+      count=$((count + 1))
+      case "$tag" in
+        *'android:name=".NavListenerService"'*) ;;
+        *) fail "$manifest declares a notification listener service other than NavListenerService" ;;
+      esac
+    done <<< "$services"
+  done <<< "$(find "$NAV_SRC" -name AndroidManifest.xml -type f 2> /dev/null | sort)"
+  if [ "$count" != 1 ]; then
+    fail "expected exactly one notification listener service in the manifests, found $count"
+  fi
+
+  # c. A release build looks at Google Maps and nothing else.
+  local definition quoted
+  if [ ! -f "$sources" ]; then
+    fail "$sources is missing"
+  else
+    definition=$(nav_code "$sources" | grep -E 'RELEASE_PACKAGES *: *Set<String> *= *setOf\(' || true)
+    quoted=$(printf '%s' "$definition" | grep -oE '"[^"]*"' | tr -d '"' | sort | paste -sd, - || true)
+    if [ "$quoted" != "$MAPS_PACKAGE" ]; then
+      fail "$sources: the release allowlist must be exactly $MAPS_PACKAGE (found '${quoted:-nothing}')"
+    fi
+  fi
+
+  # d. A release or profile build adds no package and no capture tool.
+  local variant build code
+  for variant in release profile; do
+    build="$NAV_SRC/$variant/$NAV_DIR/NavBuild.kt"
+    if [ ! -f "$build" ]; then
+      fail "$build is missing: a $variant build must add nothing to the listener"
+      continue
+    fi
+    code=$(nav_code "$build")
+    if ! printf '%s' "$code" | grep -qE 'fun extraPackages\([^)]*\): *Set<String> *= *emptySet\(\)'; then
+      fail "$build: extraPackages must be emptySet()"
+    fi
+    if ! printf '%s' "$code" | grep -qE 'fun tap\([^)]*\): *NavTap\? *= *null'; then
+      fail "$build: tap must be null"
+    fi
+  done
+
+  # e. The package filter comes first. The listener never reads a notification
+  # itself (the taps do, and only ever see ones that passed), and every call that
+  # hands one on follows a check of its package.
+  if nav_code "$service" | grep -vE '^[[:space:]]*(import|package) ' | grep -qE '\.notification([^A-Za-z0-9_]|$)|getNotification\('; then
+    fail "$service reads a notification; only a NavTap may, after the package filter"
+  fi
+  if ! nav_code "$service" | awk '
+      /isAllowed\(/ { last = NR }
+      /tap\?\.(posted|removed)\(/ { if (last == 0 || NR - last > 4) bad = 1 }
+      END { exit bad }'; then
+    fail "$service hands a notification on without checking its package first"
+  fi
+
+  if [ "$FAILED" = 0 ]; then
+    ok "the navigation listener reads one package, has no network code and filters first"
+  fi
+  if [ "$before" = 1 ]; then FAILED=1; fi
+}
+
 # ---- run --------------------------------------------------------------------
 
 check_lockfile
 check_dart
 check_manifests
+check_nav
 check_gradle
 
 if [ "$FAILED" = 0 ]; then
