@@ -49,6 +49,7 @@ class NavParser {
     Duration? timeLeft;
     String? etaText;
     DateTime? eta;
+    var imperial = false;
 
     if (shape == NavShape.progress) {
       // `650 m · Turn right at ...`: the distance first, then the instruction.
@@ -90,6 +91,7 @@ class NavParser {
         final metres = NavText.distanceMetres(part, units: units);
         if (metres != null) {
           leftM = metres;
+          imperial |= NavText.isImperial(part);
           continue;
         }
         final clock = NavText.clock(part);
@@ -122,6 +124,9 @@ class NavParser {
       timeLeftIsDerived: derived,
       eta: eta,
       etaText: etaText,
+      imperial:
+          imperial ||
+          (distanceText != null && NavText.isImperial(distanceText)),
     );
   }
 

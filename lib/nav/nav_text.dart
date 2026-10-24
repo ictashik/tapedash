@@ -84,6 +84,26 @@ class NavText {
     'yards': 0.9144,
   };
 
+  /// The units of the miles-and-feet systems, which say the phone is not metric.
+  static const _imperial = {
+    'mi',
+    'mile',
+    'miles',
+    'ft',
+    'foot',
+    'feet',
+    'yd',
+    'yard',
+    'yards',
+  };
+
+  /// Whether [text] is a distance written in miles, feet or yards: Google writes
+  /// in the phone's units, and the HUD does the same.
+  static bool isImperial(String text) {
+    final match = _distance.firstMatch(plain(text).trim());
+    return match != null && _imperial.contains(match.group(2)!.toLowerCase());
+  }
+
   static final _distance = RegExp(
     r'^([0-9]+(?:[.,][0-9]+)*)\s*([^\s0-9.,]+)\.?$',
   );

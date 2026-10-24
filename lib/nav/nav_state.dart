@@ -48,6 +48,7 @@ class NavState {
     this.timeLeftIsDerived = false,
     this.eta,
     this.etaText,
+    this.imperial = false,
   });
 
   /// Nothing is navigating.
@@ -63,7 +64,8 @@ class NavState {
       timeLeft = null,
       timeLeftIsDerived = false,
       eta = null,
-      etaText = null;
+      etaText = null,
+      imperial = false;
 
   final NavPhase phase;
 
@@ -104,6 +106,10 @@ class NavState {
 
   /// The ETA as Google wrote it: `9:25 PM`.
   final String? etaText;
+
+  /// Whether Maps wrote its distances in miles and feet: the HUD then writes the
+  /// distance left in miles too.
+  final bool imperial;
 
   bool get isGuiding => phase == NavPhase.guiding;
 

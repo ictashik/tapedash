@@ -294,6 +294,51 @@ void main() {
     });
   });
 
+  group('the units Maps wrote in', () {
+    test('metric on the capture', () {
+      final n = loadNavFixture('maps_25_33_android16.jsonl')
+          .map((r) => r.notification)
+          .whereType<NavNotification>()
+          .where((n) => n.arrow != null);
+      for (final notification in n) {
+        expect(_parse(notification).imperial, isFalse);
+      }
+    });
+
+    test('miles and feet are imperial, in either shape', () {
+      final progress = _parse(
+        NavNotification(
+          title: '0.3\u00A0mi \u00B7 Turn left',
+          shortCriticalText: '0.3\u00A0mi',
+          subText: 'Arrive 9:25 PM',
+          progress: 1,
+          progressMax: 9,
+          arrow: fixtureArrow('a'),
+        ),
+      );
+      final classic = _parse(
+        NavNotification(
+          title: '',
+          text: 'Turn left',
+          subText: '28 min \u00B7 6.7\u00A0mi \u00B7 9:25 PM ETA',
+          arrow: fixtureArrow('a'),
+        ),
+      );
+      final feet = _parse(
+        NavNotification(
+          title: '500\u00A0ft',
+          text: 'Turn left',
+          subText: '28 min \u00B7 9:25 PM ETA',
+          arrow: fixtureArrow('a'),
+        ),
+      );
+
+      expect(progress.imperial, isTrue);
+      expect(classic.imperial, isTrue);
+      expect(feet.imperial, isTrue);
+    });
+  });
+
   group('the wire form', () {
     test('a notification survives the channel', () {
       final n = NavNotification(
