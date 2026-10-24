@@ -67,8 +67,14 @@ case "$cmd" in
     ;;
   push)
     file="${1:?push needs a file}"
+    name="$(basename "$file")"
     "${ADB[@]}" shell "mkdir -p $DIR/inbox"
-    "${ADB[@]}" push "$file" "$DIR/inbox/"
+    # Not `adb push` straight into the app's folder: on Android 11 and later that
+    # fails ("remote fchown failed") because sync tries to chown on the scoped
+    # storage. Stage it, then copy as the shell user, which is allowed.
+    "${ADB[@]}" push "$file" "/data/local/tmp/$name" > /dev/null
+    "${ADB[@]}" shell "cp /data/local/tmp/$name $DIR/inbox/$name && rm -f /data/local/tmp/$name"
+    echo "$name is in the inbox."
     ;;
   import)
     "${ADB[@]}" shell "rm -f $DIR/result.json"

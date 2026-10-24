@@ -826,3 +826,104 @@ Required at the end of every UI phase, written to `docs/design-review/<phase>/`:
 - Anything flashing faster than 3 Hz.
 - A white frame anywhere, including at launch.
 - Calling a screen done without its design review package.
+
+---
+
+## 16. The watch
+
+TapeDash also runs on an Android watch (Wear OS on a Galaxy Watch4 Classic was the first, 2026-10-23). It is the same app and the same services on a much smaller, round screen, so it has **its own surface**, composed from the same components and tokens, and not the phone's layouts squeezed. Squeezing was tried by accident: on a 225 lp face the Apex cluster piles the speed, the tach labels, the money and the trip figures on one another, and the bezel cuts off the corners (the clock, the glyphs, the first and last tach numbers). Everything in §2 to §15 holds unless this section says otherwise.
+
+### 16.1 What the watch is for
+
+- **A glance.** On the wrist, or strapped to the vent or the column, the watch answers one question in under a second: *how fast, how hard, how much*. That is the speed, the revs and the ₹ of this trip. Nothing else is on the driving face.
+- **Not a second phone.** Review, Coach, History, Insights, Diagnostics, Pit Stop's numpad, the survey drive, the HUD, the engine sound and the four other clusters are **phone only**. A watch has no room to draw them honestly, and a thumb-sized numpad on a 1.4 inch circle is the opposite of "no text entry". What the watch records goes to the phone to be looked at, and what the watch needs set up comes from the phone, as a file (`docs/EXCHANGE.md`).
+- **Slow to set up, so little to set up.** The watch has defaults for everything, a short connect flow (type, find, test), and a few wheels for the things worth changing on the spot (the price, the livery, the source). The rest arrives by import.
+
+### 16.2 Form factor
+
+- A drive screen is the watch's when the platform says it is a watch (`FEATURE_WATCH`, or the UI mode type watch) or, where it cannot say (an emulator, a test), when the **shorter side is under 300 lp**. A watch is taken to be round unless the platform says it is not.
+- **Orientation:** the landscape lock of CLAUDE.md 3 is for phones. On a watch the display keeps the orientation the system gives it (a wrist has an up, and it is 12 o'clock). Nothing here is drawn rotated.
+- **Authored at 225 lp** (a 46 mm Galaxy Watch4 Classic: 450 px at 2x), checked at **192** (Pixel Watch), **198** (a 42 mm Galaxy Watch4), **240** and a stress size of **280**. Every dimension below is a share of the face's diameter **D**, never a pixel count, so one set of rules serves them all.
+
+### 16.3 The round face
+
+A screen that is a circle makes its corners invisible. **Nothing is drawn, and nothing that matters sits, outside the circle of diameter D** (a test renders every face and fails on any lit pixel in the corners). The face is made of five zones, named like the phone's:
+
+| Zone | Where | Holds |
+|---|---|---|
+| **Rim** | the outer 7% of the radius | the instrument ring: the tach arc, the money ring |
+| **Crown** | 11 to 1 o'clock, inside the rim | the link glyphs; the warm glyph |
+| **Core** | the disc inside the rim | the hero |
+| **Foot** | below the core's centre, between the ring's two ends | the ₹ readout |
+| **Opening** | the gap in the ring at 6 o'clock | the eco arc; on parked faces, the page tape's ticks |
+
+- Rim outer radius 0.485 D, depth 0.07 D; core radius 0.37 D. Text sits where the chord of the circle at its height is wide enough for it: a line of width *w* centred at height *y* needs `2·sqrt(r² − dy²) ≥ w`, and the layout asks `WatchFace.chordAt` and never guesses.
+- **The Tape is a ring.** Tapes are TapeDash's native instrument and a straight tape does not fit a circle, so the speed tape became the **rim**: an arc of segments that lights to the revs (the tach arc, §6.2, on the rim) and a ring of ₹ blocks (the Money Tape, §6.8, wrapped round). The watch's bezel is a ring too, which is the point.
+
+### 16.4 Type on the watch
+
+The scale is `WatchType.forDiameter(D)`, clamped:
+
+| Token | Share of D | At 225 | Use |
+|---|---|---|---|
+| `hero` | 0.34 | 76 | speed |
+| `display` | 0.21 | 47 | ₹ this trip on the Money face |
+| `primary` | 0.13 | 29 | the ₹ on the Drive face, a wheel's chosen row |
+| `secondary` | 0.09 | 20 | ₹/km, the wheel's other rows |
+| `label` | 0.062 | 14 | instrument labels; **never under 12 lp** |
+
+- Numerals are **at least weight 500** on the watch: a Light face (MONO) at an angle, on a wrist that moves, disappears. MONO keeps its character in colour and in thin rings, not in a hairline numeral.
+- Strokes on the rim are at least 2 lp. Daylight and Night apply as on the phone, from the watch's own light sensor.
+- Parked text is Barlow at the watch's own sizes (`secondary` to `label`), at most two lines, never a paragraph. The system font size is ignored on the watch.
+
+### 16.5 The faces
+
+The watch has a **reel** of faces, one at a time, filling the circle. Motion has two; Parked has four.
+
+1. **Drive** (home). *Rim:* the tach arc, 240°, opening at the bottom, one segment per 200 rpm, with the blade needle, the peak tick and the redline. *Core:* the speed, with KM/H beneath. *Foot:* ₹ THIS TRIP with its confidence pips. *Opening:* the **eco arc**, the eco bar (§6.7) bent into the ring's gap: a centre notch for this car's average and a puck that rides ±20° round the bottom, in the eco ramp's colours. *Crown:* the adapter and GPS glyphs, a warm glyph when the watch is hot, and an alert in the same place (§6.10). A drive on the GPS alone has no revs: the rim is a speed arc (0 to 140) and the Foot is the trip's distance.
+2. **Money.** *Rim:* the **money ring**, every ₹ of the trip as a block printed clockwise from 12 o'clock (72 cells; past 72, a cell is ₹2, ₹5, ₹10 and so on, and the Opening says "1 BLOCK = ₹5"), in the buckets' styles of §4.3 (solid normal, **hollow** idling, notched hard acceleration, accent high speed). *Core:* ₹ THIS TRIP at display size. *Foot:* ₹/KM and the idle ₹ with the hollow idle glyph (pulsing at 0.5 Hz while idling).
+3. **Where it went** (parked only). The four buckets as rows (swatch, name, ₹, share), the idling row first when it is the dearest, and the **estimates marked "≈"** as everywhere (§10). The ring is the trip's whole barcode.
+4. **Menu** (parked only), the wheel of §16.7.
+
+**Motion lock.** In Motion only Drive and Money are reachable. A swipe towards a locked face rubber-bands. A face left on when the car starts moving returns to Drive on `spring.snap`, inside 300 ms (§7.2). **To Parked:** the ring thins and dims to 60%, the hero shrinks to `primary`, the Opening's eco arc gives way to the page tape, and the reel opens to four faces. **No tips, no text longer than six words, no lists and no scrolling in Motion** (§11).
+
+### 16.6 Input
+
+A wrist cannot swipe precisely, and a driver's hand is on the wheel. The watch has three ways to turn the reel, and they are the only controls in Motion:
+- **The bezel** (or a crown), where there is one: one detent, one face. A watch with no rotary input simply never sends one.
+- **A vertical swipe** anywhere on the face.
+- **A tap** anywhere on the face: the next face (and round again). It is the easiest gesture and the least harmful, since a stray tap only swaps Drive and Money.
+
+Horizontal swipes are **not used** in Motion: on Wear OS a swipe right is the system's own back. In Parked, a swipe right closes an overlay, as Wear users expect, and so does the Back button (which does nothing in Motion, so that a knock on the wrist cannot close the dash). There is no long-press and no double-tap on the watch, and so no HUD; the debug overlay opens from a long-press on the About row of the menu.
+
+Touch targets are at least 48 lp with 8 lp between (§6.14); on the watch a wheel's row is 56 lp.
+
+### 16.7 The wheel (the watch's list, picker and dial)
+
+One component serves every parked choice (its title, where it is, sits high in the circle at 0.12 D, above the row that comes over the chosen one). A column of rows with the chosen one at the centre, full size and in the accent; the rows above and below at 70% and fading; the bezel, a swipe, or a tap on a neighbouring row moves it, on `spring.gauge`, one detent per row, like the odometer's (§5.6). A tap on the centre row chooses it. It is a **menu** (rows with a chevron), a **choice** (livery, source: the row lights while chosen) and a **dial** (the price: the rows are values, the bezel steps ₹0.10 and a swipe ₹1). Entering a number on the watch is always a dial and never a keypad.
+
+The menu's rows, for a drive from an adapter: CONNECT (the adapter and its state), SPEED FROM, PRICE ₹/L, LIVERY, DATA, END TRIP, RESET (hold to confirm), ABOUT. From the GPS alone: CONNECT, SPEED FROM, LIVERY, DATA, RESET, ABOUT. **RESET and any other destructive row is confirmed by holding the centre for 1.2 s while a ring fills**, never by a single tap (§6.14, for a screen on which a drag is not precise).
+
+### 16.8 First run and connection
+
+- **Cold open** (§7.11), on the face: the line of light draws across, the wordmark resolves above it.
+- **Choice:** two chamfer buttons, CONNECT MY CAR and GPS SPEED ONLY, 48 lp tall (a touch target, §6.14) and as wide as their words, one above the other, the wordmark just over them, all as low in the circle as the lower button's corners allow (at 225 lp the first is at 0.37 D).
+- **Connect:** TYPE (Bluetooth, which finds both radios, or WiFi, or Cancel) as a wheel, FIND as a wheel of the adapters the radios have seen (each with its radio and how close, nearest first), tried before it is taken. When one will not open the wheel becomes the way out: forget the pairing and pair again, try its other radio, use it anyway. A WiFi adapter is offered at its usual address (192.168.0.10, port 35000) and any other address arrives by import. A short arc of the rim shows how far through it is. The car's fuel type, displacement, tank, the price and the layout are **not asked**: they have the defaults of CLAUDE.md 8.4 and arrive by import or from the menu.
+- **GPS only** (§7.15) on the watch is a reel of two faces: the speed as the hero inside a **speed arc** (0 to 140 km/h, one segment per 4, lit as the revs are on an adapter's face), the trip's distance in the Foot, the glyph of the GPS alone in the Crown, and, parked, the moving time and the fastest speed over the hero; and the menu's cover. Before there is a speed the centre says why in a few short lines, and a tap on "Location needed" asks again.
+- **Connection states** (§7.12) are drawn on the face: SEARCHING sweeps a beam round the rim and says "Looking for your adapter" in two lines at the label size; WAITING FOR IGNITION breathes one dot in the hero's place and says "Turn on the ignition"; LOST dims the values, lights a `caution` arc and says "Reconnecting…". Never a spinner, never a blank face.
+
+### 16.9 Power and heat
+
+A watch has a 250 to 400 mAh battery and a skin to keep cool.
+- **The canvas is plain `void`**: no vignette and no grain (§4.1, 4.10), so that on an AMOLED the dark pixels cost nothing and the corners are exactly black.
+- **The fidelity tier starts at Lite** and is capped at Balanced (§9): the cold open's benchmark may raise it to Balanced and never to Full; one segment per 200 rpm, the cheapest halos, no parallax. The governor, and the heat rule of CLAUDE.md 9 (the warm glyph, and dimmed and held at Lite when too hot), apply to the watch's own battery temperature. A watch gets hot sooner than a phone, and the watch's thresholds are **41 °C and 45 °C** (a phone's are 45 and 50). *(Built.)*
+- **Parked and untouched for 60 s the face dims to its Night floor** (12%), and a touch or a bezel turn brings it back. *(Specified, not built: it waits for a real watch to show how Wear OS treats the screen of an app that keeps it on.)*
+- Reduce motion (§5.8) is on the menu's LOOK row on a watch with a system animation scale of 0.
+
+### 16.10 The review gate for the watch
+
+- The golden and capture matrix of §14.1 gains the watch: every face × {ION, VFD, EMBER, MONO} × {Motion, Parked} × {normal, Daylight, Night} at **198, 225 and 240 lp**, in Tier 1.
+- **Round-safety test:** every face, every size: no pixel outside the circle is lit.
+- **Text-fit test:** every line of text on every face fits the chord of the circle at its height.
+- **Touch test:** every control is at least 48 lp.
+- **Glance test:** each driving face shown for a second: are the speed, the revs and the ₹ unmistakable? **Wrist test** (only on a real watch): the same at arm's length, at an angle, in sunlight, on a moving wrist. Until then the watch is "unverified on hardware" (CLAUDE.md 11).

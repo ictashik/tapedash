@@ -10,6 +10,8 @@ All of this runs off a cheap ELM327 OBD-II adapter. The whole user story: buy an
 
 **How this project is built:** everything is developed and tested against a **built-in vehicle simulator** first. Real OBD hardware (Bluetooth Classic, BLE, WiFi adapters on a real car) is connected by the human **only after every simulator test passes**. See section 11, "Hardware handoff".
 
+**The watch.** The same APK also runs on an Android watch (Wear OS), on its own screens (DESIGN.md 16): a round face, a reel of four faces, a wheel for settings, the bezel as input. It talks to the adapter itself. Everything that does not fit a wrist is the phone's, and data moves between the two as a file (`docs/EXCHANGE.md`).
+
 **Design is half the product.** TapeDash is for car enthusiasts who know the world's best instrument clusters and want that on their own dash. The complete visual, motion and interaction spec is **[DESIGN.md](DESIGN.md)**, and it is as binding as this file. The HUD is one component of that design, not the design itself.
 
 Read this file and DESIGN.md fully before starting. Re-read the relevant DESIGN.md section before building any component or screen. When something here conflicts with a request, ask before deviating.
@@ -61,7 +63,7 @@ Read this file and DESIGN.md fully before starting. Re-read the relevant DESIGN.
 - **targetSdk:** current Play requirement.
 - **ABIs:** ship `armeabi-v7a` and `arm64-v8a`. Never drop v7a. Build with `flutter build apk --release --split-per-abi`.
 - **APK budget:** under 20 MB per ABI, fonts included (subset them).
-- **Orientation:** landscape only (both landscape orientations).
+- **Orientation:** landscape only (both landscape orientations) **on a phone**. A watch (DESIGN.md 16) keeps the orientation the system gives it: it has an up.
 - **Launch:** the launch theme background is DESIGN.md's `void` colour. No white flash at any point (DESIGN.md §12).
 - Use Flutter stable only.
 
@@ -114,8 +116,9 @@ Before adding **any** package:
 - **WiFi adapters:** `dart:io` `Socket`, behind the network guard.
 - **OBD protocol:** our own pure-Dart ELM327 layer. The `obd2` package (MPL-2.0) may be studied for design ideas; any copied file stays MPL-2.0 with its header, so prefer writing our own.
 - **Engine sound:** synthesised in our own pure-Dart code (`lib/sound/`, no audio asset and so nothing to license), played through a thin Kotlin channel over `AudioTrack`. No audio library (Oboe, SoLoud) and no plugin. It runs in an isolate of its own. It plays on car audio only unless the user allows the speaker, asks for no audio focus, and stops with the screen (no foreground service, so no new permission). DESIGN.md §5.10.
-- **Device features** (keep screen on, window brightness, battery temperature, immersive mode, ambient light, accelerometer): small native calls on a `DeviceChannel` rather than plugins. Ambient light drives Daylight and Night modes; the accelerometer drives the road view's body roll (DESIGN.md §4.4, §6.11).
+- **Device features** (keep screen on, window brightness, battery temperature, immersive mode, ambient light, accelerometer, the form factor and a watch's rotating bezel): small native calls on a `DeviceChannel` rather than plugins. Ambient light drives Daylight and Night modes; the accelerometer drives the road view's body roll (DESIGN.md §4.4, §6.11).
 - **Sharing a picture** (Year on Tape): a thin Kotlin `ShareChannel` that writes the PNG the app drew to its own cache and opens Android's share sheet through a `FileProvider` (`androidx.core`, Apache-2.0, already in the app through the Flutter embedding). No permission, no network code, no plugin; what the person picks in the sheet is their choice. Parked only, a button on the Year insight.
+- **Exchange:** our own newline-delimited JSON with optional gzip (`dart:io`), a CRC-32 footer written by us, and a thin Kotlin `ExchangeChannel` for the share sheet and the file picker (Android's `ACTION_SEND` and `ACTION_OPEN_DOCUMENT`, so no storage permission). No archive package. Files live in the app's own external files folder, which adb reaches.
 - **Storage:** `sqflite` for trips, samples, fill-ups and events. `shared_preferences` for settings.
 - **State:** no heavy frameworks and no code generation. Use `ValueNotifier`/`ValueListenable` and streams, with constructor-injected services. Live data must never trigger widget rebuilds (DESIGN.md §9.3).
 - **Time:** all time-dependent code takes an injected `Clock` (our own small interface, with `SystemClock` and `FakeClock`). Never call `DateTime.now()` or create `Timer`s directly in domain code; use the injected clock or scheduler. This is what makes the simulator tests deterministic and fast. UI animation runs on DESIGN.md's `MotionClock` (a vsync ticker), which tests drive through the fake clock.
@@ -130,7 +133,8 @@ Before adding **any** package:
 ```
 lib/
   main.dart
-  app/                 # shell, routes, landscape/immersive, service wiring
+  app/                 # shell, routes, landscape/immersive, service wiring (drive_shell: the phone; watch_shell: the watch)
+  exchange/            # the exchange file (docs/EXCHANGE.md): writer, reader, merge. Pure Dart, no Flutter imports
   core/                # Clock, Scheduler, Result types, units, currency formatting (en_IN grouping)
   platform/            # Dart side of Kotlin channels (gps, bt_classic, device)
   sound/               # the engine sound: profiles, synth, voice host. Pure Dart, no Flutter imports
@@ -153,6 +157,7 @@ lib/
     design/            # the design system: tokens, theme, fidelity, motion, render caches, icons, components (DESIGN.md §13)
     lab/               # the Design Lab: component gallery, switchers, slow motion, capture-all (DESIGN.md §13.2)
     pages/             # Drive (clusters), Money, Review, Coach, History: composed only from design/ components
+    pages/watch/       # the watch's faces, reel and sheets (DESIGN.md 16); components in design/components/watch/
     hud/               # HUD layouts and the alignment pattern (DESIGN.md §8)
     onboarding/ garage/ pit_stop/ diagnostics/
 android/app/src/main/kotlin/.../  # GpsChannel, BtClassicChannel, DeviceChannel, ShareChannel

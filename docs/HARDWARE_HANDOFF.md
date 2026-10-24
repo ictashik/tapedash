@@ -128,6 +128,17 @@ Nine pictures from what the car and your trips already hold. Check each, parked,
 8. **Ghost:** needs the same route twice with the GPS on.
 9. **Year, and Share:** the poster. Tap SHARE: the phone's share sheet should open with the picture. **This is the one piece of Android code in this round that has never run on a phone**; say what the sheet does, and whether the picture is 1920 x 1080 and sharp.
 
+## 5d. The watch (a Galaxy Watch4 Classic, or any Wear OS watch)
+
+Nothing here has met a real watch. In order:
+
+1. **Install and set up from the laptop** (the watch has no keyboard): `adb connect <ip>:<port>` over Wireless debugging, `adb -s <ip>:<port> install -r app-arm64-v8a-release.apk`, then, with `dart run tool/demo_exchange.dart` replaced by a file made from your phone's Garage → Data → Export (it holds your adapter, the car and the price), `tool/adb_exchange.sh -s <ip>:<port> push FILE` and `import --apply` (docs/EXCHANGE.md 5). Or do it on the watch: CONNECT MY CAR, Bluetooth, the adapter in the wheel, with the bezel.
+2. **The face:** is the speed, the revs round the rim and the ₹ unmistakable at a glance, on the wrist and at an angle? In sunlight? Is anything cut off by the bezel's circle, or too small to read at arm's length? Do the numerals (never lighter than weight 500) hold up on a moving wrist?
+3. **The bezel:** does a click turn one face, and the wheel one row? Which way is clockwise? (Only the direction is sent: if a fast turn skips or sticks, say how big a number the watch gives.) Does Back do nothing while moving, and does Home leave?
+4. **Staying on:** with the screen kept awake, what does the watch do in a long drive (it dims, it drops to the watch face, the app is stopped)? How hot does it get, and how fast does the battery fall? (A hot watch shows a glyph at 41 °C and dims at 45 °C.)
+5. **Links:** does the watch's own Bluetooth reach the adapter (Classic and BLE), and the watch's GPS (the GPS-only screen)?
+6. **Data:** `tool/adb_exchange.sh -s <ip>:<port> export` after a drive, `tdx check` and `tdx info` on what comes back; push it into the phone's inbox and import it there.
+
 ## 6. What to report back
 
 For each adapter you tried:

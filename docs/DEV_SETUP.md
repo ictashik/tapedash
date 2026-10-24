@@ -132,3 +132,30 @@ The emulator console wants a space between the sensor name and its value (`set l
 - `adb shell screenrecord` fails on the Android 7.0 image (`Encoder failed`). A loop of `screencap` calls works there.
 - **A launch flash cannot be seen on an emulator.** Even a solid red launch colour never shows up in a recording (see `docs/DECISIONS.md`). Check on a real phone.
 - `adb install` on Android 7.0 does not accept `-q`.
+
+## A watch emulator
+
+The watch's screens (DESIGN.md 16) can be seen and driven without a watch, on a Wear OS emulator, with the simulated car on your laptop as the adapter. The watch is Android 11 (API 30) on a Galaxy Watch4 Classic, so that is the image to use.
+
+```
+sdkmanager --install "system-images;android-30;android-wear;arm64-v8a"     # x86_64 on an Intel Mac
+echo no | avdmanager create avd -n tapedash_watch -d wearos_large_round \
+    -k "system-images;android-30;android-wear;arm64-v8a"
+emulator -avd tapedash_watch -gpu host &
+
+flutter build apk --debug --target-platform android-arm64                  # android-x64 on Intel
+adb install -r build/app/outputs/flutter-apk/app-debug.apk
+adb shell pm grant io.github.ictashik.tapedash android.permission.ACCESS_FINE_LOCATION
+
+dart run tool/sim_server.dart --port 35000 --profile petrol_cvt_map --scenario city_stop_go &
+dart run tool/demo_exchange.dart /tmp/demo.tdx.gz               # a setup that points at 10.0.2.2:35000
+adb shell am start -n io.github.ictashik.tapedash/.MainActivity
+tool/adb_exchange.sh push /tmp/demo.tdx.gz
+tool/adb_exchange.sh import --apply                            # the watch now drives from the simulator
+adb exec-out screencap -p > shot.png                           # the emulator's round mask is in the picture
+```
+
+A tap anywhere is the next face; a vertical swipe turns the reel and the menu's wheels. The emulator has no bezel (the *Rotary input* page of its extended controls sends one, if you want to try it). Changing a setup while the car is moving is deferred by design ("It waits until the car has stopped"): import it while the simulated car is still at its first idle, or use `--scenario cold_start_idle`. `tool/adb_exchange.sh export` pulls what the watch has recorded, and `dart run tool/tdx.dart info|check|csv` reads it.
+
+On a real watch, turn on developer options and *Wireless debugging*, `adb pair` and `adb connect <ip>:<port>`, and give `-s <ip>:<port>` to `tool/adb_exchange.sh` and `adb`.
+
