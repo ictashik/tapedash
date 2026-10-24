@@ -8,11 +8,15 @@ package io.github.ictashik.tapedash
  * notification from any other package is dropped before a byte of it is read.
  */
 object NavSources {
+    /** The one navigation app TapeDash reads. */
+    const val GOOGLE_MAPS = "com.google.android.apps.maps"
+
     /**
      * What a release build looks at: Google Maps, and nothing else.
-     * tool/check_offline.sh fails if this is anything but that one package.
+     * tool/check_offline.sh fails if this is anything but `setOf(GOOGLE_MAPS)`, or
+     * if GOOGLE_MAPS is anything but that package.
      */
-    val RELEASE_PACKAGES: Set<String> = setOf("com.google.android.apps.maps")
+    val RELEASE_PACKAGES: Set<String> = setOf(GOOGLE_MAPS)
 
     /** The release list plus what this kind of build adds (see NavBuild). */
     fun allowed(extra: Set<String>): Set<String> = RELEASE_PACKAGES + extra

@@ -331,14 +331,17 @@ check_nav() {
   fi
 
   # c. A release build looks at Google Maps and nothing else.
-  local definition quoted
+  local constant definition
   if [ ! -f "$sources" ]; then
     fail "$sources is missing"
   else
-    definition=$(nav_code "$sources" | grep -E 'RELEASE_PACKAGES *: *Set<String> *= *setOf\(' || true)
-    quoted=$(printf '%s' "$definition" | grep -oE '"[^"]*"' | tr -d '"' | sort | paste -sd, - || true)
-    if [ "$quoted" != "$MAPS_PACKAGE" ]; then
-      fail "$sources: the release allowlist must be exactly $MAPS_PACKAGE (found '${quoted:-nothing}')"
+    constant=$(nav_code "$sources" | grep -E 'const val GOOGLE_MAPS *= *"' | head -1 | grep -oE '"[^"]*"' | tr -d '"' || true)
+    definition=$(nav_code "$sources" | grep -E 'RELEASE_PACKAGES *: *Set<String> *=' | head -1 || true)
+    if [ "$constant" != "$MAPS_PACKAGE" ]; then
+      fail "$sources: GOOGLE_MAPS must be exactly $MAPS_PACKAGE (found '${constant:-nothing}')"
+    fi
+    if ! printf '%s' "$definition" | grep -qE '=[[:space:]]*setOf\([[:space:]]*GOOGLE_MAPS[[:space:]]*\)[[:space:]]*$'; then
+      fail "$sources: the release allowlist must be exactly setOf(GOOGLE_MAPS) (found '${definition:-nothing}')"
     fi
   fi
 
@@ -367,7 +370,7 @@ check_nav() {
   fi
   if ! nav_code "$service" | awk '
       /isAllowed\(/ { last = NR }
-      /tap\?\.(posted|removed)\(/ { if (last == 0 || NR - last > 4) bad = 1 }
+      /(tap\?|NavBridge)\.(posted|removed)\(/ { if (last == 0 || NR - last > 4) bad = 1 }
       END { exit bad }'; then
     fail "$service hands a notification on without checking its package first"
   fi

@@ -16,6 +16,7 @@ class MainActivity : FlutterActivity() {
     private var engineAudio: EngineAudioChannel? = null
     private var share: ShareChannel? = null
     private var exchange: ExchangeChannel? = null
+    private var nav: NavChannel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // The manifest locks a phone to landscape (CLAUDE.md 3). A watch has an
@@ -43,6 +44,7 @@ class MainActivity : FlutterActivity() {
         engineAudio = EngineAudioChannel(this, messenger)
         share = ShareChannel(this, messenger)
         exchange = ExchangeChannel(this, messenger)
+        nav = NavChannel(this, messenger)
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
@@ -60,6 +62,8 @@ class MainActivity : FlutterActivity() {
         share = null
         exchange?.dispose()
         exchange = null
+        nav?.dispose()
+        nav = null
         bluetoothPermissions?.dispose()
         bluetoothPermissions = null
         super.cleanUpFlutterEngine(flutterEngine)

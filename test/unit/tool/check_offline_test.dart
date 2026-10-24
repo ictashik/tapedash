@@ -349,22 +349,32 @@ void main() {} // Image.network is banned
   group('navigation listener (docs/NAV.md)', () {
     // The real files are the baseline, so that the check and the code it guards
     // cannot drift apart: a test below fails when either is changed alone.
-    const files = <String, String>{
-      'main/kotlin/io/github/ictashik/tapedash/NavListenerService.kt': '',
-      'main/kotlin/io/github/ictashik/tapedash/NavSources.kt': '',
-      'main/kotlin/io/github/ictashik/tapedash/NavTap.kt': '',
-      'main/AndroidManifest.xml': '',
-      'release/kotlin/io/github/ictashik/tapedash/NavBuild.kt': '',
-      'profile/kotlin/io/github/ictashik/tapedash/NavBuild.kt': '',
-      'debug/kotlin/io/github/ictashik/tapedash/NavBuild.kt': '',
-      'debug/kotlin/io/github/ictashik/tapedash/NavCapture.kt': '',
-      'debug/AndroidManifest.xml': '',
-    };
+    const kotlin = 'kotlin/io/github/ictashik/tapedash';
+    const files = <String>[
+      'main/$kotlin/NavListenerService.kt',
+      'main/$kotlin/NavSources.kt',
+      'main/$kotlin/NavTap.kt',
+      'main/$kotlin/NavBridge.kt',
+      'main/$kotlin/NavReader.kt',
+      'main/$kotlin/NavChannel.kt',
+      'main/AndroidManifest.xml',
+      'release/$kotlin/NavBuild.kt',
+      'profile/$kotlin/NavBuild.kt',
+      'debug/$kotlin/NavBuild.kt',
+      'debug/$kotlin/NavCapture.kt',
+      'debug/AndroidManifest.xml',
+    ];
+    const service = 'main/$kotlin/NavListenerService.kt';
+    const sources = 'main/$kotlin/NavSources.kt';
+    const releaseBuild = 'release/$kotlin/NavBuild.kt';
+    const capture = 'debug/$kotlin/NavCapture.kt';
+    const unfiltered =
+        'if (!NavSources.isAllowed(sbn.packageName, allowed)) return\n';
 
     /// A project holding the real navigation files, then [change] applied to it.
     _Project navProject([void Function(_Project)? change]) {
       final project = _Project();
-      for (final path in files.keys) {
+      for (final path in files) {
         final real = File('${Directory.current.path}/android/app/src/$path');
         project.write('android/app/src/$path', real.readAsStringSync());
       }
@@ -375,27 +385,18 @@ void main() {} // Image.network is banned
     String read(_Project project, String path) =>
         File('${project.dir.path}/android/app/src/$path').readAsStringSync();
 
-    void edit(
-      _Project project,
-      String path,
-      String from,
-      String to, {
-      bool all = false,
-    }) {
+    void edit(_Project project, String path, String from, String to) {
       final text = read(project, path);
       expect(text, contains(from), reason: '$path no longer has "$from"');
-      project.write(
-        'android/app/src/$path',
-        all ? text.replaceAll(from, to) : text.replaceFirst(from, to),
-      );
+      project.write('android/app/src/$path', text.replaceFirst(from, to));
     }
 
-    const service =
-        'main/kotlin/io/github/ictashik/tapedash/NavListenerService.kt';
-    const sources = 'main/kotlin/io/github/ictashik/tapedash/NavSources.kt';
-    const releaseBuild =
-        'release/kotlin/io/github/ictashik/tapedash/NavBuild.kt';
-    const capture = 'debug/kotlin/io/github/ictashik/tapedash/NavCapture.kt';
+    Future<void> rejects(void Function(_Project) change, String message) async {
+      final result = await navProject(change).run();
+
+      expect(result.exitCode, 1, reason: result.out);
+      expect(result.err, contains(message));
+    }
 
     test('passes on the real files', () async {
       final result = await navProject().run();
@@ -411,36 +412,40 @@ void main() {} // Image.network is banned
       expect(result.out, isNot(contains('navigation listener')));
     });
 
-    test('rejects network code in the capture tool', () async {
-      final project = navProject(
+    test('rejects network code in the capture tool', () {
+      return rejects(
         (p) => edit(
           p,
           capture,
           'import java.security.MessageDigest',
           'import java.security.MessageDigest\nimport java.net.HttpURLConnection',
         ),
+        'network code in the navigation listener',
       );
-
-      final result = await project.run();
-
-      expect(result.exitCode, 1);
-      expect(result.err, contains('network code in the navigation listener'));
     });
 
-    test('rejects a socket opened in the listener', () async {
-      final project = navProject(
+    test('rejects network code in the channel', () {
+      return rejects(
+        (p) => edit(
+          p,
+          'main/$kotlin/NavChannel.kt',
+          'import android.app.Activity',
+          'import android.app.Activity\nimport okhttp3.OkHttpClient',
+        ),
+        'network code in the navigation listener',
+      );
+    });
+
+    test('rejects a socket opened in the listener', () {
+      return rejects(
         (p) => edit(
           p,
           service,
           'tap?.posted(sbn)',
           'Socket("x", 1)\n        tap?.posted(sbn)',
         ),
+        'network code in the navigation listener',
       );
-
-      final result = await project.run();
-
-      expect(result.exitCode, 1);
-      expect(result.err, contains('network code in the navigation listener'));
     });
 
     test('ignores a network word in a comment', () async {
@@ -458,166 +463,159 @@ void main() {} // Image.network is banned
       expect(result.exitCode, 0, reason: result.err);
     });
 
-    test('rejects a second notification listener service', () async {
-      final project = navProject(
+    test('rejects a second notification listener service', () {
+      return rejects(
         (p) => edit(
           p,
           'debug/AndroidManifest.xml',
           '<application>',
           '<application>\n<service android:name=".Other" android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" />',
         ),
+        'other than NavListenerService',
       );
-
-      final result = await project.run();
-
-      expect(result.exitCode, 1);
-      expect(result.err, contains('other than NavListenerService'));
-      expect(result.err, contains('found 2'));
     });
 
-    test('rejects a listener service that is not NavListenerService', () async {
-      final project = navProject(
+    test('rejects a listener service that is not NavListenerService', () {
+      return rejects(
         (p) => edit(
           p,
           'main/AndroidManifest.xml',
           '.NavListenerService',
           '.SomethingElse',
         ),
+        'other than NavListenerService',
       );
-
-      final result = await project.run();
-
-      expect(result.exitCode, 1);
-      expect(result.err, contains('other than NavListenerService'));
     });
 
-    test('rejects a missing listener service', () async {
-      final project = navProject(
+    test('rejects a missing listener service', () {
+      return rejects(
         (p) => edit(
           p,
           'main/AndroidManifest.xml',
           'BIND_NOTIFICATION_LISTENER_SERVICE',
           'BIND_SOMETHING',
         ),
+        'found 0',
       );
-
-      final result = await project.run();
-
-      expect(result.exitCode, 1);
-      expect(result.err, contains('found 0'));
     });
 
-    test('rejects a second package in the release allowlist', () async {
-      final project = navProject(
+    test('rejects a second package in the release allowlist', () {
+      return rejects(
         (p) => edit(
           p,
           sources,
-          '"com.google.android.apps.maps"',
-          '"com.google.android.apps.maps", "com.whatsapp"',
+          'Set<String> = setOf(GOOGLE_MAPS)',
+          'Set<String> = setOf(GOOGLE_MAPS, "com.whatsapp")',
         ),
+        'must be exactly setOf(GOOGLE_MAPS)',
       );
-
-      final result = await project.run();
-
-      expect(result.exitCode, 1);
-      expect(result.err, contains('the release allowlist must be exactly'));
     });
 
-    test('rejects a release allowlist that is not Google Maps', () async {
-      final project = navProject(
+    test('rejects a release allowlist that leaves GOOGLE_MAPS out', () {
+      return rejects(
+        (p) => edit(
+          p,
+          sources,
+          'Set<String> = setOf(GOOGLE_MAPS)',
+          'Set<String> = setOf("com.whatsapp")',
+        ),
+        'must be exactly setOf(GOOGLE_MAPS)',
+      );
+    });
+
+    test('rejects a GOOGLE_MAPS that is not Google Maps', () {
+      return rejects(
         (p) => edit(
           p,
           sources,
           'com.google.android.apps.maps',
           'com.example.maps',
         ),
+        'GOOGLE_MAPS must be exactly',
       );
-
-      final result = await project.run();
-
-      expect(result.exitCode, 1);
-      expect(result.err, contains('the release allowlist must be exactly'));
     });
 
-    test('rejects a release build that adds a package', () async {
-      final project = navProject(
-        (p) => edit(
-          p,
-          releaseBuild,
-          'emptySet()',
-          'setOf(context.packageName)',
-          all: false,
-        ),
+    test('rejects a release build that adds a package', () {
+      return rejects(
+        (p) =>
+            edit(p, releaseBuild, 'emptySet()', 'setOf(context.packageName)'),
+        'extraPackages must be emptySet()',
       );
-
-      final result = await project.run();
-
-      expect(result.exitCode, 1);
-      expect(result.err, contains('extraPackages must be emptySet()'));
     });
 
-    test('rejects a release build that has a capture tool', () async {
-      final project = navProject(
+    test('rejects a release build that has a capture tool', () {
+      return rejects(
         (p) => edit(
           p,
           releaseBuild,
           'NavTap? = null',
           'NavTap? = NavCapture(context)',
         ),
+        'tap must be null',
       );
-
-      final result = await project.run();
-
-      expect(result.exitCode, 1);
-      expect(result.err, contains('tap must be null'));
     });
 
-    test('rejects a profile build without its own NavBuild', () async {
-      final project = navProject(
+    test('rejects a profile build without its own NavBuild', () {
+      return rejects(
         (p) => File(
-          '${p.dir.path}/android/app/src/profile/kotlin/io/github/ictashik/tapedash/NavBuild.kt',
+          '${p.dir.path}/android/app/src/profile/$kotlin/NavBuild.kt',
         ).deleteSync(),
+        'profile',
       );
-
-      final result = await project.run();
-
-      expect(result.exitCode, 1);
-      expect(result.err, contains('profile'));
     });
 
-    test('rejects a listener that reads the notification itself', () async {
-      final project = navProject(
+    test('rejects a listener that reads the notification itself', () {
+      return rejects(
         (p) => edit(
           p,
           service,
           'tap?.posted(sbn)',
           'val n = sbn.notification\n        tap?.posted(sbn)',
         ),
+        'reads a notification',
       );
-
-      final result = await project.run();
-
-      expect(result.exitCode, 1);
-      expect(result.err, contains('reads a notification'));
     });
 
     test(
-      'rejects a notification handed on before its package is checked',
-      () async {
-        final project = navProject(
+      'rejects a notification handed to a tap before its package is checked',
+      () {
+        return rejects(
           (p) => edit(
             p,
             service,
-            'if (!NavSources.isAllowed(sbn.packageName, allowed)) return\n        tap?.posted(sbn)',
-            'tap?.posted(sbn)',
+            '$unfiltered        tap?.posted(sbn)\n        NavBridge.posted(this, sbn)',
+            'tap?.posted(sbn)\n        NavBridge.posted(this, sbn)',
           ),
+          'without checking its package first',
         );
-
-        final result = await project.run();
-
-        expect(result.exitCode, 1);
-        expect(result.err, contains('without checking its package first'));
       },
     );
+
+    test(
+      'rejects a notification handed to the bridge before its package is checked',
+      () {
+        return rejects(
+          (p) => edit(
+            p,
+            service,
+            '$unfiltered        tap?.posted(sbn)\n        NavBridge.posted(this, sbn)',
+            'NavBridge.posted(this, sbn)\n        $unfiltered        tap?.posted(sbn)',
+          ),
+          'without checking its package first',
+        );
+      },
+    );
+
+    test('rejects a removal handed on before its package is checked', () {
+      return rejects(
+        (p) => edit(
+          p,
+          service,
+          '        if (!NavSources.isAllowed(sbn.packageName, allowed)) return\n        tap?.removed(sbn)',
+          '        tap?.removed(sbn)',
+        ),
+        'without checking its package first',
+      );
+    });
   });
 }
