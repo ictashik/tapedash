@@ -14,6 +14,7 @@ import '../render/sprite_batch.dart';
 import '../theme/tape_theme.dart';
 import '../tokens/glow.dart';
 import 'numeral_format.dart';
+import 'numeral_settle.dart';
 import 'seven_segment_numerals.dart';
 
 export 'numeral_format.dart';
@@ -59,6 +60,17 @@ class RollingNumerals extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settle = NumeralSettle.maybeOf(context);
+    if (settle == null) return _drawn(context, source);
+    return _SettledNumerals(
+      source: source,
+      share: settle.share,
+      decimals: format.decimals,
+      builder: _drawn,
+    );
+  }
+
+  Widget _drawn(BuildContext context, NumeralSource source) {
     if (TapeTheme.of(context).livery.isSevenSegment) {
       return SevenSegmentNumerals(
         source: source,
@@ -78,6 +90,55 @@ class RollingNumerals extends StatelessWidget {
       presence: presence,
     );
   }
+}
+
+/// Holds the [SettledSource] a [NumeralSettle] asks for, made once and let go of
+/// with the widget, so that nothing keeps listening to a number that is not shown.
+class _SettledNumerals extends StatefulWidget {
+  const _SettledNumerals({
+    required this.source,
+    required this.share,
+    required this.decimals,
+    required this.builder,
+  });
+
+  final NumeralSource source;
+  final ValueListenable<double> share;
+  final int decimals;
+  final Widget Function(BuildContext context, NumeralSource source) builder;
+
+  @override
+  State<_SettledNumerals> createState() => _SettledNumeralsState();
+}
+
+class _SettledNumeralsState extends State<_SettledNumerals> {
+  late SettledSource _settled = _make();
+
+  SettledSource _make() => SettledSource(
+    source: widget.source,
+    share: widget.share,
+    decimals: widget.decimals,
+  );
+
+  @override
+  void didUpdateWidget(_SettledNumerals oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.source, widget.source) ||
+        !identical(oldWidget.share, widget.share) ||
+        oldWidget.decimals != widget.decimals) {
+      _settled.dispose();
+      _settled = _make();
+    }
+  }
+
+  @override
+  void dispose() {
+    _settled.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _settled);
 }
 
 /// Numerals in Saira, rolling: the ION, EMBER and MONO liveries.
