@@ -14,7 +14,7 @@ flutter pub get
 tool/verify.sh
 ```
 
-`tool/verify.sh` is the gate before every commit: a `dart format` check, `flutter analyze`, `flutter test`, and `tool/check_offline.sh`. Never commit a red build (CLAUDE.md 2). On macOS and Windows it skips golden tests (`--exclude-tags golden`), since goldens are generated on CI Linux only.
+`tool/verify.sh` is the gate before every commit: a `dart format` check, `flutter analyze`, `flutter test`, `tool/check_offline.sh`, and `tool/check_android_api.sh` (Android's lint, limited to calls and constants newer than API 24, the minimum: the navigation listener once named `Bitmap.Config.HARDWARE`, which is Android 8's, and that is an `Error` on Android 7). Never commit a red build (CLAUDE.md 2). On macOS and Windows it skips golden tests (`--exclude-tags golden`), since goldens are generated on CI Linux only.
 
 `tool/check_offline.sh` fails if the app could reach the network outside the WiFi transport or pulls in Play Services or Firebase. Its Gradle step is skipped locally while nothing that changes the dependency tree has changed, and `--strict` never skips it.
 

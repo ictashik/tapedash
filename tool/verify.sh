@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 #
 # The gate to pass before every commit (CLAUDE.md 2): formatting, analysis, the
-# tests and the offline check. Never commit a red build.
+# tests, the offline check and the Android API check (nothing newer than the minimum
+# Android, which lint finds and an emulator would find too late). Never commit a red
+# build.
 #
 # Usage: tool/verify.sh [--strict]
 #   --strict  CI mode; passed on to tool/check_offline.sh, which then needs a
@@ -32,6 +34,9 @@ fi
 
 echo "== offline"
 tool/check_offline.sh "$@"
+
+echo "== android api"
+tool/check_android_api.sh
 
 echo
 echo "verify: all green"

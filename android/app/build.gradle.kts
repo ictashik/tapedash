@@ -25,6 +25,17 @@ android {
         versionName = flutter.versionName
     }
 
+    // Only what would crash an older Android: a call or a constant newer than the
+    // minimum (CLAUDE.md 3: never raise minSdk). Android 7 is checked for by this, and
+    // not by anyone remembering: naming Bitmap.Config.HARDWARE (Android 8) in the
+    // navigation listener was a crash on Android 7 that only an emulator found.
+    // tool/check_android_api.sh runs it.
+    lint {
+        checkOnly += setOf("NewApi", "InlinedApi")
+        abortOnError = true
+        checkDependencies = false
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
