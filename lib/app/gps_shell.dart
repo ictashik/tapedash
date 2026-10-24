@@ -7,6 +7,7 @@ import '../core/clock.dart';
 import '../core/observable.dart';
 import '../core/scheduler.dart';
 import '../location/gps_drive.dart';
+import '../platform/nav_channel.dart';
 import '../trips/trip_library.dart';
 import '../ui/design/components/backdrop.dart';
 import '../ui/design/motion/motion_scope.dart';
@@ -22,6 +23,7 @@ import '../vehicle/vehicle_state.dart' show DrivingMode;
 import 'app_info.dart';
 import 'app_services.dart';
 import 'exchange_coordinator.dart';
+import 'nav_service.dart';
 
 /// The driving surface for a drive on the phone's GPS alone: the speed and what a
 /// GPS can add up to ([GpsCluster]), the parked dock with Garage, the HUD and
@@ -45,10 +47,15 @@ class GpsShell extends StatefulWidget {
     this.debugRows = const [],
     this.onOpenLab,
     this.exchange,
+    this.navSource,
   });
 
   /// Moves the app's data out and in (docs/EXCHANGE.md).
   final ExchangeCoordinator? exchange;
+
+  /// Where Google Maps' navigation notification comes from (docs/NAV.md). Null uses
+  /// the phone's own listener; tests give one in memory.
+  final NavSource? navSource;
 
   /// The GPS drive, started and disposed by whoever made it.
   final GpsDrive gps;
@@ -74,6 +81,7 @@ class _GpsShellState extends State<GpsShell> {
   GpsSignals? _signals;
   late final HudSettings _hud = widget.app.settings.hud;
   late final TripLibrary _library = TripLibrary(widget.app.trips);
+  NavService? _nav;
   bool _garage = false;
   bool _debug = false;
   final List<ChangeNotifier> _debugSources = [];
@@ -91,6 +99,13 @@ class _GpsShellState extends State<GpsShell> {
       phoneHot: widget.phoneHot,
       reduceMotion: widget.app.settings.reduceMotion.value,
     );
+    _nav = NavService(
+      settings: widget.app.settings,
+      source: widget.navSource ?? NativeNavSource(),
+      clock: widget.clock,
+      scheduler: widget.scheduler,
+      speed: widget.gps.vehicle.motion,
+    )..start();
     unawaited(widget.gps.start());
     widget.exchange?.changes.addListener(_onExchanged);
     _signals!.drive.mode.addListener(_syncMoving);
@@ -128,6 +143,12 @@ class _GpsShellState extends State<GpsShell> {
           return f == null ? '—' : '±${f.accuracyM.toStringAsFixed(0)} m';
         }),
       ),
+      // The state of the link only, never what Maps said (CLAUDE.md 4).
+      if (_nav != null)
+        DebugRow(
+          'Navigation',
+          row([_nav!.status], () => _nav!.status.value.name),
+        ),
       ...widget.debugRows,
     ];
   }
@@ -140,6 +161,7 @@ class _GpsShellState extends State<GpsShell> {
     for (final s in _debugSources) {
       s.dispose();
     }
+    _nav?.dispose();
     _signals?.dispose();
     super.dispose();
   }
@@ -211,6 +233,7 @@ class _GpsShellState extends State<GpsShell> {
                               phoneTemperature: widget.phoneTemperature,
                               gpsOnly: true,
                               onAlignment: () => _hud.showAlignment = true,
+                              nav: _nav,
                               version: appVersion,
                               exchange: widget.exchange,
                             ),

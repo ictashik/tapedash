@@ -17,6 +17,7 @@ import '../obd/dtc/dtc_descriptions.dart';
 import '../obd/session_diagnostics.dart';
 import '../platform/image_sharer.dart';
 import '../platform/native_location_source.dart';
+import '../platform/nav_channel.dart';
 import '../sound/voice_host.dart';
 import '../trips/trip.dart';
 import '../trips/trip_library.dart';
@@ -49,6 +50,7 @@ import 'drive_sound.dart';
 import 'engine_sound_sources.dart';
 import 'exchange_coordinator.dart';
 import 'live_drive.dart';
+import 'nav_service.dart';
 
 /// Which full-screen form is over the Strip.
 enum _Form { none, pitStop, price, garage, diagnostics, insights }
@@ -79,11 +81,16 @@ class DriveShell extends StatefulWidget {
     this.soundHost,
     this.sharer,
     this.exchange,
+    this.navSource,
   });
 
   /// Moves the app's data out and in (docs/EXCHANGE.md): Garage's rows. It is told
   /// when the car moves, and tells this screen when an import changed the log.
   final ExchangeCoordinator? exchange;
+
+  /// Where Google Maps' navigation notification comes from (docs/NAV.md). Null uses
+  /// the phone's own listener; tests give one in memory.
+  final NavSource? navSource;
 
   /// Makes the engine sound's voice (lib/sound). Null uses the real one, which plays
   /// on the phone's audio output from an isolate of its own; tests give one in
@@ -157,6 +164,9 @@ class _DriveShellState extends State<DriveShell> {
 
   /// The engine sound: off until it is turned on in Garage.
   DriveSound? _sound;
+
+  /// Google Maps' turns for the HUD: off until it is turned on in Garage.
+  NavService? _nav;
   _Form _form = _Form.none;
 
   /// The debug overlay (CLAUDE.md 9), opened by a long-press.
@@ -215,6 +225,13 @@ class _DriveShellState extends State<DriveShell> {
         clock: widget.clock,
         hostFactory: widget.soundHost,
         note: _feed is LiveDrive ? _feed.note : null,
+      )..start();
+      _nav = NavService(
+        settings: _app.settings,
+        source: widget.navSource ?? NativeNavSource(),
+        clock: widget.clock,
+        scheduler: widget.scheduler,
+        speed: _feed.vehicle.motion,
       )..start();
       _diagnostics = SessionDiagnostics(
         sessions: _feed.sessions,
@@ -285,6 +302,9 @@ class _DriveShellState extends State<DriveShell> {
       row('Fuel from', [source], () => services.estimator.source.value.label),
       if (_sound != null)
         row('Engine sound', [_sound!.status], () => _sound!.status.value.name),
+      // The state of the link only, never what Maps said (CLAUDE.md 4).
+      if (_nav != null)
+        row('Navigation', [_nav!.status], () => _nav!.status.value.name),
       ...widget.debugRows,
     ];
   }
@@ -354,6 +374,7 @@ class _DriveShellState extends State<DriveShell> {
       source.dispose();
     }
     _sound?.dispose();
+    _nav?.dispose();
     _signals?.dispose();
     _money?.dispose();
     _services?.recorder.phase.removeListener(_syncTrip);
@@ -406,6 +427,7 @@ class _DriveShellState extends State<DriveShell> {
           phoneTemperature: widget.phoneTemperature,
           onAlignment: () => _hud.showAlignment = true,
           sound: _sound,
+          nav: _nav,
           version: appVersion,
           exchange: widget.exchange,
         );

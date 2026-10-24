@@ -5,6 +5,7 @@ import '../../../app/app_services.dart';
 import '../../../app/app_settings.dart';
 import '../../../app/drive_sound.dart';
 import '../../../app/exchange_coordinator.dart';
+import '../../../app/nav_service.dart';
 import '../../../core/fuel_blend.dart';
 import '../../../core/observable.dart';
 import '../../../fuel/fuel_constants.dart';
@@ -62,6 +63,7 @@ class GaragePage extends StatefulWidget {
     this.gpsOnly = false,
     this.onAlignment,
     this.sound,
+    this.nav,
     this.version = 'dev',
     this.exchange,
   });
@@ -72,6 +74,10 @@ class GaragePage extends StatefulWidget {
 
   /// The engine sound, for its group: null leaves the group out.
   final DriveSound? sound;
+
+  /// The navigation HUD's feed (docs/NAV.md), for its group: null leaves the group
+  /// out.
+  final NavService? nav;
 
   final AppSettings settings;
 
@@ -153,6 +159,8 @@ class GaragePageState extends State<GaragePage> {
       s.soundProfile,
       s.soundVolume,
       s.soundOnSpeaker,
+      s.navEnabled,
+      if (widget.nav != null) ...[widget.nav!.status, widget.nav!.access],
       if (widget.sound != null) ...[
         widget.sound!.status,
         widget.sound!.testing,
@@ -465,6 +473,7 @@ class GaragePageState extends State<GaragePage> {
                   },
           ),
         ]),
+        if (widget.nav != null) _navGroup(s, widget.nav!),
         if (!gpsOnly)
           _Group('Coach', [
             _Field(
@@ -719,6 +728,60 @@ class GaragePageState extends State<GaragePage> {
       SoundStatus.failed => 'The phone would not start its audio output',
     };
   }
+
+  /// The navigation HUD (docs/NAV.md): off until turned on. It reads the turn that
+  /// Google Maps shows in its notification, and says what stands in the way.
+  Widget _navGroup(AppSettings s, NavService nav) {
+    final status = nav.status.value;
+    final (title, body) = _navStatus(status);
+    return _Group('Navigation', [
+      _Toggle(
+        'Show Google Maps turns on the HUD',
+        s.navEnabled.value,
+        (v) => s.navEnabled.value = v,
+      ),
+      _Info(title, body),
+      if (status == NavLinkStatus.needsAccess)
+        TapeListRow(
+          label: 'Open notification access',
+          value: 'Android\'s own screen',
+          chevron: false,
+          onTap: () => nav.openAccessSettings(),
+        ),
+      const _Info('What this does', _navNote),
+    ]);
+  }
+
+  static const String _navNote =
+      'Google Maps does the routing, on its own internet connection. TapeDash stays '
+      'offline: it reads the turn from Google Maps\' notification, sends it nothing '
+      'and keeps nothing. Android\'s notification access lets an app see every '
+      'notification; TapeDash looks at Google Maps\' only. You can take the access '
+      'away in Android\'s settings at any time.';
+
+  static (String, String) _navStatus(NavLinkStatus status) => switch (status) {
+    NavLinkStatus.off => ('Off', 'TapeDash is not reading any notification.'),
+    NavLinkStatus.noMaps => (
+      'Google Maps is not on this phone',
+      'The HUD shows its turns while it is navigating on this phone.',
+    ),
+    NavLinkStatus.needsAccess => (
+      'Needs notification access',
+      'Open Android\'s screen below, turn TapeDash on, and come back.',
+    ),
+    NavLinkStatus.waiting => (
+      'On: waiting for Google Maps',
+      'Start a route in Google Maps and the HUD shows its next turn.',
+    ),
+    NavLinkStatus.guiding => (
+      'On: following Google Maps',
+      'The HUD shows its next turn.',
+    ),
+    NavLinkStatus.stale => (
+      'Google Maps has gone quiet',
+      'The turn on the HUD is not live. Open Google Maps to see where you are.',
+    ),
+  };
 
   Future<void> _deleteAll() async {
     await widget.services.deleteAllData();

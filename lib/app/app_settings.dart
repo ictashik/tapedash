@@ -50,6 +50,7 @@ class AppSettings {
   static const _soundProfileKey = 'sound_profile';
   static const _soundVolumeKey = 'sound_volume';
   static const _soundSpeakerKey = 'sound_speaker';
+  static const _navKey = 'nav_enabled';
   static const _hudColorKey = 'hud_color';
   static const _hudLayoutKey = 'hud_layout';
   static const _hudFlipHKey = 'hud_flip_h';
@@ -92,6 +93,11 @@ class AppSettings {
   final ValueNotifier<String> soundProfile = ValueNotifier('inline4');
   final ValueNotifier<double> soundVolume = ValueNotifier(0.7);
   final ValueNotifier<bool> soundOnSpeaker = ValueNotifier(false);
+
+  /// Whether the HUD reads Google Maps' navigation notification and shows its
+  /// turns (docs/NAV.md). Off until it is turned on in Garage, and until it is,
+  /// the app does not open a notification even if Android has granted it access.
+  final ValueNotifier<bool> navEnabled = ValueNotifier(false);
 
   /// Whether the choice at first launch has been made, so it is not asked again.
   final ValueNotifier<bool> onboarded = ValueNotifier(false);
@@ -147,6 +153,7 @@ class AppSettings {
       1.0,
     );
     soundOnSpeaker.value = await _store.getBool(_soundSpeakerKey) ?? false;
+    navEnabled.value = await _store.getBool(_navKey) ?? false;
 
     hud
       ..color = pick(
@@ -216,6 +223,7 @@ class AppSettings {
     soundOnSpeaker.addListener(
       () => _store.setBool(_soundSpeakerKey, soundOnSpeaker.value),
     );
+    navEnabled.addListener(() => _store.setBool(_navKey, navEnabled.value));
     hud.addListener(() {
       _store.setString(_hudColorKey, hud.color.name);
       _store.setString(_hudLayoutKey, hud.layout.name);
@@ -243,6 +251,7 @@ class AppSettings {
       soundProfile,
       soundVolume,
       soundOnSpeaker,
+      navEnabled,
     ]) {
       n.dispose();
     }
