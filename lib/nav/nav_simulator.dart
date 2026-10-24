@@ -112,6 +112,9 @@ class NavSimulator {
   final Duration movingEvery;
   final Duration standingEvery;
 
+  /// Maps drops the distance when the turn is this close.
+  static const _noDistanceUnderM = 45.0;
+
   bool _started = false;
   bool _finished = false;
   bool _reroute = false;
@@ -186,11 +189,11 @@ class NavSimulator {
 
     if (shape == NavShape.progress) {
       return NavNotification(
-        title: toTurnM >= 1
+        title: toTurnM >= _noDistanceUnderM
             ? '$distance · ${next.instruction}'
             : next.instruction,
         subText: 'Arrive ${_clock(arrival)}',
-        shortCriticalText: toTurnM >= 1 ? distance : '',
+        shortCriticalText: toTurnM >= _noDistanceUnderM ? distance : '',
         progress: progress,
         progressMax: progressMax,
         template: 'android.app.Notification\$ProgressStyle',
@@ -209,13 +212,15 @@ class NavSimulator {
     );
   }
 
-  /// The distance as Maps rounds it: tenths of a kilometre from a kilometre,
-  /// steps of 50 m from 100 m (seen), and, below that, steps of 10 m (a guess).
+  /// The distance as Maps rounds it (a capture of Maps 25.33 counting down): tenths
+  /// of a kilometre from a kilometre, steps of 50 m down to about 300 m, steps of
+  /// 10 m below that. Under about 45 m it gives no distance, only the instruction
+  /// (the HUD takes that for the turn itself).
   static String _distanceText(double metres) {
     if (metres >= 1000) {
       return '${(metres / 1000).toStringAsFixed(1)} km';
     }
-    final step = metres >= 100 ? 50 : 10;
+    final step = metres >= 300 ? 50 : 10;
     final rounded = (metres / step).round() * step;
     return '$rounded m';
   }

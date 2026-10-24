@@ -154,7 +154,7 @@ void main() {
         if (s.distanceToTurnM != null) {
           expect(
             s.distanceToTurnM,
-            closeTo(truth, truth >= 100 ? 25.01 : 5.01),
+            closeTo(truth, truth >= 300 ? 25.01 : 5.01),
           );
         }
         expect(s.arrow, isNotNull);
@@ -202,6 +202,43 @@ void main() {
       expect(instructions, contains('Arrive at the destination'));
     });
 
+    test('counts down in steps of 10 m near the turn, as Maps does', () {
+      final events = _drive(NavSimulator(route: route), seconds: 100);
+      final near = {
+        for (final n in _posts(events))
+          if (parser.parse(n, now).distanceToTurnM != null &&
+              parser.parse(n, now).distanceToTurnM! < 300)
+            parser.parse(n, now).distanceToTurnM!,
+      };
+
+      expect(near, isNotEmpty);
+      for (final m in near) {
+        expect(m % 10, 0, reason: '$m');
+      }
+      expect(near.any((m) => m % 50 != 0), isTrue, reason: 'finer than 50 m');
+    });
+
+    test('gives no distance in the last metres, only the instruction', () {
+      final events = _drive(NavSimulator(route: route), seconds: 100);
+      final close = [
+        for (final e in events)
+          if (e.event is NavPost)
+            if (parser.parse((e.event as NavPost).notification, now).phase ==
+                    NavPhase.guiding &&
+                (route.maneuvers.first.atM - e.travelled).abs() < 40 &&
+                e.travelled < route.maneuvers.first.atM)
+              parser.parse((e.event as NavPost).notification, now),
+      ];
+
+      expect(close, isNotEmpty);
+      for (final s in close) {
+        expect(s.distanceText, isNull);
+        expect(s.distanceToTurnM, isNull);
+        expect(s.instruction, 'Turn right onto Cross Rd 1');
+        expect(s.arrow, isNotNull);
+      }
+    });
+
     test('the distance to the turn falls in steps of 50 m at a distance', () {
       final events = _drive(NavSimulator(route: route), seconds: 100);
       final texts = {
@@ -210,7 +247,7 @@ void main() {
             parser.parse(n, now).distanceToTurnM!,
       };
 
-      for (final m in texts.where((m) => m >= 100 && m < 1000)) {
+      for (final m in texts.where((m) => m >= 300 && m < 1000)) {
         expect(m % 50, 0, reason: '$m');
       }
     });

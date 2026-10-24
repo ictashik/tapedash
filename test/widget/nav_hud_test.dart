@@ -362,6 +362,54 @@ void main() {
       }
     });
 
+    testWidgets('a turn with no distance is the turn itself: the dot is at the '
+        'junction', (tester) async {
+      await show(tester, size);
+      final g = NavHudGeometry(size.width, size.height);
+      // Mirrored, as the HUD is by default.
+      final bend = NavBend.right;
+      final junction = g.junction(bend);
+      final box = Rect.fromCenter(
+        center: Offset(size.width - junction.dx, junction.dy),
+        width: g.nodeRadius * 2 - g.strokeWidth * 2,
+        height: g.nodeRadius * 2 - g.strokeWidth * 2,
+      );
+
+      // `Turn right onto Mission Rd`, as Maps says it in the last metres.
+      await maps(
+        tester,
+        NavNotification(
+          title: 'Turn right onto Mission Rd',
+          subText: 'Arrive 9:25 PM',
+          shortCriticalText: '',
+          progress: 800,
+          progressMax: 6605,
+          template: 'android.app.Notification\$ProgressStyle',
+          arrow: _real('e687a80d8d'),
+        ),
+      );
+      final turnNow = await pixels(tester);
+
+      // `Head north`: no distance, and no turn in it either.
+      await maps(
+        tester,
+        NavNotification(
+          title: 'Head north',
+          subText: 'Arrive 9:25 PM',
+          shortCriticalText: '',
+          progress: 800,
+          progressMax: 6605,
+          template: 'android.app.Notification\$ProgressStyle',
+          arrow: _real('5c317d6e0e'),
+        ),
+      );
+      final headNorth = await pixels(tester);
+
+      // The hole of the ring is empty without a dot, and filled with it.
+      expect(litIn(headNorth, size, box), lessThan(10));
+      expect(litIn(turnNow, size, box), greaterThan(100));
+    });
+
     testWidgets('the dot climbs as the turn comes near', (tester) async {
       await show(tester, size);
       final g = NavHudGeometry(size.width, size.height);

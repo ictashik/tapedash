@@ -335,7 +335,14 @@ class NavHudPainter extends CustomPainter {
     canvas.drawCircle(g.junction(bend), g.nodeRadius, _stroke);
 
     // The car: at the foot while the turn is far, at the junction at the turn.
-    final toTurn = estimate.value ?? s.distanceToTurnM;
+    // Maps leaves the distance out when the turn is a few metres away (a capture of
+    // it counting down: 80 m, 70 m, 50 m, and then only the instruction), so a turn
+    // with no distance is the turn itself. A line with no turn in it (`Head toward`)
+    // has no dot.
+    final toTurn =
+        estimate.value ??
+        s.distanceToTurnM ??
+        (bend == NavBend.left || bend == NavBend.right ? 0.0 : null);
     if (toTurn == null) return;
     final t = 1 - (toTurn / TapeHud.navApproachMetres).clamp(0.0, 1.0);
     final metric = _metric!;
