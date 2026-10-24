@@ -222,6 +222,22 @@ void main() {
       expect(service.status.value, NavLinkStatus.noMaps);
     });
 
+    test('what is arriving comes first: it is heard, so it is there', () async {
+      // No Maps found, and the access said to be missing, and yet a navigation
+      // notification arrives: it is shown (an emulator with a stand-in is this).
+      source.maps = null;
+      source.access = false;
+      settings.navEnabled.value = true;
+      await settle();
+      expect(service.status.value, NavLinkStatus.noMaps);
+
+      source.push(NavPosted(_turn()));
+      await settle();
+
+      expect(service.status.value, NavLinkStatus.guiding);
+      expect(service.tracker.state.value.distanceText, '650 m');
+    });
+
     test('asks again when the app comes back to the screen', () async {
       source.access = false;
       settings.navEnabled.value = true;

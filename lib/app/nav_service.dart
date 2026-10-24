@@ -147,13 +147,21 @@ class NavService with WidgetsBindingObserver {
 
   NavLinkStatus _status() {
     if (!settings.navEnabled.value) return NavLinkStatus.off;
+    // What is arriving comes first: if Maps is being heard, it is there, and the access
+    // is granted, whatever a look for its package or for the access said. (An emulator
+    // with no Maps and a stand-in is the case that showed it.) The warnings are for
+    // when nothing arrives.
+    switch (tracker.freshness.value) {
+      case NavFreshness.fresh:
+        return NavLinkStatus.guiding;
+      case NavFreshness.stale:
+        return NavLinkStatus.stale;
+      case NavFreshness.none:
+        break;
+    }
     if (_mapsChecked && mapsVersion.value == null) return NavLinkStatus.noMaps;
     if (access.value == false) return NavLinkStatus.needsAccess;
-    return switch (tracker.freshness.value) {
-      NavFreshness.none => NavLinkStatus.waiting,
-      NavFreshness.fresh => NavLinkStatus.guiding,
-      NavFreshness.stale => NavLinkStatus.stale,
-    };
+    return NavLinkStatus.waiting;
   }
 
   void dispose() {
