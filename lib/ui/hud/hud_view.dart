@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../app/nav_service.dart';
 import '../design/components/alerts.dart';
 import '../design/components/rolling_numerals.dart';
 import '../design/icons/icons.dart';
@@ -17,6 +18,7 @@ import '../pages/drive/drive_signals.dart';
 import 'alignment_pattern.dart';
 import 'hud_parts.dart';
 import 'hud_settings.dart';
+import 'nav_hud.dart';
 
 /// The windshield HUD (DESIGN.md 8): pure black, one user-chosen colour, huge
 /// bold numerals, mirrored so the windshield shows them true.
@@ -52,7 +54,13 @@ class HudView extends StatelessWidget {
     this.moneyNote = 'MONEY UNAVAILABLE',
     this.layout,
     this.showRpm = true,
+    this.nav,
   });
+
+  /// Google Maps' turns (docs/NAV.md): while Maps is guiding, the navigation layout
+  /// replaces the chosen one, and it goes back when Maps stops. Null leaves the HUD
+  /// as it was.
+  final NavService? nav;
 
   /// The layout to show in place of the one in [settings]: a drive on the GPS
   /// alone has only the speed to put on the glass.
@@ -124,12 +132,32 @@ class HudView extends StatelessWidget {
                         width: width,
                         height: height,
                       )
-                    : _layout(),
+                    : _navigating(),
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  /// The navigation layout while Maps is guiding (or has gone quiet, which it
+  /// says), and the chosen layout otherwise.
+  Widget _navigating() {
+    final nav = this.nav;
+    if (nav == null) return _layout();
+    return ValueListenableBuilder<NavLinkStatus>(
+      valueListenable: nav.status,
+      builder: (context, status, _) =>
+          status == NavLinkStatus.guiding || status == NavLinkStatus.stale
+          ? NavHud(
+              signals: signals,
+              nav: nav,
+              width: width,
+              height: height,
+              color: settings.color.color,
+            )
+          : _layout(),
     );
   }
 

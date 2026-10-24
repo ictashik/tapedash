@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../app/nav_service.dart';
 import '../design/components/alerts.dart';
 import '../design/motion/numeral_source.dart';
 import '../pages/drive/drive_signals.dart';
@@ -29,7 +30,11 @@ class HudHost extends StatelessWidget {
     this.alert,
     this.layout,
     this.showRpm = true,
+    this.nav,
   });
+
+  /// Google Maps' turns for the HUD (docs/NAV.md).
+  final NavService? nav;
 
   /// The layout to show in place of the one chosen in Garage (see
   /// `HudView.layout`).
@@ -64,6 +69,7 @@ class HudHost extends StatelessWidget {
         alert: alert,
         layout: layout,
         showRpm: showRpm,
+        nav: nav,
         moneyNote: note ?? 'MONEY UNAVAILABLE',
       );
 

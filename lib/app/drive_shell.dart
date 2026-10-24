@@ -533,6 +533,7 @@ class _DriveShellState extends State<DriveShell> {
       settings: _hud,
       signals: signals,
       money: _money,
+      nav: _nav,
       width: w,
       height: h,
       child: Stack(

@@ -554,6 +554,7 @@ Full-width list rows grouped under bracketed headers:
 - **Adapter:** paired adapter, type, protocol, reconnect behaviour, compatibility mode.
 - **Cluster:** default layout, livery, driver side. The livery picker shows live previews rendered by the real components, never screenshots.
 - **HUD:** colour, flips, position and scale, alignment pattern (§8).
+- **Navigation:** one switch, "Show Google Maps turns on the HUD", off to begin with; a line saying where it stands (off, Google Maps not on the phone, needs notification access, waiting for Google Maps, following Google Maps, Google Maps has gone quiet); a row that opens Android's notification-access screen when that is what is missing; and a plain note that Google Maps does the routing on its own connection, that TapeDash stays offline, sends it nothing and keeps nothing, that Android's access lets an app see every notification and TapeDash looks at Google Maps' only, and that the access can be taken away in Android's settings at any time. Parked only, like all of Garage.
 - **Fuel price and currency.**
 - **Coach:** speed threshold; hard acceleration and braking sensitivity as Gentle / Normal / Sporty presets mapping to `CoachThresholds`.
 - **Engine sound:** on or off (off to begin with), the engine, the volume, whether the phone's speaker is allowed (no to begin with), a ten second test on whatever output there is, and a line saying where it stands (playing, no car audio, stopped because the output went away). §5.10.
@@ -643,6 +644,14 @@ The HUD is one component of the product, not its design language. It inherits ty
 - No large filled bright areas at night (glare and double images). Numerals may be filled; panels never.
 
 **Layouts:** Drive HUD (huge speed, thin RPM bar beneath, alert slot); Drive + Money HUD (speed left, ₹ this trip right); Money HUD (huge ₹ this trip, ₹/km beneath).
+
+**Navigation layout** (docs/NAV.md). While Google Maps is navigating on the phone and the Garage switch is on, the HUD shows this layout in place of the chosen one, and puts the chosen one back when Maps stops. Nothing is asked of the driver.
+- **Left half:** the speed, as in Drive + Money (0.34H), with KM/H under it.
+- **Right half, the turn:** Google's own arrow, a one-colour mask painted in the HUD colour (0.34H square, its ink on the same edge as the words under it); the distance to the turn beside it, number in the numeral face at 0.17H and its unit as a label, shrunk to fit if long; and under it Google's instruction in UPPERCASE, up to three lines at 0.068H, cut at a word and ended with an ellipsis when it is too long. The instruction is Google's text in the phone's language, so it is not held to the six-word limit of §11; it is the one deliberate exception.
+- **The approach line** (the "line map"): a bold line (at least 5 lp) from the car at the foot to a ring at the junction, leaning to the side the arrow turns (read from the arrow's own picture; straight when it is straight or cannot be read), with a filled dot on it that climbs as the distance to the turn falls (over the last 500 m, counting down on the car's own speed between Maps' updates). It is a sketch of the next junction. **It is not a map**: Google Maps does not give out its route, and the HUD does not pretend to draw one. At the turn the dot fills the ring.
+- **Along the bottom:** the ETA (`9:25 PM`), the time left (`25 MIN`, or `1:05 H`) and the distance left (`5.4 KM`, or miles when Maps writes in them), numerals at 0.10H and units as labels. The time left is Google's when it gives it, and otherwise the ETA less the phone's clock.
+- **States, told by words and shape, never by colour alone:** Maps' own words for `Starting navigation…` and `Rerouting...` (no arrow, no line, no figures); and when Maps has been silent for 15 s with the car moving (3 minutes standing), **NO UPDATE** and a dash in place of the turn, with no figures: an old turn is never shown as a live one. Everything else is the HUD's: one colour, pure black, no halo, no trail, nothing that fills an area.
+- A distance in a unit the app has not seen is shown in Google's own text, never converted by guess; a figure Maps did not give is left out.
 
 **Orientation:** Flip Horizontal (default on) and Flip Vertical toggles, plus vertical position and scale sliders, so it works however the phone is placed.
 

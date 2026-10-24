@@ -194,6 +194,7 @@ class _GpsShellState extends State<GpsShell> {
                   // Only the speed can go on the glass: no tach, no money.
                   layout: HudLayout.drive,
                   showRpm: false,
+                  nav: _nav,
                   child: Stack(
                     children: [
                       GestureDetector(
