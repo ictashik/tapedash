@@ -11,12 +11,15 @@ class DeviceChannel implements DeviceFeatures {
     MethodChannel? methods,
     EventChannel? lightEvents,
     EventChannel? accelerationEvents,
+    EventChannel? rotaryEvents,
   }) : _methods = methods ?? const MethodChannel('tapedash/device'),
        _lightEvents =
            lightEvents ?? const EventChannel('tapedash/device/light'),
        _accelerationEvents =
            accelerationEvents ??
-           const EventChannel('tapedash/device/acceleration') {
+           const EventChannel('tapedash/device/acceleration'),
+       _rotaryEvents =
+           rotaryEvents ?? const EventChannel('tapedash/device/rotary') {
     // Each stream is made once and shared. An EventChannel has one native
     // handler, so a second receiveBroadcastStream() would take the sensor away
     // from the first listener.
@@ -24,17 +27,37 @@ class DeviceChannel implements DeviceFeatures {
     acceleration = _accelerationEvents.receiveBroadcastStream().map(
       _toAcceleration,
     );
+    rotary = _rotaryEvents.receiveBroadcastStream().map(_toDetent);
   }
 
   final MethodChannel _methods;
   final EventChannel _lightEvents;
   final EventChannel _accelerationEvents;
+  final EventChannel _rotaryEvents;
 
   @override
   late final Stream<double> ambientLux;
 
   @override
   late final Stream<Acceleration> acceleration;
+
+  @override
+  late final Stream<int> rotary;
+
+  @override
+  Future<FormFactorInfo> formFactor() async {
+    try {
+      final info = await _methods.invokeMapMethod<String, Object?>(
+        'formFactor',
+      );
+      return FormFactorInfo(
+        isWatch: info?['watch'] == true,
+        isRound: info?['round'] == true,
+      );
+    } on MissingPluginException {
+      return FormFactorInfo.phone;
+    }
+  }
 
   @override
   Future<void> setKeepScreenOn(bool enabled) =>
@@ -76,6 +99,10 @@ class DeviceChannel implements DeviceFeatures {
   }
 
   static double _toLux(Object? event) => (event! as num).toDouble();
+
+  // One detent is +1 or -1; a bezel that sends more than one at once (a fast
+  // turn) is a bigger number, and the sign is the direction.
+  static int _toDetent(Object? event) => (event! as num).toInt();
 
   // The Android side sends what the sensor gave it, [x, y, z] in the phone's
   // own axes, plus the display rotation in quarter turns (Surface.ROTATION_*).

@@ -51,6 +51,79 @@ abstract final class TapeTach {
   /// The gap between the hero digits' ink and the unit label under them, as a
   /// share of the height.
   static const double unitGapShare = 0.02;
+
+  /// The watch's rim (DESIGN.md 16.3), as shares of the face's diameter: the
+  /// band's outer edge, its depth, and the major ticks inside it.
+  static const double rimOuterShare = 0.485;
+  static const double rimDepthShare = 0.07;
+  static const double rimTickShare = 0.02;
+}
+
+/// The sizes of one tach arc, in logical pixels: the phone's, which are shares of
+/// the screen's height (DESIGN.md 6.2), or the watch's rim, which are shares of the
+/// face's diameter (DESIGN.md 16.3).
+class TachGeometry {
+  const TachGeometry({
+    required this.radius,
+    required this.depth,
+    required this.box,
+    required this.tickLength,
+    required this.glowHeight,
+    required this.glowSigma,
+    this.labels = true,
+  });
+
+  /// The phone's: radius 0.44H, segments 0.06H deep, with ticks and labels
+  /// outside the arc, in a box that holds them all.
+  factory TachGeometry.forHeight(double h) {
+    final radius = TapeTach.radiusShareOfHeight * h;
+    final depth = TapeTach.segmentDepthShareOfHeight * h;
+    final tick = TapeTach.majorTickLengthShareOfHeight * h;
+    return TachGeometry(
+      radius: radius,
+      depth: depth,
+      box: 2 * (radius + depth / 2 + tick + 0.09 * h),
+      tickLength: tick,
+      glowHeight: h * 0.01,
+      glowSigma: h * 0.015,
+    );
+  }
+
+  /// The watch's rim: the arc is the outer band of a face of [diameter], its
+  /// segments [TapeTach.rimDepthShare] deep, its ticks inside the band and no
+  /// numbers (a round face has no room outside the ring).
+  factory TachGeometry.rim(double diameter) {
+    final depth = TapeTach.rimDepthShare * diameter;
+    return TachGeometry(
+      radius: TapeTach.rimOuterShare * diameter - depth / 2,
+      depth: depth,
+      box: diameter,
+      tickLength: TapeTach.rimTickShare * diameter,
+      glowHeight: diameter * 0.012,
+      glowSigma: diameter * 0.018,
+      labels: false,
+    );
+  }
+
+  /// The radius of the middle of the segment band.
+  final double radius;
+
+  /// A segment's radial depth.
+  final double depth;
+
+  /// The side of the square the arc is drawn in.
+  final double box;
+
+  /// A major tick's length: outside the band with a label (the phone), inside
+  /// the band without one (the watch).
+  final double tickLength;
+
+  /// The needle's halo sprite: its height and blur.
+  final double glowHeight;
+  final double glowSigma;
+
+  /// Whether the major ticks carry their numbers and the arc its unit.
+  final bool labels;
 }
 
 /// The shift horizon's geometry (DESIGN.md 6.4): a thin band across the top

@@ -1,5 +1,8 @@
 package io.github.ictashik.tapedash
 
+import android.content.pm.ActivityInfo
+import android.os.Bundle
+import android.view.MotionEvent
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 
@@ -11,6 +14,20 @@ class MainActivity : FlutterActivity() {
     private var ble: BleChannel? = null
     private var engineAudio: EngineAudioChannel? = null
     private var share: ShareChannel? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        // The manifest locks a phone to landscape (CLAUDE.md 3). A watch has an
+        // up, which is 12 o'clock, and keeps the orientation the system gives it
+        // (DESIGN.md 16.2).
+        if (DeviceChannel.isWatch(this)) {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+        super.onCreate(savedInstanceState)
+    }
+
+    // A turn of the watch's bezel or crown (DESIGN.md 16.6).
+    override fun onGenericMotionEvent(event: MotionEvent): Boolean =
+        device?.onGenericMotionEvent(event) == true || super.onGenericMotionEvent(event)
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

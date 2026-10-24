@@ -40,6 +40,8 @@ class TachArc extends StatefulWidget {
     this.litShare,
     this.maxRpm = TapeTach.defaultMaxRpm,
     this.redlineRpm = TapeTach.defaultRedlineRpm,
+    this.geometry,
+    this.rpmPerSegment,
   });
 
   /// The rpm signal, already smoothed with `spring.needle` (DESIGN.md 5.3):
@@ -64,6 +66,14 @@ class TachArc extends StatefulWidget {
   final double maxRpm;
   final double redlineRpm;
 
+  /// The arc's sizes, when they are not the phone's shares of
+  /// [heightReference]: the watch's rim passes [TachGeometry.rim].
+  final TachGeometry? geometry;
+
+  /// One segment for this many rpm, when it is not the fidelity tier's: the
+  /// watch's rim is held to 200, which is bolder and cheaper (DESIGN.md 16.9).
+  final int? rpmPerSegment;
+
   /// The radius the needle and segments are drawn around, for a screen of
   /// [heightReference].
   static double radiusOf(double heightReference) =>
@@ -78,6 +88,9 @@ class TachArc extends StatefulWidget {
     final label = 0.09 * heightReference;
     return 2 * (r + depth / 2 + tick + label);
   }
+
+  /// The arc's sizes: [geometry], or the phone's for [heightReference].
+  TachGeometry get sizes => geometry ?? TachGeometry.forHeight(heightReference);
 
   @override
   State<TachArc> createState() => TachArcState();
@@ -211,16 +224,17 @@ class TachArcState extends State<TachArc> implements MotionDriven {
     final theme = TapeTheme.of(context);
     final kit = TapeRenderScope.of(context);
     final dpr = MediaQuery.devicePixelRatioOf(context);
-    _ensureBank(theme.profile.rpmPerSegment);
-    final side = TachArc.boxSideOf(widget.heightReference);
-    final r = TachArc.radiusOf(widget.heightReference);
+    _ensureBank(widget.rpmPerSegment ?? theme.profile.rpmPerSegment);
+    final geo = widget.sizes;
+    final side = geo.box;
+    final r = geo.radius;
     final bandWidth = r * (TapeTach.needleOuter - TapeTach.needleInner);
     final glow = kit.glows.get(
       GlowSpec(
         shape: GlowShape.bar,
         width: bandWidth,
-        height: widget.heightReference * 0.01,
-        sigma: widget.heightReference * 0.015,
+        height: geo.glowHeight,
+        sigma: geo.glowSigma,
         devicePixelRatio: dpr,
         resolution: theme.profile.halosAtHalfResolution
             ? TapeGlow.liteResolution
@@ -310,9 +324,9 @@ class TachPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
-    final h = state.widget.heightReference;
-    final r = TachArc.radiusOf(h);
-    final depth = TapeTach.segmentDepthShareOfHeight * h * depthShare;
+    final geo = state.widget.sizes;
+    final r = geo.radius;
+    final depth = geo.depth * depthShare;
     final outer = r + depth / 2;
     final inner = r - depth / 2;
     final bank = state.bank!;
@@ -330,10 +344,12 @@ class TachPainter extends CustomPainter {
       size.width,
       size.height,
       devicePixelRatio,
+      geo.radius,
+      geo.depth,
     );
     if (_staticPicture == null || _staticKey != key) {
       _staticPicture?.dispose();
-      _staticPicture = _recordStatic(center, r, outer, h);
+      _staticPicture = _recordStatic(center, geo);
       _staticKey = key;
     }
     canvas.drawPicture(_staticPicture!);
@@ -475,11 +491,12 @@ class TachPainter extends CustomPainter {
     canvas.drawLine(inner, outer, _strokePaint);
   }
 
-  ui.Picture _recordStatic(Offset center, double r, double outer, double h) {
+  ui.Picture _recordStatic(Offset center, TachGeometry geo) {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
-    final depth = TapeTach.segmentDepthShareOfHeight * h;
-    final inner = r - depth / 2;
+    final depth = geo.depth;
+    final inner = geo.radius - depth / 2;
+    final outer = geo.radius + depth / 2;
     final trackPaint = Paint()
       ..color = palette.track
       ..style = ui.PaintingStyle.stroke
@@ -495,13 +512,22 @@ class TachPainter extends CustomPainter {
     final tickPaint = Paint()
       ..color = palette.etchStrong
       ..strokeWidth = 1.5;
-    final tickLen = TapeTach.majorTickLengthShareOfHeight * h;
+    final tickLen = geo.tickLength;
     for (
       var rpm = 0.0;
       rpm <= state.widget.maxRpm + 1;
       rpm += TapeTach.majorTickEveryRpm
     ) {
       final angle = state.angleForRpm(rpm);
+      if (!geo.labels) {
+        // The watch's ticks sit inside the band, with no numbers.
+        canvas.drawLine(
+          ArcGeometry.pointAt(center, inner, angle),
+          ArcGeometry.pointAt(center, inner - tickLen, angle),
+          tickPaint,
+        );
+        continue;
+      }
       final from = ArcGeometry.pointAt(center, outer, angle);
       final to = ArcGeometry.pointAt(center, outer + tickLen, angle);
       canvas.drawLine(from, to, tickPaint);
@@ -524,6 +550,8 @@ class TachPainter extends CustomPainter {
       );
       labelPainter.dispose();
     }
+
+    if (!geo.labels) return recorder.endRecording();
 
     final unitPainter = TextPainter(
       text: TextSpan(

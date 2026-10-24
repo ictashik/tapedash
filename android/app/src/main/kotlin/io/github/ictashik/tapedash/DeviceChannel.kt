@@ -4,12 +4,16 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.BatteryManager
 import android.os.Build
+import android.view.InputDevice
+import android.view.MotionEvent
 import android.view.Surface
 import android.view.View
 import android.view.WindowInsets
@@ -39,6 +43,7 @@ class DeviceChannel(
     private val methods = MethodChannel(messenger, "tapedash/device")
     private val lightEvents = EventChannel(messenger, "tapedash/device/light")
     private val accelerationEvents = EventChannel(messenger, "tapedash/device/acceleration")
+    private val rotaryEvents = EventChannel(messenger, "tapedash/device/rotary")
     private val sensorManager = activity.getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
     // Ambient light drives the Daylight and Night modes, which change slowly.
@@ -65,10 +70,24 @@ class DeviceChannel(
 
     private var immersive = false
 
+    // A rotating bezel or crown: one event a detent, +1 clockwise (DESIGN.md 16.6).
+    private var rotarySink: EventChannel.EventSink? = null
+
     init {
         methods.setMethodCallHandler(this)
         lightEvents.setStreamHandler(lightStream)
         accelerationEvents.setStreamHandler(accelerationStream)
+        rotaryEvents.setStreamHandler(
+            object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
+                    rotarySink = events
+                }
+
+                override fun onCancel(arguments: Any?) {
+                    rotarySink = null
+                }
+            },
+        )
     }
 
     /** Stops everything, when the Flutter engine goes away. */
@@ -76,6 +95,8 @@ class DeviceChannel(
         methods.setMethodCallHandler(null)
         lightEvents.setStreamHandler(null)
         accelerationEvents.setStreamHandler(null)
+        rotaryEvents.setStreamHandler(null)
+        rotarySink = null
         lightStream.stop()
         accelerationStream.stop()
     }
@@ -88,8 +109,36 @@ class DeviceChannel(
         if (hasFocus && immersive) applyImmersive()
     }
 
+    /**
+     * The bezel. Wear OS delivers a turn of the rotating bezel (or the crown) as a
+     * scroll event from the rotary encoder source, which Flutter's view does not
+     * claim. Returns true when the event was one and has been passed on.
+     */
+    fun onGenericMotionEvent(event: MotionEvent): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false
+        if (event.action != MotionEvent.ACTION_SCROLL ||
+            !event.isFromSource(InputDevice.SOURCE_ROTARY_ENCODER)
+        ) {
+            return false
+        }
+        val sink = rotarySink ?: return false
+        // Clockwise reads as a negative scroll, so it is turned round. Only the
+        // direction is sent: how big a value a detent makes differs by watch.
+        val turn = -event.getAxisValue(MotionEvent.AXIS_SCROLL)
+        if (turn == 0f) return true
+        sink.success(if (turn > 0f) 1 else -1)
+        return true
+    }
+
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
+            "formFactor" -> result.success(
+                mapOf(
+                    "watch" to isWatch(activity),
+                    "round" to activity.resources.configuration.isScreenRound,
+                ),
+            )
+
             "setKeepScreenOn" -> withEnabled(call, result) { enabled ->
                 if (enabled) {
                     activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -227,7 +276,14 @@ class DeviceChannel(
         override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) = Unit
     }
 
-    private companion object {
+    companion object {
+        /** Whether this device is a watch (DESIGN.md 16.2). */
+        fun isWatch(context: Context): Boolean {
+            val ui = context.resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK
+            return ui == Configuration.UI_MODE_TYPE_WATCH ||
+                context.packageManager.hasSystemFeature(PackageManager.FEATURE_WATCH)
+        }
+
         /** 25 readings a second, plenty for body roll. */
         const val ACCELERATION_PERIOD_US = 40_000
 

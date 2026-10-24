@@ -19,6 +19,9 @@ class FakeDeviceFeatures implements DeviceFeatures {
   /// report one.
   double? batteryTemperature = 30;
 
+  /// What [formFactor] returns: a phone, unless a test says otherwise.
+  FormFactorInfo form = FormFactorInfo.phone;
+
   SensorSupport support = const SensorSupport(
     ambientLight: true,
     accelerometer: true,
@@ -28,13 +31,25 @@ class FakeDeviceFeatures implements DeviceFeatures {
   final StreamController<Acceleration> _acceleration =
       StreamController<Acceleration>.broadcast();
 
+  final StreamController<int> _rotary = StreamController<int>.broadcast();
+
   void emitLux(double lux) => _lux.add(lux);
+
+  /// Turns the bezel by [detents] clicks (clockwise positive).
+  void turnBezel(int detents) => _rotary.add(detents);
 
   void emitAcceleration(Acceleration acceleration) =>
       _acceleration.add(acceleration);
 
   /// Closes the sensor streams.
-  Future<void> dispose() => Future.wait([_lux.close(), _acceleration.close()]);
+  Future<void> dispose() =>
+      Future.wait([_lux.close(), _acceleration.close(), _rotary.close()]);
+
+  @override
+  Future<FormFactorInfo> formFactor() async => form;
+
+  @override
+  Stream<int> get rotary => _rotary.stream;
 
   @override
   Future<String?> externalFilesDirectory() async => filesDirectory;

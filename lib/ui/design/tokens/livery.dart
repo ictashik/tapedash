@@ -64,6 +64,24 @@ class Livery {
   final bool mesh;
 
   bool get isSevenSegment => numerals == NumeralFace.sevenSegment;
+
+  /// This livery with numerals no lighter than [weight] (the watch's floor,
+  /// DESIGN.md 16.4); the same livery if they already are.
+  Livery withNumeralWeightAtLeast(double weight) => numeralWeight >= weight
+      ? this
+      : Livery(
+          id: id,
+          name: name,
+          character: character,
+          accentCore: accentCore,
+          accentDeep: accentDeep,
+          accentGlow: accentGlow,
+          numerals: numerals,
+          numeralWeight: weight,
+          haloScale: haloScale,
+          ghostAlpha: ghostAlpha,
+          mesh: mesh,
+        );
 }
 
 /// The liveries, as tokens.

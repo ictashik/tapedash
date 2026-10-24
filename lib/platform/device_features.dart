@@ -46,6 +46,40 @@ abstract interface class DeviceFeatures {
   /// A broadcast stream. The sensor is only on while something listens. On a
   /// phone without the sensor it emits an error and ends.
   Stream<Acceleration> get acceleration;
+
+  /// Whether this is a watch, and whether its screen is round (DESIGN.md 16.2).
+  /// A phone says neither.
+  Future<FormFactorInfo> formFactor();
+
+  /// A rotating bezel or crown, one event for each detent: +1 clockwise and -1
+  /// the other way (DESIGN.md 16.6). A broadcast stream. A device with no such
+  /// input never emits.
+  Stream<int> get rotary;
+}
+
+/// What the platform says about the shape of the device.
+class FormFactorInfo {
+  const FormFactorInfo({this.isWatch = false, this.isRound = false});
+
+  /// A phone, or anything that does not say it is a watch.
+  static const FormFactorInfo phone = FormFactorInfo();
+
+  final bool isWatch;
+
+  /// The screen is a circle (a round watch).
+  final bool isRound;
+
+  @override
+  bool operator ==(Object other) =>
+      other is FormFactorInfo &&
+      other.isWatch == isWatch &&
+      other.isRound == isRound;
+
+  @override
+  int get hashCode => Object.hash(isWatch, isRound);
+
+  @override
+  String toString() => 'FormFactorInfo(watch: $isWatch, round: $isRound)';
 }
 
 /// Which sensors a phone has.

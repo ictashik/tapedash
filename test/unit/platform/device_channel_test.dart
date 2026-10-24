@@ -6,10 +6,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tapedash/platform/device_channel.dart';
 import 'package:tapedash/platform/device_features.dart';
+import 'package:tapedash/platform/fake_device_features.dart';
 
 const _methods = MethodChannel('tapedash/device');
 const _light = EventChannel('tapedash/device/light');
 const _acceleration = EventChannel('tapedash/device/acceleration');
+const _rotary = EventChannel('tapedash/device/rotary');
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +32,7 @@ void main() {
       messenger.setMockMethodCallHandler(_methods, null);
       messenger.setMockStreamHandler(_light, null);
       messenger.setMockStreamHandler(_acceleration, null);
+      messenger.setMockStreamHandler(_rotary, null);
     });
   });
 
@@ -387,6 +390,66 @@ void main() {
         const SensorSupport(ambientLight: true, accelerometer: false),
         isNot(const SensorSupport(ambientLight: false, accelerometer: false)),
       );
+    });
+  });
+
+  group('the form factor and the bezel (DESIGN.md 16.2, 16.6)', () {
+    test('a watch says so, and whether it is round', () async {
+      reply = (call) =>
+          call.method == 'formFactor' ? {'watch': true, 'round': true} : null;
+      final info = await DeviceChannel().formFactor();
+
+      expect(calls.single.method, 'formFactor');
+      expect(info.isWatch, isTrue);
+      expect(info.isRound, isTrue);
+    });
+
+    test(
+      'a phone says neither, and so does a platform that is silent',
+      () async {
+        reply = (_) => {'watch': false, 'round': false};
+        expect(await DeviceChannel().formFactor(), FormFactorInfo.phone);
+
+        reply = (_) => null;
+        expect(await DeviceChannel().formFactor(), FormFactorInfo.phone);
+      },
+    );
+
+    test('a platform with no such call is a phone', () async {
+      messenger.setMockMethodCallHandler(_methods, (call) async {
+        throw MissingPluginException();
+      });
+      expect(await DeviceChannel().formFactor(), FormFactorInfo.phone);
+    });
+
+    test('the bezel is a stream of detents, clockwise positive', () async {
+      messenger.setMockStreamHandler(
+        _rotary,
+        MockStreamHandler.inline(
+          onListen: (arguments, events) {
+            events.success(1);
+            events.success(-1);
+            events.success(3);
+          },
+        ),
+      );
+      final detents = await DeviceChannel().rotary.take(3).toList();
+      expect(detents, [1, -1, 3]);
+    });
+
+    test('and the fake one emits what it is turned', () async {
+      final fake = FakeDeviceFeatures();
+      final seen = <int>[];
+      final sub = fake.rotary.listen(seen.add);
+      fake.turnBezel(1);
+      fake.turnBezel(-1);
+      await Future<void>.delayed(Duration.zero);
+      expect(seen, [1, -1]);
+      expect((await fake.formFactor()).isWatch, isFalse);
+      fake.form = const FormFactorInfo(isWatch: true, isRound: true);
+      expect((await fake.formFactor()).isRound, isTrue);
+      await sub.cancel();
+      await fake.dispose();
     });
   });
 }
