@@ -451,3 +451,22 @@ The human ran the app on a Samsung Galaxy Watch4 Classic (Wear OS 3, a 46 mm rou
 - **A wheel opened over a wheel kept the other's row**: the same widget in the same place keeps its state (the trap `handoff.md` already names for lists). Each sheet has its own key; the Data wheel opened on its second row until it did.
 - **A watch's first run has no dev button**: the Design Lab's corner button sits where the circle is not.
 - **`lib/exchange/` is pure Dart**, in the architecture test's list, so `tool/tdx.dart` runs on a laptop with the same code. The parts that touch the app's settings and the phone (`lib/app/exchange_*.dart`, `lib/platform/exchange_*.dart`) are not.
+
+
+## Navigation on the HUD, and what "offline" now means (2026-10-24)
+
+The human asked for a simple navigation view on the HUD: if Google Maps is navigating, show the next turn, the ETA and the speed, with Maps doing the routing and the rerouting. This breaks the letter of CLAUDE.md 1 ("strictly offline"), so the contract was amended first, with the wording the human approved: *TapeDash never connects to the internet. It may read the navigation notification of a navigation app the user has installed, which has its own connection; it sends that app nothing.* The plan and to-dos are `docs/NAV.md`.
+
+**Why a notification listener, and not anything else.**
+- **Google's Navigation SDK** needs Play Services and an API key (CLAUDE.md 1.4 rules out one, and the app has no account for the other).
+- **An accessibility service** (reading Maps' screen) is a far larger permission, breaks with every layout change, and has no business in a car app.
+- **Launching Maps with a destination** (`google.navigation:`) would make TapeDash the one that sends Maps something. The human starts navigation in Maps; TapeDash only reads.
+- **A notification listener** is a documented Android API, needs no Play Services, works on API 18 and up (so Android 7), uses no network, and reads what Maps already shows the person on the lock screen. Open-source projects do the same (GMapsParser, LGPL-3.0: studied, not copied, as with `obd2`).
+
+**What "enforce the contract" can and cannot mean.** TapeDash cannot stop Google Maps using the internet, and does not need to. What is enforced is TapeDash's own side, in CLAUDE.md 4 and `tool/check_offline.sh`: no network code in the listener; one listener service; the release allowlist is exactly Google Maps; the package is checked before anything else of the notification is read; nothing read is stored or logged. The real cost is not offline-ness but trust: Notification access lets Android show the app every notification. The filter is a promise kept by tests and open source, not by Android, and Garage's explanation says so.
+
+**The map is not a map.** Maps does not give other apps its route, so TapeDash cannot draw the road ahead. What it can draw is Google's arrow, a distance that counts down on our own speed between Maps' updates, and a labelled schematic of the next turn. A real basemap (the optional PMTiles item) would still not show Google's route.
+
+**The spike comes first** because everything depends on a format that is Google's and undocumented. A capture tool, compiled to act only in a debuggable build, writes the structure of Maps' notification to a file for the human to pull. Its output holds street names, so it goes to `recordings/private/`.
+
+**Debug-only things that do not ship:** the debuggable build's allowlist also holds TapeDash's own package, and a stand-in poster in `src/debug/` (with the `POST_NOTIFICATIONS` permission it needs on Android 13+) lets the whole path run on an emulator. `check_offline.sh` reads the main and the merged release manifests only, as it does for `INTERNET` in the debug manifest.

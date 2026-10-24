@@ -22,7 +22,7 @@ Read this file and DESIGN.md fully before starting. Re-read the relevant DESIGN.
 
 ## 1. Non-negotiable principles
 
-1. **Strictly offline.** No cloud, accounts, analytics, crash reporting, ads, remote config, price APIs, or runtime downloads. Every asset is bundled or loaded from a file the user picks. Fuel prices are **entered by the user**, never fetched.
+1. **Strictly offline.** TapeDash itself never connects to the internet: no cloud, accounts, analytics, crash reporting, ads, remote config, price APIs, or runtime downloads. Every asset is bundled or loaded from a file the user picks. Fuel prices are **entered by the user**, never fetched. The one thing it may read from outside is the navigation notification of a navigation app the user has installed (Google Maps), which has its own connection; TapeDash sends that app nothing and keeps nothing it reads (section 4, "Navigation notification").
 2. **Old devices first.** Everything must run smoothly on a 2GB-RAM, 32-bit ARM phone with an old GPU and a 720p screen, running Android 7.0.
 3. **Simple to use.** Install to live gauges in under two minutes, with no manual needed. Sensible defaults over settings.
 4. **Open source and F-Droid compatible.** No Google Play Services, Firebase, or proprietary SDKs, directly or transitively. Only OSI-approved licenses.
@@ -81,6 +81,15 @@ Allowed:
 
 Anything else needs the user's approval. The ambient light sensor and accelerometer need no permission.
 
+### Navigation notification (optional, off by default)
+The HUD can show Google Maps' next turn, distance, ETA and time left (DESIGN.md §8; plan and to-dos in `docs/NAV.md`). Google Maps talks to the internet; TapeDash does not. What lets it read the turn is Android's **Notification access**, a special access the person grants in Android's settings (or with adb). It is not a `uses-permission`, so the allowed list above does not change. The rules:
+- **One package.** The listener (`NavListenerService.kt`) checks the notification's package against the allowed list before it reads anything else of the notification, and drops the rest. The release build's list is `com.google.android.apps.maps` and nothing else. A debuggable build also allows TapeDash's own package, so that a stand-in can be posted on an emulator.
+- **One way.** TapeDash reads. It never replies to the app, presses its actions, or launches it with a destination.
+- **Nothing kept.** What is read lives in memory, for the HUD. It is never written to a trip, a recording, the exchange file, the connection log, the debug overlay or the logcat. The one exception is the capture tool, which runs only in a debuggable build and writes the structure of Maps' notification to the app's own external files folder for the human to pull with adb. Street names are location data, so a capture belongs in `recordings/private/`, which is git-ignored.
+- **No network code.** The listener and `lib/nav/` have no socket, HTTP client or `java.net` import.
+- **Off by default.** It is switched on in Garage (parked only), with a plain explanation: notification access lets Android show this app every notification, TapeDash looks only at Google Maps', and the person can revoke it in Android's settings at any time. The filter is a promise kept by tests and open source, not something Android enforces, and the explanation says so.
+- **Stale is stale.** When Maps stops updating, the HUD says so; it never shows an old turn as live.
+
 ### Network guard
 - All socket code lives in `lib/obd/transport/wifi_transport.dart`.
 - It must refuse any host outside private ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, link-local). Unit-test this.
@@ -92,6 +101,7 @@ Fail if:
 - any Dart file under `lib/` imports `package:http` or uses `HttpClient`
 - the merged release manifest has permissions outside the allowed list
 - `com.google.android.gms` or `com.google.firebase` appears in the Gradle dependency tree
+- the navigation listener imports a networking class (`java.net`, `javax.net`, `okhttp`), the manifest declares a notification listener service other than `NavListenerService`, the release allowlist is not exactly Google Maps, or the listener reads the notification before checking its package
 
 ### Assets
 - Fonts are bundled, OFL-licensed, and subset at dev time (DESIGN.md §4.5). Never fetched at runtime.
@@ -118,6 +128,7 @@ Before adding **any** package:
 - **Engine sound:** synthesised in our own pure-Dart code (`lib/sound/`, no audio asset and so nothing to license), played through a thin Kotlin channel over `AudioTrack`. No audio library (Oboe, SoLoud) and no plugin. It runs in an isolate of its own. It plays on car audio only unless the user allows the speaker, asks for no audio focus, and stops with the screen (no foreground service, so no new permission). DESIGN.md §5.10.
 - **Device features** (keep screen on, window brightness, battery temperature, immersive mode, ambient light, accelerometer, the form factor and a watch's rotating bezel): small native calls on a `DeviceChannel` rather than plugins. Ambient light drives Daylight and Night modes; the accelerometer drives the road view's body roll (DESIGN.md §4.4, §6.11).
 - **Sharing a picture** (Year on Tape): a thin Kotlin `ShareChannel` that writes the PNG the app drew to its own cache and opens Android's share sheet through a `FileProvider` (`androidx.core`, Apache-2.0, already in the app through the Flutter embedding). No permission, no network code, no plugin; what the person picks in the sheet is their choice. Parked only, a button on the Year insight.
+- **Navigation notification:** a thin Kotlin `NavListenerService` (a `NotificationListenerService`: no plugin, no Play Services, API 18 and up) that reads Google Maps' navigation notification and passes a small struct to Dart over a `NavChannel`. Parsing is our own pure Dart in `lib/nav/`. GMapsParser (LGPL-3.0) was studied for what such a notification holds and none of its code is copied. The notification's format is Google's and undocumented, so the parser keeps Google's own text as the fallback when it cannot read a figure, and the human's captures (`docs/NAV.md`) are its fixtures.
 - **Exchange:** our own newline-delimited JSON with optional gzip (`dart:io`), a CRC-32 footer written by us, and a thin Kotlin `ExchangeChannel` for the share sheet and the file picker (Android's `ACTION_SEND` and `ACTION_OPEN_DOCUMENT`, so no storage permission). No archive package. Files live in the app's own external files folder, which adb reaches.
 - **Storage:** `sqflite` for trips, samples, fill-ups and events. `shared_preferences` for settings.
 - **State:** no heavy frameworks and no code generation. Use `ValueNotifier`/`ValueListenable` and streams, with constructor-injected services. Live data must never trigger widget rebuilds (DESIGN.md §9.3).
@@ -151,6 +162,7 @@ lib/
   fuel/                # fuel-flow estimators (5E / MAF / MAP), calibration
   money/               # fuel price, fill-up log, live trip cost, attribution
   coach/               # event detection, sweet-spot learning, tips
+  nav/                 # the next turn read from a navigation app's notification (docs/NAV.md). Pure Dart, no Flutter imports
   insights/            # what the trips add up to: powerflow, power curve, gearbox, voltage, toll map, cold start, ghost commute, year on tape
   trips/               # trip lifecycle, sample recording, sqflite repositories
   ui/
@@ -160,7 +172,7 @@ lib/
     pages/watch/       # the watch's faces, reel and sheets (DESIGN.md 16); components in design/components/watch/
     hud/               # HUD layouts and the alignment pattern (DESIGN.md §8)
     onboarding/ garage/ pit_stop/ diagnostics/
-android/app/src/main/kotlin/.../  # GpsChannel, BtClassicChannel, DeviceChannel, ShareChannel
+android/app/src/main/kotlin/.../  # GpsChannel, BtClassicChannel, DeviceChannel, ShareChannel, NavListenerService
 assets/fonts/ assets/dtc/
 tool/                  # check_offline.sh, sim_server.dart, record/replay helpers, font subsetting script
 test/                  # unit/, e2e/, widget/, design/ (goldens + design lint)
@@ -170,7 +182,7 @@ docs/                  # DECISIONS.md, STATUS.md, DEV_SETUP.md, HARDWARE_HANDOFF
 ```
 
 ### Layering rules
-- `sim/`, `obd/`, `vehicle/`, `fuel/`, `money/`, `coach/`, `insights/`, `sound/` and `trips/` (except the sqflite adapter) are **pure Dart with no Flutter imports**. They're tested headlessly.
+- `sim/`, `obd/`, `vehicle/`, `fuel/`, `money/`, `coach/`, `insights/`, `nav/`, `sound/` and `trips/` (except the sqflite adapter) are **pure Dart with no Flutter imports**. They're tested headlessly.
 - `ui/` only reads `ValueListenable`s and streams from services. It never touches transports or the database directly.
 - Pages are composed only from `ui/design/` components and tokens. No Material widgets and no raw colours, text styles, durations or spring constants anywhere in `ui/` outside `ui/design/tokens/` (enforced by the design-lint test).
 - `Transport` interface: `connect()`, `disconnect()`, `write(String)`, `Stream<String> incoming`, `Stream<TransportState> state`.
@@ -540,3 +552,9 @@ Each bullet is one or more commits. Don't start a phase until the previous phase
 - Phone temperature protection verified, fidelity governor tuned on real devices, final polish of all signature moments (DESIGN.md §3)
 - Optional offline map under the route (a user-supplied raster PMTiles or MBTiles file)
 - F-Droid metadata, store screenshots from Design Lab captures, release checklist; final design review package
+
+### Phase 8: Navigation HUD (optional; the plan, to-dos and status are in `docs/NAV.md`)
+- The capture spike: what Google Maps' navigation notification holds today, on an emulator and then on the human's phone
+- The notification parser and a `NavSimulator`, headless; the listener, its channel and the Garage switch
+- A navigation layout on the HUD: the turn, the distance, the street, ETA and time left, and the speed
+- The tests of section 4 ("Navigation notification") in `tool/check_offline.sh`; a design review package
