@@ -10,7 +10,8 @@
 #   tool/nav_spike.sh [-s SERIAL] status      is it granted, and how much has been captured
 #   tool/nav_spike.sh [-s SERIAL] pull [DEST] copy the capture to recordings/private/navspike-<time>
 #   tool/nav_spike.sh [-s SERIAL] clear       delete the capture on the device
-#   tool/nav_spike.sh [-s SERIAL] standin [--title T] [--instruction I] [--time X] [--arrow left|right|straight|uturn] [--remove]
+#   tool/nav_spike.sh [-s SERIAL] standin [--title T] [--text T] [--sub T] [--short T] [--progress N --max N] [--arrow left|right|straight|uturn]
+#                                       [--id N] [--category none] [--remove]
 #                                             post (or remove) the debug build's stand-in for Maps' notification
 #   tool/nav_spike.sh [-s SERIAL] other       post a notification from ANOTHER package (the shell), to see it is ignored
 #
@@ -91,13 +92,22 @@ case "$cmd" in
     echo "Cleared $DIR"
     ;;
   standin)
-    title="300 m"; instruction="Turn left onto MG Road"; time="12 min · 5.2 km · 3:45 pm"; arrow="left"; remove=0
+    # What Maps' notification holds (docs/NAV.md): any of these may be left out.
+    # With none given, a turn is posted.
+    given=0; remove=0; id=""; category=""
+    title=""; text=""; sub=""; short=""; progress=""; max=""; arrow=""
+    has_title=0; has_text=0; has_sub=0; has_short=0
     while [ $# -gt 0 ]; do
       case "$1" in
-        --title) title="$2"; shift ;;
-        --instruction) instruction="$2"; shift ;;
-        --time) time="$2"; shift ;;
-        --arrow) arrow="$2"; shift ;;
+        --title) title="$2"; has_title=1; given=1; shift ;;
+        --text) text="$2"; has_text=1; given=1; shift ;;
+        --sub) sub="$2"; has_sub=1; given=1; shift ;;
+        --short) short="$2"; has_short=1; given=1; shift ;;
+        --progress) progress="$2"; given=1; shift ;;
+        --max) max="$2"; given=1; shift ;;
+        --arrow) arrow="$2"; given=1; shift ;;
+        --id) id="$2"; shift ;;
+        --category) category="$2"; shift ;;
         --remove) remove=1 ;;
         *) echo "unknown option: $1" >&2; exit 64 ;;
       esac
@@ -105,10 +115,23 @@ case "$cmd" in
     done
     "${ADB[@]}" shell pm grant "$PKG" android.permission.POST_NOTIFICATIONS > /dev/null 2>&1 || true
     if [ "$remove" = 1 ]; then
-      "${ADB[@]}" shell "am broadcast -n $PKG/.NavStandInReceiver --ez remove true" > /dev/null
+      "${ADB[@]}" shell "am broadcast -n $PKG/.NavStandInReceiver --ez remove true${id:+ --ei id $id}" > /dev/null
     else
+      if [ "$given" = 0 ]; then
+        title="300 m · Turn left onto MG Road"; has_title=1; short="300 m"; has_short=1
+        sub="Arrive 3:45 PM"; has_sub=1; progress=100; max=5000; arrow=left
+      fi
       # Quoted for the device's shell; an apostrophe in a value would break it.
-      "${ADB[@]}" shell "am broadcast -n $PKG/.NavStandInReceiver --es title '$title' --es instruction '$instruction' --es time '$time' --es arrow '$arrow'" > /dev/null
+      cmd="am broadcast -n $PKG/.NavStandInReceiver"
+      [ "$has_title" = 1 ] && cmd="$cmd --es title '$title'"
+      [ "$has_text" = 1 ] && cmd="$cmd --es text '$text'"
+      [ "$has_sub" = 1 ] && cmd="$cmd --es sub '$sub'"
+      [ "$has_short" = 1 ] && cmd="$cmd --es short '$short'"
+      [ -n "$max" ] && cmd="$cmd --ei progress ${progress:-0} --ei max $max"
+      [ -n "$arrow" ] && cmd="$cmd --es arrow $arrow"
+      [ -n "$id" ] && cmd="$cmd --ei id $id"
+      [ -n "$category" ] && cmd="$cmd --es category $category"
+      "${ADB[@]}" shell "$cmd" > /dev/null
     fi
     ;;
   other)

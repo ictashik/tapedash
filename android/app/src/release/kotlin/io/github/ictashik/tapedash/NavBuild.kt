@@ -1,6 +1,7 @@
 package io.github.ictashik.tapedash
 
 import android.content.Context
+import io.flutter.plugin.common.BinaryMessenger
 
 /**
  * What a release (and profile) build adds to the navigation listener: nothing.
@@ -13,4 +14,8 @@ object NavBuild {
     fun extraPackages(context: Context): Set<String> = emptySet()
 
     fun tap(context: Context): NavTap? = null
+
+    fun attach(context: Context, messenger: BinaryMessenger) {}
+
+    fun detach() {}
 }

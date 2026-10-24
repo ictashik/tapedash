@@ -555,6 +555,18 @@ void main() {} // Image.network is banned
       );
     });
 
+    test('rejects a release build that opens a channel to post a stand-in', () {
+      return rejects(
+        (p) => edit(
+          p,
+          releaseBuild,
+          'fun attach(context: Context, messenger: BinaryMessenger) {}',
+          'fun attach(context: Context, messenger: BinaryMessenger) { println("x") }',
+        ),
+        'attach must do nothing',
+      );
+    });
+
     test('rejects a profile build without its own NavBuild', () {
       return rejects(
         (p) => File(

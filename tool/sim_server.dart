@@ -16,6 +16,13 @@
 //   --quirks <name>     none, bluetooth_clone or flaky (default: the scenario's)
 //   --seed <n>          for repeatable noise (default 1)
 //   --no-loop           when the drive ends, stay parked instead of starting over
+//   --nav-adb           also play Google Maps: from the first app that connects, post its
+//                       navigation notification to the debug build's stand-in with adb
+//                       (docs/NAV.md), following this car; needs adb and a debug build
+//   --nav-shape <s>     progress (Android 16's, the default) or classic
+//   --nav-serial <id>   the adb device, if there is more than one
+//   --nav-length <m>    the route's length (default 12000)
+//   --nav-turn <m>      a turn every so many metres (default 650)
 //   --verbose           print the traffic
 //   --list              print the scenarios, profiles and quirks, and stop
 import 'dart:async';
@@ -23,6 +30,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:tapedash/core/scheduler.dart';
+import 'package:tapedash/nav/nav_state.dart';
 import 'package:tapedash/obd/transport/session_log.dart';
 import 'package:tapedash/obd/transport/sim_transport.dart';
 import 'package:tapedash/obd/transport/transport.dart';
@@ -31,6 +39,8 @@ import 'package:tapedash/sim/elm327_simulator.dart';
 import 'package:tapedash/sim/profiles.dart';
 import 'package:tapedash/sim/scenarios.dart';
 import 'package:tapedash/sim/simulated_car.dart';
+
+import 'nav_stand_in.dart';
 
 /// Bytes on the wire are Latin-1: an ELM327 speaks ASCII, and anything else is
 /// noise that has to survive the trip.
@@ -47,7 +57,11 @@ class SimServer {
     this.loop = true,
     this.log = _ignore,
     this.showTraffic = false,
+    this.onConnect,
   });
+
+  /// Called when an app connects, the first of them and every one after.
+  final void Function()? onConnect;
 
   final SimulatedCar car;
   final Elm327Simulator adapter;
@@ -98,6 +112,7 @@ class SimServer {
       previous.close();
     }
     log('$peer connected');
+    onConnect?.call();
     final session = _Session(this, socket, peer);
     _session = session;
     session.begin();
@@ -217,7 +232,13 @@ Future<void> main(List<String> args) async {
     final arg = args[i];
     if (!arg.startsWith('--')) _fail('unexpected argument "$arg"');
     final name = arg.substring(2);
-    if (const {'no-loop', 'verbose', 'list', 'help'}.contains(name)) {
+    if (const {
+      'no-loop',
+      'verbose',
+      'list',
+      'help',
+      'nav-adb',
+    }.contains(name)) {
       flags.add(name);
     } else if (const {
       'port',
@@ -226,6 +247,10 @@ Future<void> main(List<String> args) async {
       'profile',
       'quirks',
       'seed',
+      'nav-shape',
+      'nav-serial',
+      'nav-length',
+      'nav-turn',
     }.contains(name)) {
       if (i + 1 >= args.length) _fail('--$name needs a value');
       options[name] = args[++i];
@@ -269,6 +294,23 @@ Future<void> main(List<String> args) async {
     seed: seed,
     scheduler: const SystemScheduler(),
   );
+  NavDrive? nav;
+  if (flags.contains('nav-adb')) {
+    nav = NavDrive(
+      car: car,
+      standIn: NavStandIn(
+        serial: options['nav-serial'],
+        log: (m) => stdout.writeln('${DateTime.now().toIso8601String()}  $m'),
+      ),
+      scheduler: const SystemScheduler(),
+      shape: (options['nav-shape'] ?? 'progress') == 'classic'
+          ? NavShape.classic
+          : NavShape.progress,
+      routeLengthM: double.tryParse(options['nav-length'] ?? '12000') ?? 12000,
+      turnEveryM: double.tryParse(options['nav-turn'] ?? '650') ?? 650,
+      log: (m) => stdout.writeln('${DateTime.now().toIso8601String()}  $m'),
+    );
+  }
   final server = SimServer(
     car: car,
     adapter: Elm327Simulator.forCar(car, quirks: quirks, seed: seed),
@@ -276,6 +318,7 @@ Future<void> main(List<String> args) async {
     port: port,
     loop: !flags.contains('no-loop'),
     showTraffic: flags.contains('verbose'),
+    onConnect: nav?.start,
     log: (message) =>
         stdout.writeln('${DateTime.now().toIso8601String()}  $message'),
   );
@@ -289,5 +332,7 @@ Future<void> main(List<String> args) async {
     });
   }
   await stopped.future;
+  nav?.stop();
+  await nav?.standIn.remove();
   await server.close();
 }

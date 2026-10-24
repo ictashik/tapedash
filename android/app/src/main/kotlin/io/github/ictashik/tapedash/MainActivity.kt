@@ -45,6 +45,7 @@ class MainActivity : FlutterActivity() {
         share = ShareChannel(this, messenger)
         exchange = ExchangeChannel(this, messenger)
         nav = NavChannel(this, messenger)
+        NavBuild.attach(this, messenger)
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
@@ -64,6 +65,7 @@ class MainActivity : FlutterActivity() {
         exchange = null
         nav?.dispose()
         nav = null
+        NavBuild.detach()
         bluetoothPermissions?.dispose()
         bluetoothPermissions = null
         super.cleanUpFlutterEngine(flutterEngine)

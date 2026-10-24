@@ -360,6 +360,10 @@ check_nav() {
     if ! printf '%s' "$code" | grep -qE 'fun tap\([^)]*\): *NavTap\? *= *null'; then
       fail "$build: tap must be null"
     fi
+    # No channel for posting a stand-in: that is for the debug build's tests.
+    if ! printf '%s' "$code" | grep -qE 'fun attach\([^)]*\) *\{\}'; then
+      fail "$build: attach must do nothing"
+    fi
   done
 
   # e. The package filter comes first. The listener never reads a notification

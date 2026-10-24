@@ -10,7 +10,7 @@
 #
 # It checks, and exits 1 on the first that fails:
 #   1. a notification from ANOTHER package is not read
-#   2. the stand-in is read, with its texts, its view names and its arrow
+#   2. the stand-in is read, with its title, its texts, its progress and its arrow
 #   3. its removal is seen
 #   4. once access is revoked, nothing more is read
 #
@@ -65,12 +65,20 @@ wait_for() {
 
 "${ADB[@]}" shell pm path "$PKG" > /dev/null 2>&1 || fail "$PKG is not installed; install the debug build first"
 
-# From a clean state, so that enabling is a fresh connection.
+# From a clean state, so that enabling is a fresh connection. Android unbinds a
+# listener a moment after its access is taken away, and a grant made before that is
+# "already bound" and gives no new connection: give it time, and try once more.
 spike disable > /dev/null
-sleep 1
+sleep 3
 spike clear > /dev/null
 spike enable > /dev/null
-wait_for 'o.get("event") == "connected"' 20 || fail "the listener did not connect"
+if ! wait_for 'o.get("event") == "connected"' 12; then
+  spike disable > /dev/null
+  sleep 5
+  spike clear > /dev/null
+  spike enable > /dev/null
+  wait_for 'o.get("event") == "connected"' 20 || fail "the listener did not connect"
+fi
 pass "the listener connected"
 
 # 1. Another package.
@@ -82,35 +90,35 @@ fi
 pass "a notification from another package was ignored"
 
 # 2. The stand-in.
-spike standin --title "300 m" --instruction "Turn left onto MG Road" --time "12 min · 5.2 km · 3:45 pm" --arrow left
+spike standin --title "300 m · Turn left onto MG Road" --short "300 m" --sub "Arrive 3:45 PM" --progress 100 --max 5000 --arrow left
 wait_for 'o.get("event") == "posted" and o.get("package") == "'"$PKG"'"' 20 || fail "the stand-in was not read"
 "${ADB[@]}" shell "cat $DIR/nav.jsonl" | tr -d '\r' | python3 -I -c '
 import json, sys
-found = {"title": False, "instruction": False, "time": False, "arrow": False, "ids": False}
+found = {"title": False, "short": False, "sub": False, "progress": False, "arrow": False}
 for line in sys.stdin:
     if not line.strip():
         continue
     o = json.loads(line)
     if o.get("event") != "posted" or "notification" not in o:
         continue
-    views = o["notification"].get("views", {})
-    tree = views.get("contentView") or {}
-    stack = [tree.get("tree")] if tree.get("tree") else []
-    names = set()
-    while stack:
-        v = stack.pop()
-        names.add(v.get("id"))
-        if v.get("id") == "nav_title" and v.get("text") == "300 m": found["title"] = True
-        if v.get("id") == "nav_description" and v.get("text") == "Turn left onto MG Road": found["instruction"] = True
-        if v.get("id") == "nav_time" and "3:45 pm" in (v.get("text") or ""): found["time"] = True
-        if v.get("id") == "nav_notification_icon" and v.get("image", {}).get("width") == 96: found["arrow"] = True
-        stack.extend(v.get("children", []))
-    found["ids"] = {"nav_title", "nav_description", "nav_time", "nav_notification_icon"} <= names
+    e = o["notification"]["extras"]
+    def text(k):
+        v = e.get(k)
+        return v.get("text") if isinstance(v, dict) else None
+    def value(k):
+        v = e.get(k)
+        return v.get("value") if isinstance(v, dict) else None
+    if text("android.title") == "300 m · Turn left onto MG Road": found["title"] = True
+    if text("android.shortCriticalText") == "300 m": found["short"] = True
+    if text("android.subText") == "Arrive 3:45 PM": found["sub"] = True
+    if value("android.progress") == 100 and value("android.progressMax") == 5000: found["progress"] = True
+    big = e.get("android.largeIcon")
+    if isinstance(big, dict) and big.get("image", {}).get("width") == 126: found["arrow"] = True
 missing = [k for k, ok in found.items() if not ok]
 if missing:
     sys.exit("missing from the capture: " + ", ".join(missing))
-' || fail "the stand-in's texts, view names or arrow are not in the capture"
-pass "the stand-in was read: texts, view names and arrow"
+' || fail "the stand-in's title, short text, sub text, progress or arrow is not in the capture"
+pass "the stand-in was read: title, short text, sub text, progress and arrow"
 
 # 3. Its removal.
 spike standin --remove
@@ -121,7 +129,7 @@ pass "its removal was seen"
 spike disable > /dev/null
 sleep 2
 before="$(records 'True')"
-spike standin --title "999 m" --instruction "Should not be read"
+spike standin --title "999 m" --sub "Should not be read"
 sleep 5
 after="$(records 'True')"
 if [ "$before" != "$after" ]; then
