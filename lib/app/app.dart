@@ -25,6 +25,7 @@ import '../ui/design/theme/tape_theme.dart';
 import '../ui/design/tokens/colors.dart';
 import '../ui/design/tokens/livery.dart';
 import '../ui/design/tokens/spacing.dart';
+import '../ui/design/tokens/watch.dart';
 import '../ui/dev/debug_overlay.dart';
 import '../ui/dev/dev_settings.dart';
 import '../ui/lab/design_lab.dart';
@@ -41,6 +42,7 @@ import 'live_drive.dart';
 import 'radio_transport_factory.dart';
 import 'survey_drive.dart';
 import 'transport_adapter_checker.dart';
+import 'watch_shell.dart';
 
 /// Root widget.
 ///
@@ -64,7 +66,13 @@ class TapeDashApp extends StatelessWidget {
     this.sessionSink,
     this.device,
     this.location,
+    this.formFactor,
   });
+
+  /// Whether the screens are laid out for a phone or for a watch (DESIGN.md 16.2).
+  /// Null chooses from the size of the screen: a shorter side under 300 lp is a
+  /// watch. `main` passes the watch when the platform says it is one.
+  final FormFactor? formFactor;
 
   /// The phone's GPS, for a drive on the GPS alone and for a trip's route. Null
   /// uses the phone's own; a test gives a simulated one.
@@ -105,6 +113,7 @@ class TapeDashApp extends StatelessWidget {
         sessionSink: sessionSink,
         device: device,
         location: location,
+        formFactor: formFactor,
       ),
     );
   }
@@ -120,8 +129,10 @@ class _Shell extends StatefulWidget {
     required this.sessionSink,
     required this.device,
     required this.location,
+    required this.formFactor,
   });
 
+  final FormFactor? formFactor;
   final LocationSource? location;
   final DeviceFeatures? device;
   final RadioTransportFactory? transports;
@@ -380,7 +391,17 @@ class _ShellState extends State<_Shell> {
     if (mounted) await _syncDrive();
   }
 
+  /// Whether the screens are the watch's (DESIGN.md 16.2): the platform said so,
+  /// or the screen is too small to be anything else.
+  bool _isWatch(BuildContext context) {
+    final forced = widget.formFactor;
+    if (forced != null) return forced == FormFactor.watch;
+    final size = MediaQuery.sizeOf(context);
+    return FormFactor.ofSize(size.width, size.height) == FormFactor.watch;
+  }
+
   Widget _screen() {
+    final watch = _isWatch(context);
     if (_connecting) {
       return LayoutBuilder(
         builder: (context, box) => TapeBackdrop(
@@ -416,6 +437,19 @@ class _ShellState extends State<_Shell> {
         final live = _live;
         // Waiting for the adapter's drive to be made (a moment at launch).
         if (live == null) return const SizedBox.shrink();
+        if (watch) {
+          return WatchShell(
+            key: ValueKey(live),
+            feed: live,
+            app: _services,
+            clock: widget.clock,
+            scheduler: widget.scheduler,
+            location: widget.location,
+            device: widget.device,
+            onChangeAdapter: _openConnect,
+            phoneHot: _phoneHot,
+          );
+        }
         return DriveShell(
           // A different drive is a different shell: it starts fresh.
           key: ValueKey(live),
@@ -478,7 +512,11 @@ class _ShellState extends State<_Shell> {
           animation: _themeChanges,
           builder: (context, _) => TapeTheme(
             data: TapeThemeData(
-              livery: Liveries.byId(_settings.livery.value),
+              livery: _isWatch(context)
+                  ? Liveries.byId(
+                      _settings.livery.value,
+                    ).withNumeralWeightAtLeast(TapeWatch.minNumeralWeight)
+                  : Liveries.byId(_settings.livery.value),
               mode: _display.mode.value,
               tier: _display.tier.value.tier,
               driverSide: _settings.driverSide.value,

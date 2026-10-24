@@ -11,6 +11,7 @@ import 'package:tapedash/app/app.dart';
 import 'package:tapedash/app/app_services.dart';
 import 'package:tapedash/app/drive_shell.dart';
 import 'package:tapedash/app/radio_transport_factory.dart';
+import 'package:tapedash/app/watch_shell.dart';
 import 'package:tapedash/core/clock.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/core/observable.dart';
@@ -261,4 +262,67 @@ class SimRig {
   );
 
   void dispose() => car.stop();
+}
+
+/// A [WatchShell] fed by a simulated car, which it starts, follows with a simulated
+/// GPS and disposes with itself: the watch's `SimDriveShell`.
+class SimWatchShell extends StatefulWidget {
+  const SimWatchShell({
+    super.key,
+    required this.clock,
+    required this.scheduler,
+    this.scenario = 'city_stop_go',
+    this.profile,
+    this.app,
+    this.device,
+    this.onChangeAdapter,
+    this.phoneHot,
+  });
+
+  final Clock clock;
+  final Scheduler scheduler;
+  final String scenario;
+  final String? profile;
+  final AppServices? app;
+  final DeviceFeatures? device;
+  final VoidCallback? onChangeAdapter;
+  final ValueListenable<bool>? phoneHot;
+
+  @override
+  State<SimWatchShell> createState() => SimWatchShellState();
+}
+
+class SimWatchShellState extends State<SimWatchShell> {
+  late final SimDrive drive = SimDrive(
+    clock: widget.clock,
+    scheduler: widget.scheduler,
+    scenario: widget.scenario,
+    profile: widget.profile,
+  );
+  late final SimDriveLocation location = SimDriveLocation(
+    drive: drive,
+    scheduler: widget.scheduler,
+    clock: widget.clock,
+  );
+  late final AppServices app =
+      widget.app ?? exampleServices(now: widget.clock.now());
+
+  @override
+  void dispose() {
+    location.dispose();
+    drive.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => WatchShell(
+    feed: drive,
+    clock: widget.clock,
+    scheduler: widget.scheduler,
+    location: location,
+    app: app,
+    device: widget.device,
+    onChangeAdapter: widget.onChangeAdapter,
+    phoneHot: widget.phoneHot,
+  );
 }
