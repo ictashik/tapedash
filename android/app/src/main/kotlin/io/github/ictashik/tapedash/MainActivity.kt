@@ -1,5 +1,6 @@
 package io.github.ictashik.tapedash
 
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.view.MotionEvent
@@ -14,6 +15,7 @@ class MainActivity : FlutterActivity() {
     private var ble: BleChannel? = null
     private var engineAudio: EngineAudioChannel? = null
     private var share: ShareChannel? = null
+    private var exchange: ExchangeChannel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // The manifest locks a phone to landscape (CLAUDE.md 3). A watch has an
@@ -40,6 +42,7 @@ class MainActivity : FlutterActivity() {
         ble = BleChannel(this, messenger, permissions)
         engineAudio = EngineAudioChannel(this, messenger)
         share = ShareChannel(this, messenger)
+        exchange = ExchangeChannel(this, messenger)
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
@@ -55,9 +58,24 @@ class MainActivity : FlutterActivity() {
         engineAudio = null
         share?.dispose()
         share = null
+        exchange?.dispose()
+        exchange = null
         bluetoothPermissions?.dispose()
         bluetoothPermissions = null
         super.cleanUpFlutterEngine(flutterEngine)
+    }
+
+    // A launch from adb while the app is already running (singleTop) brings a new
+    // intent here (docs/EXCHANGE.md 5).
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        exchange?.readRequest(intent)
+    }
+
+    @Deprecated("The picker answers through the platform's own result callback")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        exchange?.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun onStop() {

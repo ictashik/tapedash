@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Directory;
 
 import 'package:flutter/widgets.dart';
 
@@ -10,6 +11,8 @@ import '../location/location_source.dart';
 import '../obd/adapter_config.dart';
 import '../obd/transport/session_sink.dart';
 import '../platform/device_features.dart';
+import '../platform/exchange_files.dart';
+import '../platform/exchange_host.dart';
 import '../platform/fake_device_features.dart';
 import '../platform/file_session_sink.dart';
 import '../platform/native_location_source.dart';
@@ -37,6 +40,7 @@ import 'app_services.dart';
 import 'app_settings.dart';
 import 'display_controller.dart';
 import 'drive_shell.dart';
+import 'exchange_coordinator.dart';
 import 'gps_shell.dart';
 import 'live_drive.dart';
 import 'radio_transport_factory.dart';
@@ -67,7 +71,17 @@ class TapeDashApp extends StatelessWidget {
     this.device,
     this.location,
     this.formFactor,
+    this.exchangeHost,
+    this.exchangeRoot,
   });
+
+  /// What the phone gives the exchange (the launch's request, the file picker, the
+  /// share sheet). Null uses the phone's own; a test gives a fake.
+  final ExchangeHost? exchangeHost;
+
+  /// Where the exchange files are kept. Null is the phone's own external files
+  /// folder; a test gives a temporary directory.
+  final Directory? exchangeRoot;
 
   /// Whether the screens are laid out for a phone or for a watch (DESIGN.md 16.2).
   /// Null chooses from the size of the screen: a shorter side under 300 lp is a
@@ -114,6 +128,8 @@ class TapeDashApp extends StatelessWidget {
         device: device,
         location: location,
         formFactor: formFactor,
+        exchangeHost: exchangeHost,
+        exchangeRoot: exchangeRoot,
       ),
     );
   }
@@ -130,8 +146,12 @@ class _Shell extends StatefulWidget {
     required this.device,
     required this.location,
     required this.formFactor,
+    required this.exchangeHost,
+    required this.exchangeRoot,
   });
 
+  final ExchangeHost? exchangeHost;
+  final Directory? exchangeRoot;
   final FormFactor? formFactor;
   final LocationSource? location;
   final DeviceFeatures? device;
@@ -146,9 +166,16 @@ class _Shell extends StatefulWidget {
   State<_Shell> createState() => _ShellState();
 }
 
-class _ShellState extends State<_Shell> {
+class _ShellState extends State<_Shell> with WidgetsBindingObserver {
   late final TapeRenderKit _kit = TapeRenderKit();
   bool _labOpen = false;
+
+  /// Moves the app's data out and in (docs/EXCHANGE.md): Garage's rows, the watch's
+  /// Data row and what adb asks at the launch. Made once the form factor is known.
+  ExchangeCoordinator? _exchange;
+  late final ExchangeHost _exchangeHost =
+      widget.exchangeHost ?? NativeExchangeHost();
+  StreamSubscription<void>? _arrivals;
 
   /// What the user has set: saved on the phone when there are services (and in
   /// memory for a test that gives none).
@@ -254,6 +281,10 @@ class _ShellState extends State<_Shell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _arrivals = _exchangeHost.arrivals.listen(
+      (_) => unawaited(_exchange?.checkRequest()),
+    );
     _adapters.adapter.addListener(_syncDrive);
     _adapters.source.addListener(_syncDrive);
     _adapters.compatibilityMode.addListener(_syncDrive);
@@ -261,6 +292,37 @@ class _ShellState extends State<_Shell> {
     _syncDrive();
     unawaited(_display.start());
     if (DevMode.launchScreen == 'lab') _labOpen = true;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_exchange != null) return;
+    final device = widget.device ?? FakeDeviceFeatures();
+    final exchange = ExchangeCoordinator(
+      app: _services,
+      files: ExchangeFiles(rootDirectory: widget.exchangeRoot, device: device),
+      host: _exchangeHost,
+      clock: widget.clock,
+      installId: _services.installId,
+      deviceKind: _isWatch(context) ? 'watch' : 'phone',
+      deviceName: '',
+      appVersion: appVersion,
+    );
+    _exchange = exchange;
+    unawaited(exchange.refresh());
+    // What adb asked for at the launch, once the first frame is up.
+    unawaited(exchange.checkRequest());
+    unawaited(device.deviceName().then(exchange.nameDevice));
+  }
+
+  /// The app came back to the front: a request may have arrived with it.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_exchange?.checkRequest());
+      unawaited(_exchange?.refresh());
+    }
   }
 
   /// Makes the drive the settings ask for: the adapter's, the phone's GPS alone,
@@ -320,6 +382,9 @@ class _ShellState extends State<_Shell> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    unawaited(_arrivals?.cancel());
+    _exchange?.dispose();
     _adapters.adapter.removeListener(_syncDrive);
     _adapters.source.removeListener(_syncDrive);
     _adapters.compatibilityMode.removeListener(_syncDrive);
@@ -440,6 +505,7 @@ class _ShellState extends State<_Shell> {
         if (watch) {
           return WatchShell(
             key: ValueKey(live),
+            exchange: _exchange,
             feed: live,
             app: _services,
             clock: widget.clock,
@@ -453,6 +519,7 @@ class _ShellState extends State<_Shell> {
         return DriveShell(
           // A different drive is a different shell: it starts fresh.
           key: ValueKey(live),
+          exchange: _exchange,
           feed: live,
           app: _services,
           clock: widget.clock,
@@ -470,6 +537,7 @@ class _ShellState extends State<_Shell> {
         if (gps == null) return const SizedBox.shrink();
         return GpsShell(
           key: ValueKey(gps),
+          exchange: _exchange,
           gps: gps,
           app: _services,
           clock: widget.clock,

@@ -156,6 +156,10 @@ abstract final class TapeType {
       _parked(16, FontWeight.w400, color, 1.3);
   static TextStyle small({Color? color}) =>
       _parked(13, FontWeight.w400, color, 1.3);
+
+  /// [small] again, for the watch's messages (DESIGN.md 16.4): the one parked
+  /// size that is also its smallest legible text.
+  static TextStyle parkedSmall({Color? color}) => small(color: color);
   static TextStyle caption({Color? color}) =>
       _parked(12, FontWeight.w400, color, 1.3);
 

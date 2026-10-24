@@ -47,6 +47,7 @@ import 'drive_feed.dart';
 import 'drive_services.dart';
 import 'drive_sound.dart';
 import 'engine_sound_sources.dart';
+import 'exchange_coordinator.dart';
 import 'live_drive.dart';
 
 /// Which full-screen form is over the Strip.
@@ -77,7 +78,12 @@ class DriveShell extends StatefulWidget {
     this.onOpenLab,
     this.soundHost,
     this.sharer,
+    this.exchange,
   });
+
+  /// Moves the app's data out and in (docs/EXCHANGE.md): Garage's rows. It is told
+  /// when the car moves, and tells this screen when an import changed the log.
+  final ExchangeCoordinator? exchange;
 
   /// Makes the engine sound's voice (lib/sound). Null uses the real one, which plays
   /// on the phone's audio output from an isolate of its own; tests give one in
@@ -231,9 +237,22 @@ class _DriveShellState extends State<DriveShell> {
       settings.coachPreset.addListener(_onCoach);
       settings.speedLimitKmh.addListener(_onCoach);
       settings.cluster.addListener(_onCluster);
+      widget.exchange?.changes.addListener(_onExchanged);
+      _signals!.mode.addListener(_syncMoving);
+      _syncMoving();
       _loadDescriptions();
       _buildDebugRows(services);
     }
+  }
+
+  /// An import changed the trips or the fill-ups: read them again.
+  void _onExchanged() {
+    _library.refresh();
+    _money?.refreshFills();
+  }
+
+  void _syncMoving() {
+    widget.exchange?.moving.value = _signals?.mode.value == DrivingMode.motion;
   }
 
   void _buildDebugRows(DriveServices services) {
@@ -321,6 +340,9 @@ class _DriveShellState extends State<DriveShell> {
 
   @override
   void dispose() {
+    widget.exchange?.changes.removeListener(_onExchanged);
+    _signals?.mode.removeListener(_syncMoving);
+    widget.exchange?.moving.value = false;
     final settings = _app.settings;
     settings.coachPreset.removeListener(_onCoach);
     settings.speedLimitKmh.removeListener(_onCoach);
@@ -385,6 +407,7 @@ class _DriveShellState extends State<DriveShell> {
           onAlignment: () => _hud.showAlignment = true,
           sound: _sound,
           version: appVersion,
+          exchange: widget.exchange,
         );
       case _Form.diagnostics:
         return DiagnosticsPage(

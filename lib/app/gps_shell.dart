@@ -21,6 +21,7 @@ import '../ui/pages/strip/parked_dock.dart';
 import '../vehicle/vehicle_state.dart' show DrivingMode;
 import 'app_info.dart';
 import 'app_services.dart';
+import 'exchange_coordinator.dart';
 
 /// The driving surface for a drive on the phone's GPS alone: the speed and what a
 /// GPS can add up to ([GpsCluster]), the parked dock with Garage, the HUD and
@@ -43,7 +44,11 @@ class GpsShell extends StatefulWidget {
     this.phoneTemperature,
     this.debugRows = const [],
     this.onOpenLab,
+    this.exchange,
   });
+
+  /// Moves the app's data out and in (docs/EXCHANGE.md).
+  final ExchangeCoordinator? exchange;
 
   /// The GPS drive, started and disposed by whoever made it.
   final GpsDrive gps;
@@ -87,7 +92,17 @@ class _GpsShellState extends State<GpsShell> {
       reduceMotion: widget.app.settings.reduceMotion.value,
     );
     unawaited(widget.gps.start());
+    widget.exchange?.changes.addListener(_onExchanged);
+    _signals!.drive.mode.addListener(_syncMoving);
+    _syncMoving();
     _buildDebugRows();
+  }
+
+  void _onExchanged() => _library.refresh();
+
+  void _syncMoving() {
+    widget.exchange?.moving.value =
+        _signals?.drive.mode.value == DrivingMode.motion;
   }
 
   void _buildDebugRows() {
@@ -119,6 +134,9 @@ class _GpsShellState extends State<GpsShell> {
 
   @override
   void dispose() {
+    widget.exchange?.changes.removeListener(_onExchanged);
+    _signals?.drive.mode.removeListener(_syncMoving);
+    widget.exchange?.moving.value = false;
     for (final s in _debugSources) {
       s.dispose();
     }
@@ -194,6 +212,7 @@ class _GpsShellState extends State<GpsShell> {
                               gpsOnly: true,
                               onAlignment: () => _hud.showAlignment = true,
                               version: appVersion,
+                              exchange: widget.exchange,
                             ),
                           ),
                         ),

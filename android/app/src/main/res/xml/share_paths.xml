@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The one folder the share sheet may read from: pictures TapeDash has drawn and
-     is handing over (Year on Tape). Nothing else of the app's is reachable. -->
+<!-- The folders the share sheet may read from: pictures TapeDash has drawn and is
+     handing over (Year on Tape), and an exchange file. Nothing else of the app's is
+     reachable. -->
 <paths>
     <cache-path name="shared" path="shared/" />
+    <!-- An export, copied here for the share sheet (docs/EXCHANGE.md 6). -->
+    <cache-path name="exchange" path="exchange/" />
 </paths>

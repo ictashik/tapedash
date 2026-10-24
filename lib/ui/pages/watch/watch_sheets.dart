@@ -96,6 +96,76 @@ class WatchSheet extends StatelessWidget {
   }
 }
 
+/// A few plain words on the face, wrapped to the circle (DESIGN.md 16.1): what an
+/// import or an export did. A tap, a swipe to the right or Back closes it.
+class WatchMessage extends StatelessWidget {
+  const WatchMessage({
+    super.key,
+    required this.face,
+    required this.text,
+    required this.onClose,
+    this.ok = true,
+    this.lines = const [],
+  });
+
+  final WatchFace face;
+  final String text;
+  final bool ok;
+
+  /// Short lines under the sentence (what a setup would change).
+  final List<String> lines;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TapeTheme.of(context).palette;
+    final type = face.type;
+    final width = face.roomAt(face.radius, face.diameter * 0.55);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onClose,
+      child: SizedBox.square(
+        dimension: face.diameter,
+        child: Center(
+          child: SizedBox(
+            width: width,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  text,
+                  textAlign: TextAlign.center,
+                  maxLines: 6,
+                  overflow: TextOverflow.ellipsis,
+                  style: TapeType.parkedSmall(
+                    color: ok ? palette.inkBright : palette.caution,
+                  ),
+                ),
+                for (final line in lines)
+                  Text(
+                    line,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TapeType.label(
+                      size: type.label,
+                      color: palette.inkMid,
+                    ),
+                  ),
+                SizedBox(height: type.label),
+                Text(
+                  'TAP TO CLOSE',
+                  style: TapeType.label(size: type.label, color: palette.label),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// A wheel of choices where the one in force is lit (DESIGN.md 16.7): the source,
 /// the livery. Choosing one sets it and closes.
 class WatchChoiceWheel extends StatelessWidget {

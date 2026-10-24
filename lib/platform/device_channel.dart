@@ -45,6 +45,15 @@ class DeviceChannel implements DeviceFeatures {
   late final Stream<int> rotary;
 
   @override
+  Future<String> deviceName() async {
+    try {
+      return await _methods.invokeMethod<String>('deviceName') ?? '';
+    } on MissingPluginException {
+      return '';
+    }
+  }
+
+  @override
   Future<FormFactorInfo> formFactor() async {
     try {
       final info = await _methods.invokeMapMethod<String, Object?>(

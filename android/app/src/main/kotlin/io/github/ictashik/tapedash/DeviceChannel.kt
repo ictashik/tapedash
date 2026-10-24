@@ -132,6 +132,14 @@ class DeviceChannel(
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
+            "deviceName" -> result.success(
+                if (Build.MODEL.startsWith(Build.MANUFACTURER, ignoreCase = true)) {
+                    Build.MODEL
+                } else {
+                    "${Build.MANUFACTURER} ${Build.MODEL}"
+                },
+            )
+
             "formFactor" -> result.success(
                 mapOf(
                     "watch" to isWatch(activity),

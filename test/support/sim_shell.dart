@@ -4,6 +4,7 @@
 // app, was removed on 2026-10-23 (docs/DECISIONS.md); the simulator itself stays,
 // as the way every screen is exercised without a car.
 import 'dart:async';
+import 'dart:io' show Directory;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/widgets.dart';
@@ -22,6 +23,7 @@ import 'package:tapedash/obd/transport/session_sink.dart';
 import 'package:tapedash/obd/transport/sim_transport.dart';
 import 'package:tapedash/obd/transport/transport.dart';
 import 'package:tapedash/platform/device_features.dart';
+import 'package:tapedash/platform/exchange_host.dart';
 import 'package:tapedash/platform/image_sharer.dart';
 import 'package:tapedash/sim/drive_scenario.dart';
 import 'package:tapedash/sim/scenarios.dart';
@@ -250,6 +252,8 @@ class SimRig {
     SessionSink? sessionSink,
     DeviceFeatures? device,
     LocationSource? location,
+    ExchangeHost? exchangeHost,
+    Directory? exchangeRoot,
   }) => TapeDashApp(
     clock: clock,
     scheduler: clock,
@@ -258,6 +262,8 @@ class SimRig {
     sessionSink: sessionSink,
     device: device,
     location: location,
+    exchangeHost: exchangeHost ?? FakeExchangeHost(),
+    exchangeRoot: exchangeRoot,
     skipColdOpen: true,
   );
 

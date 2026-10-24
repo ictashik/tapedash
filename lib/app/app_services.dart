@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:sqflite/sqflite.dart';
 
@@ -47,6 +49,12 @@ class AppServices {
   static const _displacementKey = 'vehicle_displacement_l';
   static const _tankKey = 'vehicle_tank_l';
   static const _blendKey = 'vehicle_petrol_blend';
+  static const _installKey = 'install_id';
+
+  /// A short random id for this install (docs/EXCHANGE.md 1), made the first time
+  /// and kept, so that two files from one device say so. It identifies nothing
+  /// else and leaves the device only inside a file the person exports.
+  String installId = 'local';
 
   final KeyValueStore store;
   final TripRepository trips;
@@ -117,6 +125,16 @@ class AppServices {
   }
 
   Future<void> load() async {
+    var id = await store.getString(_installKey);
+    if (id == null || id.isEmpty) {
+      final random = math.Random.secure();
+      id = [
+        for (var i = 0; i < 4; i++)
+          random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+      ].join();
+      await store.setString(_installKey, id);
+    }
+    installId = id;
     await settings.load();
     await adapters.load();
     await money.load();

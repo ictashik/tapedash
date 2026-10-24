@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import '../../../app/app_services.dart';
 import '../../../app/app_settings.dart';
 import '../../../app/drive_sound.dart';
+import '../../../app/exchange_coordinator.dart';
 import '../../../core/fuel_blend.dart';
 import '../../../core/observable.dart';
 import '../../../fuel/fuel_constants.dart';
@@ -31,6 +32,7 @@ import '../../design/theme/tape_theme.dart';
 import '../../design/tokens/colors.dart' show HudColor;
 import '../../design/tokens/livery.dart';
 import '../../design/tokens/spacing.dart';
+import 'exchange_rows.dart';
 
 /// Garage (DESIGN.md 7.8): the settings, in groups under bracketed headers.
 ///
@@ -61,7 +63,12 @@ class GaragePage extends StatefulWidget {
     this.onAlignment,
     this.sound,
     this.version = 'dev',
+    this.exchange,
   });
+
+  /// Moves the app's data out and in (docs/EXCHANGE.md): the Data group's rows. Null
+  /// leaves them out.
+  final ExchangeCoordinator? exchange;
 
   /// The engine sound, for its group: null leaves the group out.
   final DriveSound? sound;
@@ -531,19 +538,22 @@ class GaragePageState extends State<GaragePage> {
             ),
           ),
         ]),
-        if (!gpsOnly)
+        if (!gpsOnly || widget.exchange != null)
           _Group('Data', [
             const _Info(
               'Everything stays on this phone',
               'Trips, fill-ups and settings are stored here and nowhere else.',
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: TapeSpace.s2),
-              child: SlideToConfirm(
-                label: 'Slide to delete all trips and fill-ups',
-                onConfirmed: _deleteAll,
+            if (widget.exchange != null)
+              ExchangeRows(exchange: widget.exchange!),
+            if (!gpsOnly)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: TapeSpace.s2),
+                child: SlideToConfirm(
+                  label: 'Slide to delete all trips and fill-ups',
+                  onConfirmed: _deleteAll,
+                ),
               ),
-            ),
           ]),
         _Group('About', [
           _Info(

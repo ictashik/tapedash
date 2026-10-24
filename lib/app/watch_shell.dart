@@ -33,10 +33,11 @@ import 'app_info.dart';
 import 'app_services.dart';
 import 'drive_feed.dart';
 import 'drive_services.dart';
+import 'exchange_coordinator.dart';
 import 'live_drive.dart';
 
 /// Which screen is over the reel.
-enum _Sheet { none, menu, source, price, look, about }
+enum _Sheet { none, menu, source, price, look, data, message, about }
 
 /// The driving surface on a watch (DESIGN.md 16): the reel of faces, the menu's
 /// wheels, and the same service graph as the phone's `DriveShell` under them (the
@@ -58,7 +59,11 @@ class WatchShell extends StatefulWidget {
     this.device,
     this.onChangeAdapter,
     this.phoneHot,
+    this.exchange,
   });
+
+  /// Moves the app's data out and in (docs/EXCHANGE.md): the menu's Data row.
+  final ExchangeCoordinator? exchange;
 
   final Clock clock;
   final Scheduler scheduler;
@@ -166,6 +171,15 @@ class _WatchShellState extends State<WatchShell> with WidgetsBindingObserver {
       ..onTripResumed(_onTripResumed);
     _app.settings.coachPreset.addListener(_onCoach);
     _app.settings.speedLimitKmh.addListener(_onCoach);
+    widget.exchange?.changes.addListener(_onExchanged);
+    _signals!.mode.addListener(_syncMoving);
+    _syncMoving();
+  }
+
+  void _onExchanged() => _money?.refreshFills();
+
+  void _syncMoving() {
+    widget.exchange?.moving.value = _signals?.mode.value == DrivingMode.motion;
   }
 
   void _syncTrip() =>
@@ -196,6 +210,9 @@ class _WatchShellState extends State<WatchShell> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.exchange?.changes.removeListener(_onExchanged);
+    _signals?.mode.removeListener(_syncMoving);
+    widget.exchange?.moving.value = false;
     _app.settings.coachPreset.removeListener(_onCoach);
     _app.settings.speedLimitKmh.removeListener(_onCoach);
     _restWatcher?.dispose();
@@ -236,6 +253,12 @@ class _WatchShellState extends State<WatchShell> with WidgetsBindingObserver {
   }
 
   void _closeAll() => setState(_sheets.clear);
+
+  /// Says what an export or an import did, over the Data wheel.
+  void _show() {
+    if (!mounted) return;
+    setState(() => _sheets.add(_Sheet.message));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -292,7 +315,12 @@ class _WatchShellState extends State<WatchShell> with WidgetsBindingObserver {
                     child: WatchSheet(
                       face: face,
                       onClose: _close,
-                      child: _sheetBody(face, motion),
+                      // Its own key: a wheel opened over a wheel would be the
+                      // same widget in the same place, and keep the other's row.
+                      child: KeyedSubtree(
+                        key: ValueKey(_sheet),
+                        child: _sheetBody(face, motion),
+                      ),
                     ),
                   ),
               ],
@@ -313,6 +341,8 @@ class _WatchShellState extends State<WatchShell> with WidgetsBindingObserver {
             _tripRunning,
             ObservableListenable(_app.adapters.source),
             ObservableListenable(_app.money.price),
+            if (widget.exchange != null)
+              ObservableListenable(widget.exchange!.status),
           ]),
           builder: (context, _) {
             final source = _app.adapters.source.value;
@@ -344,6 +374,14 @@ class _WatchShellState extends State<WatchShell> with WidgetsBindingObserver {
                 _app.settings.livery.value.name.toUpperCase(),
                 () => _open(_Sheet.look),
               ),
+              if (widget.exchange != null)
+                (
+                  'Data',
+                  widget.exchange!.status.value.inboxFiles > 0
+                      ? '${widget.exchange!.status.value.inboxFiles} waiting'
+                      : null,
+                  () => _open(_Sheet.data),
+                ),
               if (_tripRunning.value)
                 (
                   'End trip',
@@ -426,6 +464,62 @@ class _WatchShellState extends State<WatchShell> with WidgetsBindingObserver {
             _app.settings.livery.value = Liveries.all[i].id;
             _close();
           },
+        );
+      case _Sheet.data:
+        final exchange = widget.exchange;
+        if (exchange == null) return const SizedBox.shrink();
+        return ListenableBuilder(
+          listenable: ObservableListenable(exchange.status),
+          builder: (context, _) {
+            final s = exchange.status.value;
+            final rows = <(String, String?, Future<void> Function())>[
+              (
+                'Export',
+                'to the outbox folder',
+                () async {
+                  await exchange.exportAll();
+                  _show();
+                },
+              ),
+              (
+                'Import',
+                s.inboxFiles == 0
+                    ? 'inbox is empty'
+                    : '${s.inboxFiles} file${s.inboxFiles == 1 ? '' : 's'} waiting',
+                () async {
+                  await exchange.importInbox();
+                  _show();
+                },
+              ),
+              if (s.offered.isNotEmpty)
+                (
+                  'Apply setup',
+                  'from the last file',
+                  () async {
+                    await exchange.applyOffered();
+                    _show();
+                  },
+                ),
+            ];
+            return WatchWheel(
+              title: 'Data',
+              itemCount: rows.length,
+              face: face,
+              motion: motion,
+              rotary: rotary,
+              rowAt: (i) => WheelRow(label: rows[i].$1, value: rows[i].$2),
+              onChoose: (i) => unawaited(rows[i].$3()),
+            );
+          },
+        );
+      case _Sheet.message:
+        final s = widget.exchange?.status.value;
+        return WatchMessage(
+          face: face,
+          text: s?.sentence ?? '',
+          ok: s?.ok ?? true,
+          lines: s?.offered ?? const [],
+          onClose: _close,
         );
       case _Sheet.about:
         return WatchWheel(

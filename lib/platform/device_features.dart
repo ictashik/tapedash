@@ -47,6 +47,10 @@ abstract interface class DeviceFeatures {
   /// phone without the sensor it emits an error and ends.
   Stream<Acceleration> get acceleration;
 
+  /// What the device calls itself ("Galaxy Watch4 Classic"), for the header of a
+  /// file it exports (docs/EXCHANGE.md 1). Empty if it does not say.
+  Future<String> deviceName();
+
   /// Whether this is a watch, and whether its screen is round (DESIGN.md 16.2).
   /// A phone says neither.
   Future<FormFactorInfo> formFactor();

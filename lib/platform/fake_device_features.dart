@@ -19,6 +19,12 @@ class FakeDeviceFeatures implements DeviceFeatures {
   /// report one.
   double? batteryTemperature = 30;
 
+  /// What [deviceName] returns.
+  String name = '';
+
+  @override
+  Future<String> deviceName() async => name;
+
   /// What [formFactor] returns: a phone, unless a test says otherwise.
   FormFactorInfo form = FormFactorInfo.phone;
 
