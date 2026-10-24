@@ -139,6 +139,38 @@ Nothing here has met a real watch. In order:
 5. **Links:** does the watch's own Bluetooth reach the adapter (Classic and BLE), and the watch's GPS (the GPS-only screen)?
 6. **Data:** `tool/adb_exchange.sh -s <ip>:<port> export` after a drive, `tdx check` and `tdx info` on what comes back; push it into the phone's inbox and import it there.
 
+## 5e. Google Maps' turns on the HUD (docs/NAV.md)
+
+The one piece of this that has met real Google Maps is a **capture on an Android 16 emulator**; nothing has met your phone. Google Maps runs on the same phone as TapeDash (it navigates in the background; TapeDash is in front) and does all the routing and the internet; TapeDash stays offline and only reads Maps' notification.
+
+**First, a capture of what Maps posts on *your* phone** (the format is Google's and differs by Android version, so this is the most useful thing you can do). It needs a **debug** build (a release build captures nothing); `adb install -r` keeps your trips, price and adapter:
+
+```
+flutter build apk --debug --target-platform android-arm64
+adb install -r build/app/outputs/flutter-apk/app-debug.apk
+tool/nav_spike.sh enable        # gives TapeDash notification access over adb
+# Start navigation in Google Maps and drive a few minutes (or have someone drive you):
+# a roundabout, a highway exit and a wrong turn that makes it reroute are the most useful. Then:
+tool/nav_spike.sh status        # records so far
+tool/nav_spike.sh pull          # into recordings/private/navspike-<time>/
+tool/nav_spike.sh disable       # takes the access away again
+```
+
+The folder holds the street names along your route: it stays in `recordings/private/` (git-ignored). Send it, or a few lines of `nav.jsonl`; names can be changed before they become a test fixture. What is needed from it: **which fields Maps fills on your Android**, the language and units your Maps writes in (kilometres, miles, a language other than English), and how often it posts.
+
+**Before you drive with it**, two things that are Android's and Google Maps', not TapeDash's, and that would put a bright window on the HUD's black: (a) turn off Google Maps' **floating window** (Settings, Apps, Special app access, Picture-in-picture, Maps; the wording differs by phone), which Maps shows by itself when you switch away from it during a route; (b) use **Do Not Disturb** while driving, so that no app's notification slides down over the HUD. Garage → Navigation says the first.
+
+**Then the HUD itself:**
+
+1. Garage → **Navigation** → turn on "Show Google Maps turns on the HUD". It says what stands in the way: *Needs notification access* (the row under it opens Android's own screen; turn TapeDash on there; on Android 13 and later an app installed outside a store may first need "Allow restricted settings" in its App info, in the three-dot menu: say if you had to), or *Google Maps is not on this phone*.
+2. Start a route in Google Maps, then bring TapeDash to the front and put the HUD up. The HUD should change to the navigation layout by itself within a second or two, and back when you end the route.
+3. **While driving (someone else driving, or parked at a standstill)**: does the arrow match Maps' own? Does the distance fall in steps as Maps' does? Is the ETA right? Does the dot on the line climb as the turn comes up, and does the line lean the way the arrow turns? On a roundabout or a U-turn, what does the line do (it is drawn straight when the arrow cannot be read, by design)?
+4. **Rerouting** (take a wrong turn): the right half should say Maps' own words, show no figures, and come back when Maps has a route again.
+5. **Quiet:** with the car moving, switch Maps' navigation off from Maps' own notification or kill Google Maps: the HUD should return to the layout you chose. If Maps freezes instead of stopping, after 15 seconds the HUD shows NO UPDATE and a dash, never an old turn.
+6. **Both apps on the phone:** note whether Android keeps both alive for a whole drive, how warm the phone gets, and how the frame rate is (debug overlay). An old phone with 2 GB may not run today's Google Maps at all (it needs Android 9 or 12 and later, by version); say what yours does.
+7. **Legibility on the glass:** the instruction is up to three lines of Google's own text at 0.068H, which is more than the six-word limit of DESIGN.md 11; say whether it is readable at a glance and whether it should be shorter.
+8. Take the access away in Android's settings: the HUD must go back to the chosen layout and Garage should say *Needs notification access*.
+
 ## 6. What to report back
 
 For each adapter you tried:
@@ -151,6 +183,7 @@ For each adapter you tried:
 - **Every error and every visual problem**: a screenshot, what you were doing, and the log file if a recording was on.
 - **The replay and the engine sound** (section 5b): what looked or sounded wrong, which engine is nearest, whether the sound stopped when the Bluetooth link dropped, and the poll rate with the sound on and off.
 - What was **slow to connect**, what **dropped**, and what **came back by itself** and what did not.
+- **The navigation HUD** (section 5e): the capture folder from your phone, whether it needed "Allow restricted settings", whether Maps and TapeDash stayed alive together, and anything on the glass that was hard to read.
 
 ## 7. What happens next
 
@@ -168,4 +201,5 @@ These are in `docs/STATUS.md`, repeated here so they are not mistaken for bugs:
 - The PID matrix does not pulse on each response.
 - The Money Tape does not yet compact into ₹5 and ₹10 blocks when full, and the ₹ figure does not fly from Drive to Money.
 - The fault-code descriptions cover the common generic codes only; others are described by their system.
+- **The navigation HUD has never met a phone.** The Kotlin listener, its channel and the Notification access flow ran on an Android 16 emulator against real Google Maps and a stand-in; the parser has read one capture (English, kilometres, Android 16). Maps' notification differs between Android versions, and a Maps update can change it: if the HUD does not take over, the capture in section 5e says why.
 - The design review packages for phases 4 to 6 were waived at your request, so the screens were looked at in renders and never on a phone: expect polish problems.

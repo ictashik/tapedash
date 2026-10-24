@@ -95,24 +95,46 @@ Each box is checked when it is built, tested and committed. A box that is only b
 - [x] Nothing from navigation reaches trips, recordings, the exchange file or logs: a test that pushes a distinctive street through the service and looks through everything the settings wrote, and an import-graph test that fails if any code that stores or sends data imports the navigation code (`test/unit/nav/nav_privacy_test.dart`)
 - [x] `tool/check_offline.sh` now also covers `NavBridge` hand-offs and the allowlist as `setOf(GOOGLE_MAPS)`
 
-### N5. The HUD layout
-- [ ] DESIGN.md: the navigation HUD (optics rules of §8: one colour, strokes of 5 lp or more, no filled panels); the schematic line; the stale state; Garage copy
-- [ ] The layout in `lib/ui/hud/`: the arrow, the distance, the street, ETA / time left / distance left, the speed
-- [ ] The arrow: Google's bitmap as a mask in the HUD colour (it is already a mask: N1)
-- [ ] The schematic line: a road, a junction and a marker that closes on it as the distance falls; labelled as a sketch
-- [ ] Widget tests at 640x360, 720x360, 800x360; HUD flips applied; stale state; design lint; captures
+### N5. The HUD layout (done; design review frames in `docs/design-review/nav/`)
+- [x] DESIGN.md 8 (the navigation layout) and 7.8 (Garage → Navigation)
+- [x] `lib/ui/hud/nav_hud.dart`: the speed on the left; on the right Google's arrow (its mask painted in the HUD colour), the distance to the turn, the instruction (three lines, cut at a word), and along the bottom the ETA, time left and distance left. It takes over from the chosen layout while Maps is guiding and gives it back when Maps stops; `HudView` and `HudHost` take a `nav`
+- [x] The arrow: Google's bitmap as a mask (`NavArrowImages` makes each into an image once)
+- [x] The approach line: a bold line to a ring at the junction, leaning the way the arrow turns (`NavBendReader`: tested on the three real arrows), a dot that climbs over the last 500 m counting down on the car's own speed, and filling the ring at the turn. A sketch, and DESIGN.md says so
+- [x] States: `Starting navigation…` and `Rerouting...` in Maps' words; Maps gone quiet shows NO UPDATE and a dash and no figures
+- [x] Tests (`test/widget/nav_hud_test.dart`, `test/unit/nav/nav_format_test.dart`, `test/unit/nav/nav_bend_test.dart`): it takes over only while guiding, never with the switch off; one colour on black at 640, 720 and 800 wide; the real arrow drawn; the figures, the line and the dot; the dot climbs; stale shows no figure; the geometry keeps to the HUD's 5 lp and 0.06H floors and clear of the speed. `test/design/capture/nav_hud_capture_test.dart` renders the frames
+- Deviation, on purpose: the instruction is Google's text and runs to three lines, past the six-word limit of DESIGN.md 11 for Motion screens. It is cut at a word, and the human is asked to judge it (the review package's open question)
 
-### N6. End to end on the emulator
-- [ ] The stand-in rebuilt to post the two real shapes (classic, and ProgressStyle on Android 16)
-- [ ] The app on `tool/sim_server.dart` (WiFi, `10.0.2.2:35000`) with the stand-in driven in step with the simulated drive
-- [ ] Real Google Maps navigating on the emulator with the app's HUD on (done by hand in N1 for the capture)
-- [ ] Frame timings with the HUD on, per fidelity tier, noted here and in STATUS.md
-- [ ] Android 7 (API 24) emulator: the listener and the HUD
+### N6. End to end on the emulators (done on Android 16 and Android 7; the phone is N7)
+- [x] The stand-in rebuilt to post the real shape (standard extras, the arrow as a 126 px large icon, the progress and `android.shortCriticalText` in the extras), with `--id` and `--category none` for a second, non-navigation notification
+- [x] `tool/sim_server.dart --nav-adb` plays Maps from the simulated car (`tool/nav_stand_in.dart`): the same car the app reads over OBD, so what Maps says and what the app measures share one truth
+- [x] `tool/test_nav_e2e.sh` (**emulators only**: it clears the app's data, and `flutter test` uninstalls the app, which would erase a phone's trips): a 90 s drive through the production path, and a second test that only Maps' navigation notification is a turn
+  - **Countdown against Maps** (Android 16, three runs): the distance counted down on the car's own speed agreed with Maps' next figure to a **median of 7 to 11 m, p90 about 26 m, worst 33 to 40 m**. Maps rounds to 50 m steps, so about 25 m of that is Maps' own rounding
+  - A left and a right bend read from arrows that Android drew on the device; the HUD stayed on Maps through the stops at signals (no stale sample)
+  - **The filter test** was shown to fail when each check is taken out of `NavBridge` (a traffic alert took the HUD over; another notification going away ended the route)
+- [x] **Real Google Maps on the HUD** (`tool/test_nav_maps.sh`, emulator only): Maps 25.33 navigating on the emulator, its own notification through the real listener, channel, parser and HUD, with the position stepped along. 111 guiding reads, 54 with an arrow, instruction, distance and ETA together, the phases guiding and rerouting, three arrows read as left, right and straight
+- [x] Frame cost with the HUD on, on an emulator with software GL (which says nothing about an old phone): p50 1.3 ms, p90 1.9 ms, p99 5 to 7 ms
+- [x] **Android 7 (API 24), the minimum**: found and fixed a crash (below), then see the status log for the run
+- [ ] Frame timings per fidelity tier on a real low-end phone: N7
+
+**What real Maps did that the model had not**
+- Near a turn Maps **drops the distance** (`80 m`, `70 m`, `50 m`, then only `Turn left onto Mission Rd`), and gives none for `Head toward ...`. The HUD takes a turn with no distance for the turn itself (the dot sits at the junction); a straight `Head toward` has no dot
+- Maps counts down in **50 m steps down to about 300 m and 10 m steps below**; the simulator now does the same
+- It reroutes often when the car is off its route, and says `Rerouting...` (the HUD shows Maps' words and no figures)
+- It shows its own **floating window** when the person switches away during a route, and Android 16 shows the notification as a card at the top the first time: both can sit over the HUD. Garage says where to turn the floating window off; the handoff says to use Do Not Disturb for the rest
+- One arrow once read as `unknown` (not reproduced in two later runs); the test now prints each distinct arrow with a picture of any it cannot read
+
+**Found by running on Android 7, and fixed:**
+- `Bitmap.Config.HARDWARE` does not exist before Android 8; naming it in `NavReader` is a `NoSuchFieldError`, which is an Error and not an exception, and would have **crashed the app the first time a navigation notification arrived** on an Android 7 phone. It is guarded by the SDK version, and `NavBridge` now cannot be taken down by one unreadable notification
+- `NavService` ranked "Google Maps is not on this phone" above what was arriving; the image has no Maps, so a stand-in could never take the HUD over. What is arriving now comes first
+- `nav_spike.sh disable` aborted silently when TapeDash was the only listener, and `cmd notification post` does not exist on Android 7 so the "another package is ignored" check could not run: the test now says it skipped it
 
 ### N7. The phone (the human)
-- [ ] `docs/HARDWARE_HANDOFF.md`: how to switch it on, what to check, what to report
+- [x] `docs/HARDWARE_HANDOFF.md` 5e: the capture on the human's phone, how to switch it on, what to check (including Maps' floating window and Do Not Disturb), what to report
+- [x] `docs/STATUS.md`: what was verified on the emulators and what was not
+- [ ] **The capture from the human's phone** (Android 15's shape, their language and units, a roundabout and a highway exit): the fixtures for the next round of the parser
 - [ ] Maps and TapeDash together on the dash phone: memory, heat, whether Android keeps both alive
-- [ ] Fixes from the first real drives; `docs/STATUS.md`; a tag
+- [ ] The human's answers to the design review package (`docs/design-review/nav/`)
+- [ ] Fixes from the first real drives; a tag (suggested: `v1.1.0-nav`, after the phone)
 
 ## How the human captures on their phone (works now)
 
@@ -143,8 +165,11 @@ The folder holds street names and places along the route: it stays in `recording
 |---|---|---|
 | Google changes the notification | **Seen already:** it differs between navigation states and (probably) Android versions; GMapsParser's RemoteViews no longer applies | Parse by shape; prefer numbers over text; the raw text is the fallback; captures are fixtures; a Maps update is a known cause of "nav stopped working" |
 | The text is localised | Distances, times and digits vary by language; only English seen | Fixtures in more locales (the human's phone); show Google's own text if a figure can't be read |
-| The arrow is a bitmap | **Resolved:** 126 px, white on transparent, one per maneuver | Tint it as a mask; check it stays crisp at HUD size (N5) |
-| Maps and TapeDash on one phone | Maps navigation is heavy; unmeasured; current Maps needs Android 9 or 12 and later | Measure early (N6/N7); don't offer the switch where Maps can't run |
+| The arrow is a bitmap | **Resolved:** 126 px, white on transparent, one per maneuver | Tinted as a mask; slightly soft at the HUD's size on an emulator, to be judged on the glass |
+| Maps and TapeDash on one phone | Maps navigation is heavy; unmeasured; current Maps needs Android 9 or 12 and later | Measure early (N7). Garage says when Maps is not on the phone |
+| Maps' floating window, and any app's heads-up notification, over the HUD | **Seen on the emulator** (a bright map on the black) | Garage and the handoff say where to switch Maps' floating window off, and to use Do Not Disturb; the app cannot do either |
+| An Android that leaves an enabled listener unbound | **Seen on Android 7** after a kill while bound | The system is asked to bind it again, and the component is toggled; fired and recovered on the emulator, not proved to be the cause |
+| A Maps that no longer sets the navigation category | Seen set on 25.33; others unknown | The bridge then shows nothing (it fails safe); the capture tells |
 | Android 13+ restricted settings | Sideloaded APKs can be blocked from notification access | The capture script uses adb; the app tells the person where "Allow restricted settings" is |
 | Notification access is broad | Android lets the app see every notification | The package filter first, tests, no storage, and plain words about it in Garage |
 | No route geometry | Maps does not share it | A schematic, labelled as one |
@@ -153,3 +178,4 @@ The folder holds street names and places along the route: it stays in `recording
 
 - 2026-10-24: N0 done. Plan agreed with the human; wording of the contract approved.
 - 2026-10-24: N1 done on an Android 16 emulator with real Google Maps 25.33: the format is in "What Google Maps posts" above, and it is not what the plan assumed. Everything that could be checked on the emulator passes; the Android 7 emulator and the human's phone are still to do.
+- 2026-10-24: N3 to N6 done. The navigation HUD works on the production path on an Android 16 emulator, against both the stand-in (driven by the simulated car) and real Google Maps. The Android 7 emulator found a crash that is fixed. **Nothing has met a real phone.**
