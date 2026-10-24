@@ -48,10 +48,13 @@ class NavChannel(
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
-            "access" -> result.success(
-                NotificationManagerCompat.getEnabledListenerPackages(activity)
-                    .contains(activity.packageName),
-            )
+            "access" -> {
+                val granted = NotificationManagerCompat.getEnabledListenerPackages(activity)
+                    .contains(activity.packageName)
+                // Granted, and not connected, is what Android 7 can do after an update.
+                if (granted && NavBridge.listening) NavListenerService.ensureBound(activity)
+                result.success(granted)
+            }
             "openAccessSettings" -> result.success(openAccessSettings())
             "mapsVersion" -> result.success(mapsVersion())
             else -> result.notImplemented()
@@ -60,6 +63,8 @@ class NavChannel(
 
     override fun onListen(arguments: Any?, sink: EventChannel.EventSink) {
         NavBridge.attach { sink.success(it) }
+        // The person has switched it on: see that the listener is there to hear.
+        NavListenerService.ensureBound(activity)
     }
 
     override fun onCancel(arguments: Any?) {

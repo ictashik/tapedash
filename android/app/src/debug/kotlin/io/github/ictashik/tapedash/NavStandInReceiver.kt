@@ -46,6 +46,12 @@ import android.os.Bundle
 class NavStandInReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        // A way to try NavListenerService.ensureBound from adb on a phone where Android
+        // has left the listener unbound (`--ez ensure_bound true`).
+        if (intent.getBooleanExtra("ensure_bound", false)) {
+            NavListenerService.ensureBound(context)
+            return
+        }
         val id = intent.getIntExtra("id", NOTIFICATION_ID)
         if (intent.getBooleanExtra("remove", false)) {
             manager.cancel(id)
