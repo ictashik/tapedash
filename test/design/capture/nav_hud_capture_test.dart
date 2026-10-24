@@ -158,6 +158,10 @@ void main() {
     await maps(_progress('Head north', arrow: '5c317d6e0e'));
     await frame('straight-no-distance');
 
+    // Maps leaves the distance out in the last few metres: the turn is now.
+    await maps(_progress('Turn right onto Basappa Rd', progress: 1900));
+    await frame('turn-now');
+
     await maps(
       _progress(
         '1.2 km · Keep left to take the ramp toward Hosur Road/Silk Board Junction and merge onto NH 44',
