@@ -750,6 +750,14 @@ class GaragePageState extends State<GaragePage> {
         ),
       const _Info('What this does', _navNote),
       const _Info('If a small map floats over the HUD', _navFloating),
+      const _Info('If a card drops over the HUD at a turn', _navCard),
+      if (status != NavLinkStatus.off && status != NavLinkStatus.noMaps)
+        TapeListRow(
+          label: 'Open Google Maps\' notification settings',
+          value: 'Android\'s own screen',
+          chevron: false,
+          onTap: () => nav.openMapsNotificationSettings(),
+        ),
     ]);
   }
 
@@ -766,6 +774,16 @@ class GaragePageState extends State<GaragePage> {
       'Google Maps shows a small floating map when you switch away from it during a '
       'route. Turn that off in Android\'s settings (Apps, Special app access, '
       'Picture-in-picture), so that the HUD stays black.';
+
+  // Google Maps moves its notification to a high-priority channel as a turn comes
+  // up, and Android 16 then pops it over the screen as a card for a few seconds,
+  // over the arrow and the distance. Found with real Maps on an emulator.
+  static const String _navCard =
+      'On some phones Android pops Google Maps\' notification over the screen as a '
+      'card when a turn is near. Open Google Maps\' notification settings below, open '
+      'its list of categories, choose "Navigation urgent updates" (the names may '
+      'differ in your language) and turn off "Pop on screen". Google Maps keeps '
+      'guiding you.';
 
   static (String, String) _navStatus(NavLinkStatus status) => switch (status) {
     NavLinkStatus.off => ('Off', 'TapeDash is not reading any notification.'),

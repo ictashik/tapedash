@@ -133,6 +133,10 @@ class NavService with WidgetsBindingObserver {
   /// Opens Android's Notification access screen.
   Future<bool> openAccessSettings() => source.openAccessSettings();
 
+  /// Opens Android's screen for Google Maps' notifications.
+  Future<bool> openMapsNotificationSettings() =>
+      source.openMapsNotificationSettings();
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && settings.navEnabled.value) {

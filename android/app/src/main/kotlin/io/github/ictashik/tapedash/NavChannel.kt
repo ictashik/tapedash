@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
@@ -20,6 +21,9 @@ import io.flutter.plugin.common.MethodChannel
  *   it itself, and does not ask for more than that.
  * - **`mapsVersion`**: the version of Google Maps on the phone, or null if it is not
  *   there. Only this one package is looked for (a `<queries>` entry).
+ * - **`openMapsNotificationSettings`**: Android's own screen for Google Maps'
+ *   notifications, where the person can switch off the card Maps pops over the screen
+ *   at a turn. It opens a Settings page; it does not start Maps or send it anything.
  * - **`tapedash/nav/events`**: what NavListenerService sees of Maps' navigation
  *   notification, while Dart listens (NavBridge).
  *
@@ -57,6 +61,7 @@ class NavChannel(
             }
             "openAccessSettings" -> result.success(openAccessSettings())
             "mapsVersion" -> result.success(mapsVersion())
+            "openMapsNotificationSettings" -> result.success(openMapsNotificationSettings())
             else -> result.notImplemented()
         }
     }
@@ -90,6 +95,28 @@ class NavChannel(
             }
         }
         return false
+    }
+
+    /**
+     * The page of Google Maps' notification channels in Android's Settings. On Android 8
+     * and later that is the public app-notification page, which lists the channels
+     * (one of them is "Navigation urgent updates", the card). Before that there are no
+     * channels, and the app's own details page is the nearest.
+     */
+    private fun openMapsNotificationSettings(): Boolean {
+        val intent = if (Build.VERSION.SDK_INT >= 26) {
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, NavSources.GOOGLE_MAPS)
+        } else {
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                .setData(Uri.fromParts("package", NavSources.GOOGLE_MAPS, null))
+        }
+        return try {
+            activity.startActivity(intent)
+            true
+        } catch (e: RuntimeException) {
+            false
+        }
     }
 
     private fun mapsVersion(): String? =

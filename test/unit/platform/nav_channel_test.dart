@@ -53,6 +53,19 @@ void main() {
       },
     );
 
+    test(
+      'opening the Maps notification settings reports whether the phone had them',
+      () async {
+        reply = (_) => true;
+        expect(await NativeNavSource().openMapsNotificationSettings(), isTrue);
+        expect(calls.single.method, 'openMapsNotificationSettings');
+        expect(calls.single.arguments, isNull, reason: 'it sends nothing');
+
+        reply = (_) => false;
+        expect(await NativeNavSource().openMapsNotificationSettings(), isFalse);
+      },
+    );
+
     test('the version of Maps, or null when it is not there', () async {
       reply = (_) => '25.33.03';
       expect(await NativeNavSource().mapsVersion(), '25.33.03');
@@ -66,6 +79,7 @@ void main() {
 
       expect(await NativeNavSource().hasAccess(), isFalse);
       expect(await NativeNavSource().openAccessSettings(), isFalse);
+      expect(await NativeNavSource().openMapsNotificationSettings(), isFalse);
       expect(await NativeNavSource().mapsVersion(), isNull);
     });
 
@@ -74,6 +88,7 @@ void main() {
 
       expect(await NativeNavSource().hasAccess(), isFalse);
       expect(await NativeNavSource().openAccessSettings(), isFalse);
+      expect(await NativeNavSource().openMapsNotificationSettings(), isFalse);
       expect(await NativeNavSource().mapsVersion(), isNull);
     });
   });

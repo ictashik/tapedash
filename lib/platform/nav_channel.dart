@@ -39,6 +39,10 @@ abstract interface class NavSource {
   /// The version of Google Maps on the phone, or null if it is not there.
   Future<String?> mapsVersion();
 
+  /// Opens Android's screen for Google Maps' notifications, where the card it pops
+  /// over the screen at a turn can be switched off. False if the phone has none.
+  Future<bool> openMapsNotificationSettings();
+
   /// The navigation notification as it changes. **Listening is what starts the
   /// reading**: with no listener, the native side does not open a notification
   /// (`NavBridge.kt`), so a switch that is off reads nothing.
@@ -73,6 +77,20 @@ class NativeNavSource implements NavSource {
   Future<bool> openAccessSettings() async {
     try {
       return await _methods.invokeMethod<bool>('openAccessSettings') ?? false;
+    } on PlatformException {
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> openMapsNotificationSettings() async {
+    try {
+      return await _methods.invokeMethod<bool>(
+            'openMapsNotificationSettings',
+          ) ??
+          false;
     } on PlatformException {
       return false;
     } on MissingPluginException {
@@ -124,6 +142,9 @@ class FakeNavSource implements NavSource {
   /// How many times the access screen was opened.
   int accessScreenOpened = 0;
 
+  /// How many times Google Maps' notification settings were opened.
+  int mapsSettingsOpened = 0;
+
   /// How many listeners the events have now, so a test can see that a switch that
   /// is off listens to nothing.
   int get listeners => _listeners;
@@ -144,6 +165,12 @@ class FakeNavSource implements NavSource {
   @override
   Future<bool> openAccessSettings() async {
     accessScreenOpened++;
+    return true;
+  }
+
+  @override
+  Future<bool> openMapsNotificationSettings() async {
+    mapsSettingsOpened++;
     return true;
   }
 

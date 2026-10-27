@@ -194,6 +194,49 @@ void main() {
     expect(source.accessScreenOpened, 1);
   });
 
+  testWidgets('says what to do about a card over the HUD, and opens the page', (
+    tester,
+  ) async {
+    app.settings.navEnabled.value = true;
+    await show(tester);
+    await tester.pump();
+    await visible(tester, find.text('If a card drops over the HUD at a turn'));
+
+    expect(find.textContaining('Navigation urgent updates'), findsOneWidget);
+    expect(find.textContaining('Pop on screen'), findsOneWidget);
+
+    await visible(
+      tester,
+      find.text('Open Google Maps\' notification settings'),
+    );
+    await tester.tap(find.text('Open Google Maps\' notification settings'));
+    await tester.pump();
+
+    expect(source.mapsSettingsOpened, 1);
+    expect(source.accessScreenOpened, 0);
+  });
+
+  testWidgets('offers Maps\' settings only when there is a Maps to set', (
+    tester,
+  ) async {
+    // Off: nothing is read and there is nothing to set.
+    await show(tester);
+    await visible(tester, find.text(toggle));
+    expect(find.text('Open Google Maps\' notification settings'), findsNothing);
+  });
+
+  testWidgets('does not offer Maps\' settings when Maps is not on the phone', (
+    tester,
+  ) async {
+    source.maps = null;
+    app.settings.navEnabled.value = true;
+    await show(tester);
+    await tester.pump();
+    await visible(tester, find.text(toggle));
+
+    expect(find.text('Open Google Maps\' notification settings'), findsNothing);
+  });
+
   testWidgets('does not offer the screen when there is nothing to grant', (
     tester,
   ) async {
