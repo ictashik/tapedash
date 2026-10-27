@@ -158,7 +158,7 @@ tool/nav_spike.sh disable       # takes the access away again
 
 The folder holds the street names along your route: it stays in `recordings/private/` (git-ignored). Send it, or a few lines of `nav.jsonl`; names can be changed before they become a test fixture. What is needed from it: **which fields Maps fills on your Android**, the language and units your Maps writes in (kilometres, miles, a language other than English), and how often it posts.
 
-**Before you drive with it**, two things that are Android's and Google Maps', not TapeDash's, and that would put a bright window on the HUD's black: (a) turn off Google Maps' **floating window** (Settings, Apps, Special app access, Picture-in-picture, Maps; the wording differs by phone), which Maps shows by itself when you switch away from it during a route; (b) use **Do Not Disturb** while driving, so that no app's notification slides down over the HUD. Garage → Navigation says the first.
+**Before you drive with it**, two things that are Android's and Google Maps', not TapeDash's, and that would put a bright window on the HUD's black: (a) turn off Google Maps' **floating window** (Settings, Apps, Special app access, Picture-in-picture, Maps; the wording differs by phone), which Maps shows by itself when you switch away from it during a route; (b) switch off the **pop-up card** Maps shows at turns: Garage → Navigation → "Open Google Maps' notification settings" → open its list of categories → **Navigation urgent updates** → turn off **Pop on screen** (the names may differ in your language). On the Android 16 emulator Maps moved to that channel at every turn and Android popped a card over the arrow and the distance in about a quarter of the frames; **Do Not Disturb did not stop it** there, and the one switch did. Whether your phone's Maps does it at all, please say. Other apps' pop-ups (a call, a message) are Android's: Do Not Disturb is the way for those. Garage → Navigation says both.
 
 **Then the HUD itself:**
 
@@ -169,7 +169,8 @@ The folder holds the street names along your route: it stays in `recordings/priv
 5. **Quiet:** with the car moving, switch Maps' navigation off from Maps' own notification or kill Google Maps: the HUD should return to the layout you chose. If Maps freezes instead of stopping, after 15 seconds the HUD shows NO UPDATE and a dash, never an old turn.
 6. **Both apps on the phone:** note whether Android keeps both alive for a whole drive, how warm the phone gets, and how the frame rate is (debug overlay). An old phone with 2 GB may not run today's Google Maps at all (it needs Android 9 or 12 and later, by version); say what yours does.
 7. **Legibility on the glass:** the instruction is up to three lines of Google's own text at 0.068H, which is more than the six-word limit of DESIGN.md 11; say whether it is readable at a glance and whether it should be shorter.
-8. Take the access away in Android's settings: the HUD must go back to the chosen layout and Garage should say *Needs notification access*.
+8. **Cards over the HUD:** with Maps guiding, did a card from Maps (or from anything else) slide down over the arrow and the distance at a turn? Try it before and after switching off "Pop on screen" for Maps' "Navigation urgent updates" (Garage → Navigation opens the page). Say what you saw, and your Android version.
+9. Take the access away in Android's settings: the HUD must go back to the chosen layout and Garage should say *Needs notification access*.
 
 ## 6. What to report back
 
@@ -183,7 +184,7 @@ For each adapter you tried:
 - **Every error and every visual problem**: a screenshot, what you were doing, and the log file if a recording was on.
 - **The replay and the engine sound** (section 5b): what looked or sounded wrong, which engine is nearest, whether the sound stopped when the Bluetooth link dropped, and the poll rate with the sound on and off.
 - What was **slow to connect**, what **dropped**, and what **came back by itself** and what did not.
-- **The navigation HUD** (section 5e): the capture folder from your phone, whether it needed "Allow restricted settings", whether Maps and TapeDash stayed alive together, and anything on the glass that was hard to read.
+- **The navigation HUD** (section 5e): the capture folder from your phone, whether it needed "Allow restricted settings", whether Maps and TapeDash stayed alive together, whether a card from Maps slid over the HUD at turns (and whether switching off "Pop on screen" for "Navigation urgent updates" stopped it), your Android version, and anything on the glass that was hard to read.
 
 ## 7. What happens next
 
