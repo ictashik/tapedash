@@ -448,7 +448,7 @@ Full stack: `SimTransport` → ELM layer → poller → vehicle → fuel → mon
 - The WiFi transport connects to `tool/sim_server.dart` via `10.0.2.2:35000` and shows live values
 - Profile-mode frame timings are logged per fidelity tier for a 2-minute simulated drive. **Document the results** in `docs/STATUS.md` and the design review package. If no emulator is available, say so explicitly rather than skipping silently.
 - A 60–90 s screen recording of a simulated drive for the design review package (DESIGN.md §14.4).
-- **Navigation** (docs/NAV.md): `tool/test_nav_emulator.sh` (the listener, with a stand-in), `tool/test_nav_e2e.sh` (the HUD on a simulated drive, and that only Maps' navigation notification is a turn) and `tool/test_nav_maps.sh` (real Google Maps), on an Android 16 emulator **and on an Android 7.0 one (the minimum, which found a crash)**. They run on emulators only: they clear the app's data. `tool/check_android_api.sh` (in `tool/verify.sh`) holds the minimum Android.
+- **Navigation** (docs/NAV.md): `tool/test_nav_emulator.sh` (the listener, with a stand-in), `tool/test_nav_e2e.sh` (the HUD on a simulated drive, and that only Maps' navigation notification is a turn) and `tool/test_nav_maps.sh` (real Google Maps), on an Android 16 emulator **and on an Android 7.0 one (the minimum, which found a crash)**. They run on emulators only: they clear the app's data. `tool/check_android_api.sh` (in `tool/verify.sh`) holds the minimum Android. On a real phone with no drive to hand, `tool/phone_gps.py` fakes the GPS from the shell for Google Maps and puts it back.
 
 ### Recordings
 - `tool/record_sim.dart` generates `recordings/sim/*.log` (timestamped raw ELM traffic) from scenarios.
