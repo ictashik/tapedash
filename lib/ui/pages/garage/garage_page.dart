@@ -773,14 +773,16 @@ class GaragePageState extends State<GaragePage> {
   static const String _navFloating =
       'Google Maps shows a small floating map when you switch away from it during a '
       'route. Turn that off in Android\'s settings (Apps, Special app access, '
-      'Picture-in-picture), so that the HUD stays black.';
+      'Picture-in-picture), so that the HUD stays black. Then read the next note: '
+      'with the floating map off, Google Maps shows its turns as a card instead.';
 
   // Google Maps moves its notification to a high-priority channel as a turn comes
   // up, and Android 16 then pops it over the screen as a card for a few seconds,
   // over the arrow and the distance. Found with real Maps on an emulator.
   static const String _navCard =
-      'On some phones Android pops Google Maps\' notification over the screen as a '
-      'card when a turn is near. Open Google Maps\' notification settings below, open '
+      'With the floating map off, Google Maps pops its notification over the screen '
+      'as a card when a turn is near (on the test phone, about every turn). Open '
+      'Google Maps\' notification settings below, open '
       'its list of categories, choose "Navigation urgent updates" (the names may '
       'differ in your language) and turn off "Pop on screen". Google Maps keeps '
       'guiding you.';
