@@ -317,6 +317,35 @@ void main() {
       expect(litIn(px, size, bottom), 0);
     });
 
+    testWidgets('"0 m" beside a straight arrow shows no distance', (
+      tester,
+    ) async {
+      // Maps 26.42 on a real phone wrote the title "0 m" beside "towards Lavelle
+      // Road" and the HUD showed "0 M" over a straight arrow.
+      await show(tester, size);
+      final g = NavHudGeometry(size.width, size.height);
+      final distance = Rect.fromLTRB(
+        size.width - g.distanceLeft - g.distanceMaxWidth,
+        g.arrow.top,
+        size.width - g.distanceLeft,
+        g.arrow.bottom,
+      );
+      NavNotification classic(String title) => NavNotification(
+        title: title,
+        text: 'towards Lavelle Road',
+        subText: '25 min \u00B7 7.5 km \u00B7 9:46\u202Fpm ETA',
+        arrow: _real('5c317d6e0e'),
+      );
+
+      await maps(tester, classic('120\u00A0m'));
+      final with120 = await pixels(tester);
+      await maps(tester, classic('0\u00A0m'));
+      final with0 = await pixels(tester);
+
+      expect(litIn(with120, size, distance), greaterThan(100));
+      expect(litIn(with0, size, distance), 0);
+    });
+
     testWidgets('the figures along the bottom, while guiding', (tester) async {
       await show(tester, size);
       await maps(tester, _turn());

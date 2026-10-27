@@ -27,14 +27,15 @@ class NavParser {
     final shape = _isProgress(n) ? NavShape.progress : NavShape.classic;
 
     // A state with no turn in it has no picture. The notification then says
-    // `Starting navigation…`, with nothing under it, or `Rerouting...`, with
-    // an ETA that has no time in it (`Arrive `). Neither is read by its words,
-    // which are in the phone's language.
+    // `Starting navigation…`, with nothing under it (no sub text at all), or
+    // `Rerouting...`, with an ETA that has no time in it (`Arrive ` on Maps 25.33,
+    // an empty sub text on 26.42). Neither is read by its words, which are in the
+    // phone's language: a sub text that is there, empty or not, is a reroute.
     if (n.arrow == null) {
       final hasEta = subText != null && NavText.hasDigit(subText);
       if (!hasEta) {
         return NavState(
-          phase: subText == null ? NavPhase.starting : NavPhase.rerouting,
+          phase: n.subText == null ? NavPhase.starting : NavPhase.rerouting,
           receivedAt: now,
           shape: shape,
           message: title ?? text,
@@ -102,6 +103,18 @@ class NavParser {
         }
         timeLeft ??= NavText.duration(part);
       }
+    }
+
+    // "0 m" is not a distance to count down to. Maps writes it beside "Head east" and
+    // "towards ..." (there is nothing to turn at), and at the turn itself. The HUD
+    // has no figure to show either way: a turn with none puts the dot at the
+    // junction, which is also how it reads the progress shape, where Maps drops the
+    // distance in the last metres. (Seen on a real phone, Maps 26.42: "0 M" beside a
+    // straight arrow.)
+    if (distanceM != null && distanceM <= 0) {
+      imperial |= distanceText != null && NavText.isImperial(distanceText);
+      distanceText = null;
+      distanceM = null;
     }
 
     var derived = false;

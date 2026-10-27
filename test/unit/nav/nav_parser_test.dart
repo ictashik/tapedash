@@ -68,24 +68,29 @@ void main() {
       expect(s.etaText, isNull);
     });
 
-    test('the classic shape: distance, street, and time, distance and ETA', () {
-      final n = loadNavFixture(
-        'maps_25_33_android16.jsonl',
-      ).firstWhere((r) => r.notification?.title == '0 m').notification!;
-      final s = _parse(n);
+    test(
+      'the classic shape: street, time, distance and ETA; "0 m" is no distance',
+      () {
+        final n = loadNavFixture(
+          'maps_25_33_android16.jsonl',
+        ).firstWhere((r) => r.notification?.title == '0 m').notification!;
+        final s = _parse(n);
 
-      expect(s.phase, NavPhase.guiding);
-      expect(s.shape, NavShape.classic);
-      expect(s.distanceText, '0 m');
-      expect(s.distanceToTurnM, 0);
-      expect(s.instruction, 'toward Vittal Mallya Rd');
-      expect(s.timeLeft, const Duration(minutes: 28));
-      expect(s.timeLeftIsDerived, isFalse);
-      expect(s.distanceLeftM, closeTo(6700, 1e-9));
-      expect(s.etaText, '9:25 PM');
-      expect(s.eta, DateTime(2026, 10, 24, 21, 25));
-      expect(s.arrow!.id, '5c317d6e0e');
-    });
+        expect(s.phase, NavPhase.guiding);
+        expect(s.shape, NavShape.classic);
+        // Maps writes "0 m" beside "toward ..." (nothing to turn at): not a figure to
+        // show. Seen on a real phone as "0 M" beside a straight arrow.
+        expect(s.distanceText, isNull);
+        expect(s.distanceToTurnM, isNull);
+        expect(s.instruction, 'toward Vittal Mallya Rd');
+        expect(s.timeLeft, const Duration(minutes: 28));
+        expect(s.timeLeftIsDerived, isFalse);
+        expect(s.distanceLeftM, closeTo(6700, 1e-9));
+        expect(s.etaText, '9:25 PM');
+        expect(s.eta, DateTime(2026, 10, 24, 21, 25));
+        expect(s.arrow!.id, '5c317d6e0e');
+      },
+    );
 
     test('the classic shape with an empty title has no distance', () {
       final n = loadNavFixture('maps_25_33_android16.jsonl')
@@ -291,6 +296,92 @@ void main() {
       expect(s.timeLeft, const Duration(minutes: 28));
       expect(s.distanceLeftM, closeTo(6700, 1e-9));
       expect(s.etaText, '9:25 PM');
+    });
+  });
+
+  group('the notifications Google Maps 26.42 posted on the human\'s phone', () {
+    // Android 16, a Motorola, English (India), kilometres. The classic shape, not the
+    // progress shape of the emulator's Maps 25.33; the same fixed Bangalore test
+    // route, so every street is on a public map.
+    final records = loadNavFixture('maps_26_42_android16.jsonl');
+    // Maps 26.42 writes its distances and times with no-break spaces.
+    String plain(String? s) =>
+        (s ?? '').replaceAll(RegExp('[\u00A0\u202F]'), ' ');
+    final posted = records.where((r) => r.event == 'posted').toList();
+    final guiding = <NavState>[
+      for (final r in posted)
+        if (_parse(r.notification!).phase == NavPhase.guiding)
+          _parse(r.notification!),
+    ];
+
+    test('there is a real drive to read, with turns and reroutes', () {
+      expect(posted, hasLength(greaterThan(80)));
+      expect(guiding, hasLength(greaterThan(60)));
+      expect(
+        posted.where(
+          (r) =>
+              r.notification!.text == 'Rerouting...' ||
+              r.notification!.title == 'Rerouting...',
+        ),
+        isNotEmpty,
+      );
+    });
+
+    test('every guiding one is the classic shape with a sane figure', () {
+      for (final s in guiding) {
+        expect(s.shape, NavShape.classic);
+        expect(s.instruction, isNotNull);
+        if (s.distanceToTurnM != null) {
+          expect(s.distanceToTurnM, inInclusiveRange(1, 20000));
+        }
+        expect(s.distanceLeftM, isNotNull);
+        expect(s.etaText, matches(RegExp(r'^\d{1,2}:\d{2} pm$')));
+      }
+    });
+
+    test('"0 m" is never a distance to count down to', () {
+      // Maps writes "0 m" beside "Head east" and "towards ..." and at the turn itself,
+      // and an empty title between: the HUD showed "0 M" beside a straight arrow.
+      final zero = posted.where((r) => plain(r.notification!.title) == '0 m');
+      expect(zero, isNotEmpty);
+      for (final r in zero) {
+        final s = _parse(r.notification!);
+        expect(s.distanceText, isNull, reason: '${r.raw}');
+        expect(s.distanceToTurnM, isNull, reason: '${r.raw}');
+        expect(s.instruction, isNotNull);
+      }
+    });
+
+    test('a turn with its distance, the street, and the route left', () {
+      final r = posted.firstWhere(
+        (r) =>
+            plain(r.notification!.title) == '120 m' &&
+            r.notification!.text == 'Turn left',
+      );
+      final s = _parse(r.notification!);
+      expect(s.distanceText, '120 m');
+      expect(s.distanceToTurnM, 120);
+      expect(s.instruction, 'Turn left');
+      expect(s.timeLeft, const Duration(minutes: 25));
+      expect(s.distanceLeftM, closeTo(7100, 1e-9));
+      expect(s.etaText, '9:45 pm');
+      expect(s.arrow, isNotNull);
+    });
+
+    test('a lower-case "pm" ETA is read as Google wrote it', () {
+      final s = guiding.first;
+      expect(s.etaText, '9:42 pm');
+      expect(s.eta, DateTime(2026, 10, 24, 21, 42));
+    });
+
+    test('Rerouting... is a state of its own, with no figures', () {
+      final r = posted.firstWhere(
+        (r) => r.notification!.text == 'Rerouting...',
+      );
+      final s = _parse(r.notification!);
+      expect(s.phase, NavPhase.rerouting);
+      expect(s.distanceToTurnM, isNull);
+      expect(s.etaText, isNull);
     });
   });
 

@@ -6,10 +6,10 @@ import 'package:tapedash/nav/nav_arrow.dart';
 import 'package:tapedash/nav/nav_arrows.dart';
 import 'package:tapedash/nav/nav_bend.dart';
 
-NavArrow _real(String id) => NavArrow(
+NavArrow _real(String id, {int size = 126}) => NavArrow(
   id: id,
-  width: 126,
-  height: 126,
+  width: size,
+  height: size,
   alpha: File('test/fixtures/nav/arrows/$id.alpha').readAsBytesSync(),
 );
 
@@ -25,6 +25,25 @@ void main() {
 
     test('a turn to the right is right', () {
       expect(NavBendReader.of(_real('e687a80d8d')), NavBend.right);
+    });
+  });
+
+  group('the arrows Google Maps 26.42 drew (the human\'s phone, 135 px)', () {
+    test('straight ahead, a turn left and a turn right', () {
+      expect(
+        NavBendReader.of(_real('762942fb95', size: 135)),
+        NavBend.straight,
+      );
+      expect(NavBendReader.of(_real('3056e8deb3', size: 135)), NavBend.left);
+      expect(NavBendReader.of(_real('26a50ee8c7', size: 135)), NavBend.right);
+    });
+
+    test('a sharp right is not read as a left turn', () {
+      // The line leaning the wrong way would be worse than no lean: unknown draws it
+      // straight, and Google\'s own arrow says "sharp right".
+      final bend = NavBendReader.of(_real('3abbe8783c', size: 135));
+      expect(bend, isNot(NavBend.left));
+      expect(bend, NavBend.unknown);
     });
   });
 

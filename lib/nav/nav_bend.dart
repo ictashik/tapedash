@@ -19,8 +19,11 @@ enum NavBend {
 /// side, the head at the side: the ink at the top is on the side it turns to, and
 /// the ink at the bottom is on the other. A capture of Maps 25.33 gives a
 /// difference of 0.37 of the picture's width for a left turn (-) and a right turn
-/// (+), and nothing for straight ahead. A U-turn has ink on both sides and no
-/// difference, and is told from straight by being wider (docs/NAV.md).
+/// (+), and nothing for straight ahead; Maps 26.42's 135 px arrows give the same.
+/// A U-turn has ink on both sides and no difference, and is told from straight by
+/// being wider. An arrow that is none of these (a sharp turn, a roundabout) is
+/// `unknown`, and the HUD then draws no bend (docs/NAV.md): a line that leans
+/// the wrong way would be worse than one that does not lean.
 class NavBendReader {
   const NavBendReader._();
 
@@ -30,6 +33,13 @@ class NavBendReader {
   /// How far the top's middle must be from the bottom's, as a share of the
   /// picture's width, for a turn; and how near for a straight line.
   static const _turnShare = 0.12;
+
+  /// How far off the picture's middle the stem (the ink's bottom) must be, as a
+  /// share of its width, for a turn. Every turn arrow's stem rises from one side.
+  /// Maps 26.42's "Sharp right" is a hairpin: ink on both sides at the bottom, a
+  /// stem 0.00 off the middle, and a top-to-bottom difference of 0.12 that sat on
+  /// [_turnShare] and was read as a LEFT turn. Real turns are 0.28 to 0.35 here.
+  static const _stemShare = 0.12;
   static const _straightShare = 0.08;
 
   /// Wider than this share of the picture and with no difference: not straight.
@@ -70,8 +80,11 @@ class NavBendReader {
     if (upper == null || lower == null) return NavBend.unknown;
 
     final difference = (upper - lower) / w;
-    if (difference <= -_turnShare) return NavBend.left;
-    if (difference >= _turnShare) return NavBend.right;
+    final stem = (lower - w / 2).abs() / w;
+    if (stem >= _stemShare) {
+      if (difference <= -_turnShare) return NavBend.left;
+      if (difference >= _turnShare) return NavBend.right;
+    }
     final widthShare = (right - left + 1) / w;
     if (difference.abs() <= _straightShare &&
         widthShare < _straightWidthShare) {
