@@ -1083,7 +1083,7 @@ class _ReceiptState extends State<_Receipt> {
       for (final b in SpendBucket.values) trip.bucketLitres[b] ?? 0.0,
     ];
     final shownCost = apportion([for (final l in litres) l * (price ?? 0)]);
-    final shownPercent = apportion(litres, total: 100);
+    final shownPercent = apportionPercent(litres);
     NumeralSource roll(String key, double v, {int decimals = 1}) =>
         _source(key, v, widget.receiptShare, decimals);
     NumeralSource bar(String key, double v) =>

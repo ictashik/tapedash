@@ -46,3 +46,16 @@ List<int> apportion(List<double> values, {int? total}) {
   }
   return floors;
 }
+
+/// [parts] as whole percents of their own sum, adding up to 100: each part's share,
+/// not the part itself. All 0 when there is nothing.
+///
+/// Not `apportion(parts, total: 100)`, which rounds the parts as they are to a
+/// total of 100 without scaling them: litres of a trip come out as about a quarter
+/// each (CLAUDE.md 1.6, 8.7).
+List<int> apportionPercent(List<double> parts) {
+  final clean = [for (final v in parts) v.isFinite && v > 0 ? v : 0.0];
+  final sum = clean.fold<double>(0, (a, b) => a + b);
+  if (sum <= 0) return List.filled(parts.length, 0);
+  return apportion([for (final v in clean) v * 100 / sum], total: 100);
+}

@@ -221,7 +221,6 @@ class MoneySignals {
 
   void _onSpend() {
     final litres = trip.bucketLitres;
-    final total = litres.values.fold<double>(0, (a, b) => a + b);
     final price = settings.price.value;
     final now = clock.monotonic();
     // Whole rupees and whole percents that add up to their own total, so that
@@ -230,9 +229,7 @@ class MoneySignals {
     final rupees = price == null
         ? null
         : apportion([for (final l in parts) l * price]);
-    final percents = total <= 0
-        ? List.filled(parts.length, 0)
-        : apportion(parts, total: 100);
+    final percents = apportionPercent(parts);
     for (final (i, b) in SpendBucket.values.indexed) {
       if (rupees != null) {
         bucketCost[b]!.ingest(

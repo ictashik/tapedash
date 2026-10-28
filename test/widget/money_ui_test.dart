@@ -8,6 +8,7 @@ import 'package:tapedash/app/drive_services.dart';
 import 'package:tapedash/core/fake_clock.dart';
 import 'package:tapedash/core/observable.dart';
 import 'package:tapedash/money/pit_stop_form.dart';
+import 'package:tapedash/money/spend_bucket.dart';
 import 'package:tapedash/obd/obd_session.dart';
 import 'package:tapedash/ui/design/components/controls/tape_button.dart';
 import 'package:tapedash/ui/design/components/controls/tape_numpad.dart';
@@ -240,6 +241,21 @@ void main() {
       }
       expect(parts.fold<double>(0, (a, b) => a + b), 100);
     });
+
+    test(
+      'the parked breakdown percents are each bucket\'s share of the fuel',
+      () {
+        final rig = make();
+        rig.drive(60);
+
+        // A minute of steady driving is almost all normal driving: not a quarter
+        // of each bucket, which is what the litres came out as when they were
+        // rounded to a total of 100 rather than scaled to it.
+        final normal = rig.money.bucketPercent[SpendBucket.normal]!.target;
+        expect(normal, greaterThan(90));
+        expect(rig.money.bucketPercent[SpendBucket.highSpeed]!.target, 0);
+      },
+    );
 
     test('the parked breakdown shares add up to 100', () {
       final rig = make();

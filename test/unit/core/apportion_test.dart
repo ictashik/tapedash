@@ -59,4 +59,26 @@ void main() {
       }
     }
   });
+
+  group('apportionPercent', () {
+    test('is each part\'s share of the whole, not the part itself', () {
+      // Litres, as the buckets of a trip hold them: none of them is near 100.
+      expect(apportionPercent([0.9, 0.24, 0, 0]), [79, 21, 0, 0]);
+    });
+
+    test('adds up to 100 whatever the scale', () {
+      for (final scale in [0.001, 1.0, 1000.0]) {
+        final parts = apportionPercent([
+          for (final v in [3.0, 1.0, 1.0, 0.5]) v * scale,
+        ]);
+        expect(parts.fold<int>(0, (a, b) => a + b), 100);
+      }
+    });
+
+    test('is all 0 when there is nothing', () {
+      expect(apportionPercent([0, 0, 0, 0]), [0, 0, 0, 0]);
+      expect(apportionPercent([]), <int>[]);
+      expect(apportionPercent([double.nan, -1, 0, 0]), [0, 0, 0, 0]);
+    });
+  });
 }

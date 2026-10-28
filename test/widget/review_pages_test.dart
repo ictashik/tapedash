@@ -20,6 +20,7 @@ import 'package:tapedash/ui/design/motion/trip_player.dart';
 import 'package:tapedash/ui/design/render/render_kit.dart';
 import 'package:tapedash/ui/pages/coach/coach_page.dart';
 import 'package:tapedash/ui/pages/history/history_page.dart';
+import 'package:tapedash/ui/pages/money/bucket_breakdown.dart';
 import 'package:tapedash/ui/pages/review/replay_hud.dart';
 import 'package:tapedash/ui/pages/review/replay_sound.dart';
 import 'package:tapedash/ui/pages/review/review_page.dart';
@@ -195,6 +196,27 @@ void main() {
     testWidgets('with no trips it says so', (tester) async {
       await show(tester, review);
       expect(find.textContaining('No trips yet'), findsOneWidget);
+    });
+
+    testWidgets('where it went: the percents are each bucket\'s share', (
+      tester,
+    ) async {
+      // 0.9 litres of normal driving and 0.24 of idling.
+      await tester.runAsync(() async {
+        await addTrip(repo);
+        await library.refresh();
+      });
+      await show(tester, review);
+      await settle(tester, 4000);
+
+      // Review shows the percents as the widths of the bar, not as figures.
+      final bar = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((w) => w.painter)
+          .whereType<BucketBarPainter>()
+          .single;
+      expect(bar.shares[SpendBucket.normal]!.value, closeTo(79, 0.5));
+      expect(bar.shares[SpendBucket.idling]!.value, closeTo(21, 0.5));
     });
 
     testWidgets(
