@@ -1,0 +1,373 @@
+{
+  "features": [
+    {
+      "slug": "dashboard",
+      "group": "drive",
+      "title": "The dashboard",
+      "card": "Five cluster layouts, four liveries, Daylight and Night, drawn like an instrument and not like an app.",
+      "lede": "TapeDash is for people who know the best instrument clusters in the world and want that on their own dash. A tach arc, tapes, a road view and a telemetry grid, drawn with a glyph atlas so they do not jitter, on a phone that may be ten years old.",
+      "thumb": "build-video/frames/023-apex-cluster.jpg",
+      "thumb_alt": "The Apex cluster: a segmented tach arc around a large speed readout.",
+      "levels": [
+        [
+          "Simulator",
+          true
+        ],
+        [
+          "Emulator",
+          true
+        ],
+        [
+          "Real phone",
+          true
+        ],
+        [
+          "Real car (one BLE adapter)",
+          true
+        ]
+      ]
+    },
+    {
+      "slug": "hud",
+      "group": "drive",
+      "title": "The windshield HUD",
+      "card": "Mirrored, pure black, one colour, huge numerals, and an alignment pattern for setting it up on the glass.",
+      "lede": "Stick the phone face up on the dash, lay a reflector film or a 3D-printed holder over it, and the speed floats in the windshield. The HUD is one component of the design, not the whole of it: windshield optics have their own rules.",
+      "thumb": "site/img/hud-drive.png",
+      "thumb_alt": "The HUD: a huge green speed of 64 km/h on pure black with a thin rev bar beneath it.",
+      "levels": [
+        [
+          "Simulator",
+          true
+        ],
+        [
+          "Emulator",
+          true
+        ],
+        [
+          "Real phone",
+          true
+        ],
+        [
+          "On a windshield: not yet",
+          false
+        ]
+      ]
+    },
+    {
+      "slug": "navigation-hud",
+      "group": "drive",
+      "title": "Navigation on the HUD",
+      "card": "The next turn, the ETA and your speed from Google Maps, read from one notification. TapeDash stays offline.",
+      "lede": "Start a route in Google Maps and the HUD takes over: the turn, the distance to it, the street, your ETA and your speed, in one colour on pure black. Google Maps does the routing and the talking to the internet. TapeDash does neither.",
+      "thumb": "design-review/nav/screenshots/render-right.png",
+      "thumb_alt": "The navigation HUD: speed 54 on the left, a right-turn arrow with 650 m and the instruction on the right.",
+      "levels": [
+        [
+          "Simulator",
+          true
+        ],
+        [
+          "Emulator (Android 16 and 7)",
+          true
+        ],
+        [
+          "Real phone, faked GPS",
+          true
+        ],
+        [
+          "Real drive: not yet",
+          false
+        ]
+      ]
+    },
+    {
+      "slug": "gps-only",
+      "group": "drive",
+      "title": "GPS speed only",
+      "card": "No adapter? The speed, distance and time from the phone's GPS alone, and nothing invented.",
+      "lede": "Choose GPS SPEED ONLY on the first screen and TapeDash is a big, honest speedometer with what a GPS can truly add up to. It does not pretend to read the engine, so it shows no tach, money or coach.",
+      "thumb": "site/img/gps-cluster-city-800.jpg",
+      "thumb_alt": "The GPS-only screen: a speed of 50 km/h with distance, moving time, average, fastest and heading beneath.",
+      "levels": [
+        [
+          "Simulator",
+          true
+        ],
+        [
+          "Emulator",
+          true
+        ],
+        [
+          "Real phone: not yet",
+          false
+        ]
+      ]
+    },
+    {
+      "slug": "money",
+      "group": "money",
+      "title": "Where the money goes",
+      "card": "Rupees per trip, per kilometre and for idling, with every rupee sorted into exactly one bucket.",
+      "lede": "A trip computer that answers the question a fuel gauge never does: what did this drive cost, and where did it go? Every rupee falls into exactly one of four buckets, and the buckets always add up to the trip.",
+      "thumb": "site/img/page-money-motion.jpg",
+      "thumb_alt": "The Money page: a large rupee figure, rupees per kilometre, km per litre, and the Money Tape of rupee blocks.",
+      "levels": [
+        [
+          "Simulator, against ground truth",
+          true
+        ],
+        [
+          "Emulator",
+          true
+        ],
+        [
+          "Real phone",
+          true
+        ],
+        [
+          "Real car (MAF fuel source)",
+          true
+        ],
+        [
+          "Against a pump: not yet",
+          false
+        ]
+      ]
+    },
+    {
+      "slug": "fuel-and-fill-ups",
+      "group": "money",
+      "title": "Fuel, fill-ups and calibration",
+      "card": "How TapeDash estimates the fuel, and how two full tanks teach it to be right about your car.",
+      "lede": "A cheap adapter cannot tell you the litres, so TapeDash works them out from what the car does report, shows which method it used, and lets your fill-ups correct it. The figures are estimates and say so.",
+      "thumb": "site/img/pitstop-typed.jpg",
+      "thumb_alt": "Pit Stop: a number pad, litres typed as 32.5, a price a litre and a Tank filled full switch.",
+      "levels": [
+        [
+          "Simulator, against ground truth",
+          true
+        ],
+        [
+          "Emulator",
+          true
+        ],
+        [
+          "Against a real fill-up: not yet",
+          false
+        ]
+      ]
+    },
+    {
+      "slug": "coach",
+      "group": "learn",
+      "title": "The driving coach",
+      "card": "A gentle coach that never speaks while you drive: a quiet bar on the dash, and advice only when you are stopped.",
+      "lede": "It does not nag. While you drive it shows one wordless cue. When the car is stopped or the trip is over, it points at the one or two things that cost you the most, in rupees, and never calls anything wasted.",
+      "thumb": "site/img/page-coach.png",
+      "thumb_alt": "The Coach page: kilometres a litre at each steady speed with the sweet spot marked at 60 to 70 km/h.",
+      "levels": [
+        [
+          "Simulator",
+          true
+        ],
+        [
+          "Emulator",
+          true
+        ],
+        [
+          "Judged on real drives: not yet",
+          false
+        ]
+      ]
+    },
+    {
+      "slug": "trips",
+      "group": "learn",
+      "title": "Trips, Review and History",
+      "card": "Every trip kept as a route, a receipt and a replay you can scrub, with a Debrief when it ends.",
+      "lede": "When the engine goes off, the trip becomes a receipt, a route and a barcode of where the money went. Review replays it like a game, History lists them, and all of it stays on the phone.",
+      "thumb": "site/img/replay-720-2-moving.png",
+      "thumb_alt": "Review replaying a trip: a chase camera on the route, instruments for speed and revs, and the receipt.",
+      "levels": [
+        [
+          "Simulator",
+          true
+        ],
+        [
+          "Emulator",
+          true
+        ],
+        [
+          "Real phone (Review)",
+          true
+        ],
+        [
+          "Replay and map by finger: not yet",
+          false
+        ]
+      ]
+    },
+    {
+      "slug": "insights",
+      "group": "learn",
+      "title": "Insights",
+      "card": "Nine things your drives can tell you: the battery, where the energy went, a dyno chart, your gearbox, the tank and more.",
+      "lede": "A dash that has read your car for weeks knows things. Insights turns the trips into a voltage trace, a powerflow, a power curve, a found gearbox, a counted tank, a toll map, a cold-start bill, a ghost commute and a year on tape.",
+      "thumb": "site/img/insights-powerflow.png",
+      "thumb_alt": "Insights, Powerflow: where the energy in a trip's fuel went, from the fuel to the wheels, idling and heat.",
+      "levels": [
+        [
+          "Simulator",
+          true
+        ],
+        [
+          "Run on real recordings",
+          true
+        ],
+        [
+          "Share sheet on a phone: not yet",
+          false
+        ]
+      ]
+    },
+    {
+      "slug": "diagnostics",
+      "group": "car",
+      "title": "Fault codes and the PID matrix",
+      "card": "Read stored and pending fault codes in plain words, see what your car answers, and clear codes only when stopped.",
+      "lede": "Read what the engine computer has stored, look it up in a bundled list, and see exactly which readings your car reports. Clearing codes needs a long slide, and only works with the car at a standstill.",
+      "thumb": "site/img/page-diagnostics.png",
+      "thumb_alt": "Diagnostics: the adapter details, a grid of the PIDs the car answers, two fault codes with descriptions and a slide to clear.",
+      "levels": [
+        [
+          "Simulator, with injected codes",
+          true
+        ],
+        [
+          "Emulator",
+          true
+        ],
+        [
+          "Codes on a real car: not yet",
+          false
+        ]
+      ]
+    },
+    {
+      "slug": "engine-sound",
+      "group": "car",
+      "title": "Engine sound",
+      "card": "An optional engine note made in code that says only what the tach says. Off until you turn it on.",
+      "lede": "It is not a cue, an alert or a voice. It is the needle's sound: the same revs the tach shows, played through the car's audio, glid so that a late reading is never a click. Seven engines, no recordings, nothing to license.",
+      "thumb": "site/img/engine-spectrogram.jpg",
+      "thumb_alt": "A spectrogram of the synthesised engine: a fan of harmonics rising with the revs.",
+      "levels": [
+        [
+          "Simulator: pitch, level, silence",
+          true
+        ],
+        [
+          "Heard on a phone: not yet",
+          false
+        ]
+      ]
+    },
+    {
+      "slug": "watch",
+      "group": "platform",
+      "title": "The watch",
+      "card": "The same APK on a Wear OS watch: a round face, a reel of four faces, and the bezel as input.",
+      "lede": "TapeDash also runs on an Android watch, on its own screens, and talks to the adapter itself. A round Drive face, Money, Where it went and a menu wheel, turned by the bezel. What does not fit a wrist stays on the phone.",
+      "thumb": "design-review/watch/screenshots/05-drive-moving-a.png",
+      "thumb_alt": "The watch's Drive face: a segmented rev arc round the rim, the speed 26 in the core and rupees below.",
+      "levels": [
+        [
+          "Simulator",
+          true
+        ],
+        [
+          "Wear OS 3 emulator",
+          true
+        ],
+        [
+          "On a real watch: not yet",
+          false
+        ]
+      ]
+    },
+    {
+      "slug": "data",
+      "group": "platform",
+      "title": "Garage, exchange and survey",
+      "card": "Settings that stay out of the way, a file format to move your data by hand, and a read-only survey of your car.",
+      "lede": "Everything you can set lives in Garage and only opens when you are parked. Your data leaves as a plain file you can read. And a survey drive can ask every module in the car what it knows, to find out what TapeDash could show next.",
+      "thumb": "site/img/page-garage-1.png",
+      "thumb_alt": "Garage: fuel type, ethanol blend, engine size and tank size.",
+      "levels": [
+        [
+          "Simulator",
+          true
+        ],
+        [
+          "Emulator and Wear OS emulator",
+          true
+        ],
+        [
+          "Survey: a first file from a real car",
+          true
+        ],
+        [
+          "Share and file picker on a phone: not yet",
+          false
+        ]
+      ]
+    },
+    {
+      "slug": "offline",
+      "group": "principles",
+      "title": "Strictly offline",
+      "card": "No cloud, accounts, analytics, ads or price lookups. Enforced by a check that fails the build.",
+      "lede": "TapeDash never connects to the internet. There is nothing to sign into, nothing to sync and nothing that phones home. This page, and the whole site, loads nothing from anywhere else either.",
+      "thumb": "design-review/nav/screenshots/emulator-garage-navigation-granted.png",
+      "thumb_alt": "Garage, Navigation group: the switch on, with a plain note on what notification access lets the app see and what it does not.",
+      "levels": [
+        [
+          "Checked on every commit",
+          true
+        ],
+        [
+          "Release manifest checked",
+          true
+        ],
+        [
+          "Dependencies checked",
+          true
+        ]
+      ]
+    },
+    {
+      "slug": "simulator",
+      "group": "principles",
+      "title": "Built on a simulator",
+      "card": "A physical car model, scripted drivers and an ELM327 that prints byte-accurate text, so every feature is tested without a car.",
+      "lede": "Everything is built and tested against a simulated car first. It has a mass, drag and a CVT, a warm-up, a fuel tank and exact ground truth, so the tests can ask whether the app's estimates are right, not just whether it runs.",
+      "thumb": "site/img/shell-later.jpg",
+      "thumb_alt": "The app on a simulated drive: the Apex cluster at 41 km/h with the page tape beneath.",
+      "levels": [
+        [
+          "Runs the whole test suite",
+          true
+        ],
+        [
+          "Served to the real WiFi code over TCP",
+          true
+        ],
+        [
+          "Profiles are approximations",
+          false
+        ]
+      ]
+    }
+  ]
+}

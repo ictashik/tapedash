@@ -1,0 +1,79 @@
+    <section aria-labelledby="h-wrist">
+      <p class="eyebrow">A second screen, on your wrist</p>
+      <h2 id="h-wrist">The phone's screens, made small, do not fit a watch</h2>
+      <p class="sub">The same app ran on a Galaxy Watch4 Classic and connected and drove, but the screens were a phone's and did not fit a circle. So the watch has its own surface, chosen when the system says the device is a watch or its shorter side is under 300 lp. It talks to the adapter itself, and everything that does not fit a wrist stays the phone's.</p>
+      <div class="grid round">
+        {{fig: design-review/watch/screenshots/00-before-choice-overflow.png | The phone's first screen squeezed onto a watch: a button overflowing the circle with an overflow warning. | <b>Before.</b> The phone's first screen on a watch: overflowed by 269 pixels.}}
+        {{fig: design-review/watch/screenshots/00b-before-drive-phone-ui.png | The phone's Drive screen on a watch with the speed, labels and money on top of each other. | <b>Before.</b> The phone's Drive screen at watch size: the figures on top of each other.}}
+      </div>
+    </section>
+
+    <section aria-labelledby="h-reel">
+      <p class="eyebrow">The reel</p>
+      <h2 id="h-reel">Four faces, turned by the bezel</h2>
+      <p class="sub">A reel of faces turned by the rotating bezel, a vertical swipe or a tap. While the car moves it reaches two faces, and while parked four. Back does nothing while moving.</p>
+      <div class="grid round">
+        {{fig: design-review/watch/screenshots/05-drive-moving-a.png | The Drive face: a segmented rev arc round the rim, a speed of 26 in the core and rupees below. | <b>Drive.</b> The revs round the rim, the speed in the core, the rupees in the foot.}}
+        {{fig: design-review/watch/screenshots/06-drive-moving-b.png | The Drive face at 50 km/h with the arc higher. | <b>Moving.</b> The eco bar bends into the opening of the ring.}}
+        {{fig: design-review/watch/screenshots/07-drive-parked.png | The Drive face parked: the speed 0, the trip distance and time above it and the rupees beneath. | <b>Parked.</b> The trip's distance and time come up over the speed.}}
+        {{fig: design-review/watch/screenshots/08-money.png | The Money face: a ring of cells round the rim with 10 rupees for this trip in the middle. | <b>Money.</b> Every rupee is a cell of the ring.}}
+        {{fig: design-review/watch/screenshots/09-where-it-went.png | The Where it went face: the four buckets in rupees with a ring round the rim. | <b>Where it went.</b> The four buckets, with the confidence marked as an estimate.}}
+        {{fig: design-review/watch/screenshots/16-where-ion.png | Where it went in the ION livery with a full ring. | <b>In the ION livery.</b>}}
+        {{fig: design-review/watch/screenshots/17-where-ember.png | Where it went in the EMBER livery. | <b>In EMBER.</b>}}
+        {{fig: design-review/watch/screenshots/18-where-vfd.png | Where it went in the VFD livery with seven-segment figures. | <b>In VFD.</b>}}
+      </div>
+    </section>
+
+    <section aria-labelledby="h-menu">
+      <p class="eyebrow">The wheel</p>
+      <h2 id="h-menu">Settings as a wheel, with the bezel</h2>
+      <p class="sub">The menu is a wheel: connect, speed from, the price as a dial, look, data, end trip and about. Turn the bezel to move through it.</p>
+      <div class="grid round">
+        {{fig: design-review/watch/screenshots/10-menu-cover.png | The menu cover with a house glyph, the word MENU and Tap to open. | <b>The menu.</b> Tap to open.}}
+        {{fig: design-review/watch/screenshots/11-menu-wheel.png | The menu wheel showing Connect, Simulated ELM327, with Speed from below. | <b>Connect.</b> The adapter, with the next row beneath.}}
+        {{fig: design-review/watch/screenshots/12-look-wheel.png | The look wheel with ION above, EMBER selected and VFD beneath. | <b>Look.</b> The livery wheel.}}
+        {{fig: design-review/watch/screenshots/14-data-wheel.png | The data wheel with Export selected and Import beneath. | <b>Data.</b> Export, and import from an inbox folder.}}
+      </div>
+    </section>
+
+    <section aria-labelledby="h-first">
+      <p class="eyebrow">First run</p>
+      <h2 id="h-first">Set up on the watch, or from your laptop</h2>
+      <div class="grid round">
+        {{fig: design-review/watch/screenshots/01-choice.png | The watch's first screen: TAPEDASH with Connect my car and GPS speed only buttons. | <b>The choice.</b> Two buttons inside the circle.}}
+        {{fig: design-review/watch/screenshots/02-adapter-type.png | The connect flow choosing Bluetooth or WiFi on a wheel. | <b>Adapter type.</b> As a wheel.}}
+        {{fig: design-review/watch/screenshots/03-adapters-found.png | The connect flow listing adapters found by a Bluetooth scan, nearest first. | <b>Adapters found,</b> nearest first. This is the emulator's real Bluetooth scan.}}
+        {{fig: design-review/watch/screenshots/04-gps-only.png | The GPS-only face with a speed arc, the distance and a GPS glyph. | <b>GPS only.</b> A speed arc round the rim and the distance.}}
+      </div>
+      <p class="sub" style="margin-top:22px">Typing a setup on a watch is awful, so a setup can instead be sent from your laptop as a file: the adapter, the source and the fuel price arrive in one line of an <a href="data.html">exchange file</a>.</p>
+    </section>
+
+    <section aria-labelledby="h-not-watch">
+      <p class="eyebrow">What stays on the phone</p>
+      <h2 id="h-not-watch">Left out on purpose</h2>
+      <p class="sub">No HUD, engine sound, Review, Coach, History, Insights, Diagnostics or Pit Stop on the watch. They do not fit a wrist, and they belong to the phone. The watch starts at the lowest fidelity tier and is held to Balanced, and its heat warnings come earlier, at 41 and 45 degrees.</p>
+    </section>
+
+    <section aria-labelledby="h-where-watch">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-where-watch">Only an emulator has seen it</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Seen</h3>
+          <ul>
+            <li><span>The faces rendered at 192, 198, 225, 240 and 280 lp in circular-masked sheets, with a test that fails on any lit pixel outside the circle or a line of text over the rim.</span></li>
+            <li><span>The whole app on a simulated car at those sizes with the bezel, the wheel, the menu, the price dial and an export.</span></li>
+            <li><span>An APK built, installed and driven on a Wear OS 3 emulator with a 454 px round panel: the first run, a setup pushed over adb, the drive over WiFi to the simulator, and an export read back on the laptop.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet</h3>
+          <ul>
+            <li><span>A real watch: the rotating bezel, orientation, Back and Home, and battery and heat on a 250 to 400 mAh cell with the screen kept on.</span></li>
+            <li><span>The wrist test in sunlight on an AMOLED.</span></li>
+            <li><span>How Wear OS treats an app that keeps the screen awake through a drive, in ambient mode and in the background.</span></li>
+            <li><span>Not built: the dim after 60 seconds parked, and the car's fuel, tank and price as dials in the connect flow.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>

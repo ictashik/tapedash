@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#050607">
+<title>TapeDash: a car dashboard from an old phone</title>
+<meta name="description" content="A free, open-source, strictly offline Android app: a car dashboard, a windshield HUD and a trip computer that shows where the money goes, from a cheap OBD-II adapter.">
+<link rel="icon" href="site/icon.png">
+<link rel="stylesheet" href="site/site.css">
+</head>
+<body class="landing">
+<div class="wrap">
+  <header class="bar">
+    <a class="mark" href="index.html">Tape<span>Dash</span></a>
+    <nav aria-label="Site">
+      <a href="index.html#features" aria-current="page">Features</a>
+      <a href="features/offline.html">Offline</a>
+      <a href="index.html#status">Status</a>
+      <a href="https://github.com/ictashik/tapedash">GitHub</a>
+    </nav>
+  </header>
+  <main id="top">
+    <section class="hero-landing" aria-labelledby="h-hero">
+      <p class="eyebrow"><b>Free</b> &nbsp;/&nbsp; Open source &nbsp;/&nbsp; Strictly offline</p>
+      <h1 id="h-hero">An old phone, an OBD adapter and a roll of tape.</h1>
+      <p class="lede sub">TapeDash turns a cheap Android phone into a car dashboard drawn like the best instrument clusters, a windshield HUD, and a trip computer that shows where the money goes. It reads your car through an ELM327 adapter that costs a few hundred rupees, and it never connects to the internet.</p>
+      <div class="cta">
+        <a class="btn primary" href="#features">See the features</a>
+        <a class="btn" href="https://github.com/ictashik/tapedash">Source on GitHub</a>
+      </div>
+
+      <div class="lead-shot">
+        <figure>
+          <button class="zoom" type="button"><img src="build-video/frames/023-apex-cluster.jpg" width="1280" height="720" alt="The Apex cluster: a segmented tach arc around a large speed readout, with coolant and rupees beside it."></button>
+          <figcaption>The Apex cluster, drawn by the real app on the built-in simulator.</figcaption>
+        </figure>
+      </div>
+      <div class="grid g3">
+        <figure>
+          <button class="zoom" type="button"><img src="site/img/hud-drive-money.png" width="1440" height="720" loading="lazy" alt="The Drive and Money HUD: speed 64 on the left, money on the right, in one green colour on pure black."></button>
+          <figcaption><b>The HUD</b> is pure black and one colour, so the glass shows only the numerals.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="site/img/page-money-motion.jpg" width="1440" height="720" loading="lazy" alt="The Money page: a large rupee figure, rupees per kilometre, kilometres per litre and the Money Tape."></button>
+          <figcaption><b>The Money page</b> counts rupees as you drive, and the tape shows where each one went.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="site/img/page-coach.png" width="1440" height="720" loading="lazy" alt="The Coach page: kilometres a litre at each steady speed, with the sweet spot marked."></button>
+          <figcaption><b>The Coach</b> finds your own sweet spot, and only speaks when the car is stopped.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-what">
+      <p class="eyebrow">What it does</p>
+      <h2 id="h-what">Three jobs, from one cheap adapter</h2>
+      <div class="facts">
+        <div class="fact"><b>A dashboard that feels designed</b><p>Five layouts, four liveries, numerals that roll with a detent and needles that never jitter. It is meant to look deliberate on a 2016 phone, not just a flagship.</p></div>
+        <div class="fact"><b>A trip computer for your wallet</b><p>Rupees per trip, per kilometre and for idling. Every rupee goes into exactly one bucket, so the buckets always add up to the trip.</p></div>
+        <div class="fact"><b>A gentle coach</b><p>It never nags while you drive. Tips appear only when you are stopped or the trip has ended, they are factual, and they never shame.</p></div>
+      </div>
+    </section>
+
+    <section id="features" aria-labelledby="h-features">
+      <p class="eyebrow">Every feature</p>
+      <h2 id="h-features">What is in it</h2>
+      <p class="sub">Each page says what the feature does, shows the real app, and says plainly where it has and has not been seen working.</p>
+      <h3 class="group">On the dash</h3>
+      <div class="cards">
+        <a class="card" href="features/dashboard.html">
+          <div class="thumb"><img src="build-video/frames/023-apex-cluster.jpg" width="1600" height="800" loading="lazy" alt="The Apex cluster: a segmented tach arc around a large speed readout."></div>
+          <div class="body"><h3>The dashboard</h3><p>Five cluster layouts, four liveries, Daylight and Night, drawn like an instrument and not like an app.</p></div>
+        </a>
+        <a class="card" href="features/hud.html">
+          <div class="thumb"><img src="site/img/hud-drive.png" width="1440" height="720" loading="lazy" alt="The HUD: a huge green speed of 64 km/h on pure black with a thin rev bar beneath it."></div>
+          <div class="body"><h3>The windshield HUD</h3><p>Mirrored, pure black, one colour, huge numerals, and an alignment pattern for setting it up on the glass.</p></div>
+        </a>
+        <a class="card" href="features/navigation-hud.html">
+          <div class="thumb"><img src="design-review/nav/screenshots/render-right.png" width="1440" height="720" loading="lazy" alt="The navigation HUD: speed 54 on the left, a right-turn arrow with 650 m and the instruction on the right."></div>
+          <div class="body"><h3>Navigation on the HUD</h3><p>The next turn, the ETA and your speed from Google Maps, read from one notification. TapeDash stays offline.</p></div>
+        </a>
+        <a class="card" href="features/gps-only.html">
+          <div class="thumb"><img src="site/img/gps-cluster-city-800.jpg" width="1600" height="720" loading="lazy" alt="The GPS-only screen: a speed of 50 km/h with distance, moving time, average, fastest and heading beneath."></div>
+          <div class="body"><h3>GPS speed only</h3><p>No adapter? The speed, distance and time from the phone&#x27;s GPS alone, and nothing invented.</p></div>
+        </a>
+      </div>
+      <h3 class="group">Where the money goes</h3>
+      <div class="cards">
+        <a class="card" href="features/money.html">
+          <div class="thumb"><img src="site/img/page-money-motion.jpg" width="1600" height="720" loading="lazy" alt="The Money page: a large rupee figure, rupees per kilometre, km per litre, and the Money Tape of rupee blocks."></div>
+          <div class="body"><h3>Where the money goes</h3><p>Rupees per trip, per kilometre and for idling, with every rupee sorted into exactly one bucket.</p></div>
+        </a>
+        <a class="card" href="features/fuel-and-fill-ups.html">
+          <div class="thumb"><img src="site/img/pitstop-typed.jpg" width="1280" height="720" loading="lazy" alt="Pit Stop: a number pad, litres typed as 32.5, a price a litre and a Tank filled full switch."></div>
+          <div class="body"><h3>Fuel, fill-ups and calibration</h3><p>How TapeDash estimates the fuel, and how two full tanks teach it to be right about your car.</p></div>
+        </a>
+      </div>
+      <h3 class="group">Learning from your drives</h3>
+      <div class="cards">
+        <a class="card" href="features/coach.html">
+          <div class="thumb"><img src="site/img/page-coach.png" width="1440" height="720" loading="lazy" alt="The Coach page: kilometres a litre at each steady speed with the sweet spot marked at 60 to 70 km/h."></div>
+          <div class="body"><h3>The driving coach</h3><p>A gentle coach that never speaks while you drive: a quiet bar on the dash, and advice only when you are stopped.</p></div>
+        </a>
+        <a class="card" href="features/trips.html">
+          <div class="thumb"><img src="site/img/replay-720-2-moving.png" width="1440" height="720" loading="lazy" alt="Review replaying a trip: a chase camera on the route, instruments for speed and revs, and the receipt."></div>
+          <div class="body"><h3>Trips, Review and History</h3><p>Every trip kept as a route, a receipt and a replay you can scrub, with a Debrief when it ends.</p></div>
+        </a>
+        <a class="card" href="features/insights.html">
+          <div class="thumb"><img src="site/img/insights-powerflow.png" width="1280" height="720" loading="lazy" alt="Insights, Powerflow: where the energy in a trip&#x27;s fuel went, from the fuel to the wheels, idling and heat."></div>
+          <div class="body"><h3>Insights</h3><p>Nine things your drives can tell you: the battery, where the energy went, a dyno chart, your gearbox, the tank and more.</p></div>
+        </a>
+      </div>
+      <h3 class="group">The car</h3>
+      <div class="cards">
+        <a class="card" href="features/diagnostics.html">
+          <div class="thumb"><img src="site/img/page-diagnostics.png" width="1440" height="720" loading="lazy" alt="Diagnostics: the adapter details, a grid of the PIDs the car answers, two fault codes with descriptions and a slide to clear."></div>
+          <div class="body"><h3>Fault codes and the PID matrix</h3><p>Read stored and pending fault codes in plain words, see what your car answers, and clear codes only when stopped.</p></div>
+        </a>
+        <a class="card" href="features/engine-sound.html">
+          <div class="thumb"><img src="site/img/engine-spectrogram.jpg" width="1440" height="720" loading="lazy" alt="A spectrogram of the synthesised engine: a fan of harmonics rising with the revs."></div>
+          <div class="body"><h3>Engine sound</h3><p>An optional engine note made in code that says only what the tach says. Off until you turn it on.</p></div>
+        </a>
+      </div>
+      <h3 class="group">Other screens and your data</h3>
+      <div class="cards">
+        <a class="card" href="features/watch.html">
+          <div class="thumb"><img src="design-review/watch/screenshots/05-drive-moving-a.png" width="454" height="454" loading="lazy" alt="The watch&#x27;s Drive face: a segmented rev arc round the rim, the speed 26 in the core and rupees below."></div>
+          <div class="body"><h3>The watch</h3><p>The same APK on a Wear OS watch: a round face, a reel of four faces, and the bezel as input.</p></div>
+        </a>
+        <a class="card" href="features/data.html">
+          <div class="thumb"><img src="site/img/page-garage-1.png" width="1440" height="720" loading="lazy" alt="Garage: fuel type, ethanol blend, engine size and tank size."></div>
+          <div class="body"><h3>Garage, exchange and survey</h3><p>Settings that stay out of the way, a file format to move your data by hand, and a read-only survey of your car.</p></div>
+        </a>
+      </div>
+      <h3 class="group">How it is built</h3>
+      <div class="cards">
+        <a class="card" href="features/offline.html">
+          <div class="thumb"><img src="design-review/nav/screenshots/emulator-garage-navigation-granted.png" width="2400" height="1080" loading="lazy" alt="Garage, Navigation group: the switch on, with a plain note on what notification access lets the app see and what it does not."></div>
+          <div class="body"><h3>Strictly offline</h3><p>No cloud, accounts, analytics, ads or price lookups. Enforced by a check that fails the build.</p></div>
+        </a>
+        <a class="card" href="features/simulator.html">
+          <div class="thumb"><img src="site/img/shell-later.jpg" width="1280" height="720" loading="lazy" alt="The app on a simulated drive: the Apex cluster at 41 km/h with the page tape beneath."></div>
+          <div class="body"><h3>Built on a simulator</h3><p>A physical car model, scripted drivers and an ELM327 that prints byte-accurate text, so every feature is tested without a car.</p></div>
+        </a>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-principles">
+      <p class="eyebrow">The rules it keeps</p>
+      <h2 id="h-principles">Six promises</h2>
+      <div class="rules">
+        <div class="rule"><h3>Strictly offline</h3><p>No cloud, accounts, analytics, crash reporting, ads or price lookups. You type the fuel price in. <a href="features/offline.html">How that is enforced.</a></p></div>
+        <div class="rule"><h3>Old phones first</h3><p>Designed to run smoothly on a 2 GB, 32-bit ARM phone with a 720p screen on Android 7.</p></div>
+        <div class="rule"><h3>Open source</h3><p>Apache-2.0, no Google Play Services, no Firebase, no proprietary SDKs, F-Droid compatible.</p></div>
+        <div class="rule"><h3>Honest numbers</h3><p>Fuel and money are estimates, labelled as such, with the calibration confidence shown. Rupees are whole, and km/L has one decimal.</p></div>
+        <div class="rule"><h3>Safe by design</h3><p>Nothing on a driving screen needs a touch. Settings, tips, fill-ups and fault-code clearing open only when you are parked.</p></div>
+        <div class="rule"><h3>Simulator first</h3><p>Every feature runs end to end on a built-in simulated car, headlessly, in the tests. <a href="features/simulator.html">How the simulator works.</a></p></div>
+      </div>
+    </section>
+
+    <section id="status" aria-labelledby="h-status">
+      <p class="eyebrow">Status</p>
+      <h2 id="h-status">Pre-alpha, and being driven on a real car</h2>
+      <p class="sub">The app is built and tested on the simulator, and the first real drives are in. It has not been tried on every adapter or in every car, and no feature page claims more than has been seen.</p>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Seen working</h3>
+          <ul>
+            <li><span>The whole app, headlessly, on a simulated car: thousands of tests, with the app's estimates compared against the simulator's exact ground truth.</span></li>
+            <li><span>A Bluetooth Low Energy adapter in one petrol car, over several long drives, on a real phone.</span></li>
+            <li><span>The navigation HUD with real Google Maps, on Android 16 and Android 7 emulators and on the target phone with a faked position.</span></li>
+            <li><span>The watch interface on a Wear OS 3 emulator.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet seen</h3>
+          <ul>
+            <li><span>WiFi and Bluetooth Classic adapters in a real car.</span></li>
+            <li><span>Fuel and money checked against a real fill-up.</span></li>
+            <li><span>The HUD on a real windshield, in sunlight.</span></li>
+            <li><span>The watch interface on a real watch.</span></li>
+            <li><span>A long drive in the heat with every feature on.</span></li>
+          </ul>
+        </div>
+      </div>
+      <p class="sub" style="margin-top:22px">The blunt, current version is <a href="https://github.com/ictashik/tapedash/blob/main/docs/STATUS.md">docs/STATUS.md</a> in the repository.</p>
+    </section>
+
+    <section aria-labelledby="h-try">
+      <p class="eyebrow">Try it</p>
+      <h2 id="h-try">Without a car, or with one</h2>
+      <div class="pair">
+        <div class="prose">
+          <h3>No car, no adapter</h3>
+          <p>Install it on an Android phone or emulator and choose <b style="color:var(--ink-bright)">GPS SPEED ONLY</b> on the first screen. To see the whole app on a simulated car, run the simulator on your computer and connect the app to it over WiFi.</p>
+          <h3>In the car</h3>
+          <p>Plug the ELM327 into the OBD port, mount the phone, choose <b style="color:var(--ink-bright)">CONNECT MY CAR</b> and drive. There are no release builds yet, so build from source. The steps, and a script for testing on a real car, are in the repository.</p>
+        </div>
+        <div>
+<pre class="code" aria-label="Commands to run the simulator and build the app"><code># the simulator, served over TCP
+dart run tool/sim_server.dart --scenario city_stop_go
+
+# the app, on a connected phone
+flutter build apk --release --split-per-abi \
+  --target-platform android-arm,android-arm64
+adb install -r build/app/outputs/flutter-apk/app-arm64-v8a-release.apk</code></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="links">
+      <a href="https://github.com/ictashik/tapedash">Source on GitHub</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/docs/STATUS.md">What is verified (STATUS.md)</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/DESIGN.md">Design spec</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/CLAUDE.md">Architecture and rules</a>
+    </div>
+    <p>TapeDash is a free, open-source, strictly offline Android app. Fuel and money figures are estimates. It is an aid, not a certified instrument: set it up while parked, and you remain responsible for driving safely.</p>
+    <p>This page itself loads nothing from anywhere else: no web fonts, scripts, analytics or embeds. Google Maps is a trademark of Google LLC; TapeDash is independent and is not affiliated with or endorsed by Google.</p>
+  </footer>
+</div>
+
+<dialog id="lightbox" aria-label="Screenshot">
+  <img id="lbImg" alt="">
+  <div class="cap">
+    <span id="lbCap"></span>
+    <form method="dialog"><button class="btn" autofocus>Close</button></form>
+  </div>
+</dialog>
+
+<script src="site/site.js"></script>
+</body>
+</html>

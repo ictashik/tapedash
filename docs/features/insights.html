@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#050607">
+<title>Insights | TapeDash</title>
+<meta name="description" content="Nine things your drives can tell you: the battery, where the energy went, a dyno chart, your gearbox, the tank and more.">
+<link rel="icon" href="../site/icon.png">
+<link rel="stylesheet" href="../site/site.css">
+</head>
+<body class="feature">
+<div class="wrap">
+  <header class="bar">
+    <a class="mark" href="../index.html">Tape<span>Dash</span></a>
+    <nav aria-label="Site">
+      <a href="../index.html#features">Features</a>
+      <a href="../features/offline.html">Offline</a>
+      <a href="../index.html#status">Status</a>
+      <a href="https://github.com/ictashik/tapedash">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="pagehead" aria-labelledby="h-page">
+      <p class="crumbs"><a href="../index.html#features">Features</a> / Learning from your drives</p>
+      <h1 id="h-page">Insights</h1>
+      <p class="lede sub">A dash that has read your car for weeks knows things. Insights turns the trips into a voltage trace, a powerflow, a power curve, a found gearbox, a counted tank, a toll map, a cold-start bill, a ghost commute and a year on tape.</p>
+    <ul class="levels" aria-label="Where this has been seen working">
+      <li class="on">Simulator</li>
+      <li class="on">Run on real recordings</li>
+      <li class="off">Share sheet on a phone: not yet</li>
+    </ul>
+    </section>
+
+    <section aria-labelledby="h-intro">
+      <p class="eyebrow">Parked only</p>
+      <h2 id="h-intro">Nine things the trips can tell you</h2>
+      <p class="sub">Insights opens from the dock when you are parked and closes itself the moment the car moves. Every one is an estimate made from what the adapter already reports and the trips already recorded, and each page says what it is made from. The pictures on this page are drawn by the real app from made-up driving in the test harness, so read the shapes and not the numbers.</p>
+    </section>
+
+    <section aria-labelledby="h-energy">
+      <p class="eyebrow">The car</p>
+      <h2 id="h-energy">Battery, energy and power</h2>
+      <div class="grid g2">
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/insights-current.png" width="1280" height="720" loading="lazy" alt="Insights, Current: the volts of a drive inside the charging band with the deepest dips marked and the battery&#x27;s resting voltage week by week."></button>
+          <figcaption><b>Current.</b> The volts of a drive inside the charging band, with the deepest dips marked. A dip is a load, and the car reports no battery current. A battery resting lower each week is ageing.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/insights-powerflow.png" width="1280" height="720" loading="lazy" alt="Insights, Powerflow: a flow from the fuel to the wheels, idling and engine heat, and on to tyres, air and brakes, with rupees."></button>
+          <figcaption><b>Powerflow.</b> Where the energy in a trip's fuel went, from the fuel to the wheels, idling and engine heat, and from the wheels to tyres, air and brakes, with the rupees. A real car's wheels got 7 to 17% of the fuel's energy.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/insights-power.png" width="1280" height="720" loading="lazy" alt="Insights, Power: a dyno-style chart built from ordinary driving, with dots by throttle, the highest seen as a line and the revs never reached hatched."></button>
+          <figcaption><b>Power.</b> A dyno chart built from ordinary driving: dots by throttle, the highest seen as a line, and the revs the car has never reached hatched as no data yet.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/insights-gears.png" width="1280" height="720" loading="lazy" alt="Insights, Gears: rays of revs against speed, each labelled by its ratio."></button>
+          <figcaption><b>Gears.</b> A gearbox found from the driving: each gear a ray of revs against speed, labelled by its ratio, with the speeds it was held between.</figcaption>
+        </figure>
+      </div>
+      <div class="grid g2" style="margin-top:24px">
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/insights-gears-cvt-vfd.png" width="1280" height="720" loading="lazy" alt="Insights, Gears on a CVT in the VFD livery: a fan of points and no rays, with the heading None."></button>
+          <figcaption><b>A CVT has no gears.</b> The page shows a fan and says so. On this car's own recordings, it is a fan.</figcaption>
+        </figure>
+        <div class="prose">
+          <h3>Honest about the method</h3>
+          <p>Wheel power is worked out from speed and acceleration, with no allowance for hills, so Power and Powerflow are estimates and say so. The first model read one wrong speed reading (46 then 95 km/h) as 100 kW, so it now takes a median of three readings, fits a slope, drops impossible moments, and reports the edge's peak as the highest seen.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-money-i">
+      <p class="eyebrow">The money</p>
+      <h2 id="h-money-i">The tank, the cold start and the commute</h2>
+      <div class="grid g2">
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/insights-tank.png" width="1280" height="720" loading="lazy" alt="Insights, Tank: a column showing about 16 litres in the tank, a hatched reserve and a range of about 180 km, with the litres since the last full tank."></button>
+          <figcaption><b>Tank without a gauge.</b> For a car that sends no fuel level, the dash counts the litres from the last full tank. The column drains, the reserve is hatched, and the range is to the nearest 5 km. It also fills the Money page's fuel-left slot, marked with an approximation sign.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/insights-cold.png" width="1280" height="720" loading="lazy" alt="Insights, Cold start: rupees a kilometre falling as the coolant climbs, with the extra over the warm cost hatched and the month&#x27;s bill beside it."></button>
+          <figcaption><b>Cold start.</b> Rupees a kilometre falling as the coolant warms, the extra over the warm cost hatched, and the month's bill beside it.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/insights-ghost.png" width="1280" height="720" loading="lazy" alt="Insights, Ghost commute: this drive&#x27;s route in light with an earlier drive of the same route dashed behind it, and the two Money Tapes one above the other."></button>
+          <figcaption><b>Ghost commute.</b> This drive's route in light, the earlier drive of the same route dashed behind it, and the two Money Tapes above each other. The difference is in rupees, never minutes: a commute is not a race.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/insights-tolls.png" width="1280" height="720" loading="lazy" alt="Insights, The Toll Map: the roads driven with hollow rings wherever the car stood with the engine running, sized by what the standing cost."></button>
+          <figcaption><b>The Toll Map.</b> The roads driven, and a hollow ring wherever the car stood with the engine running, sized by what the standing cost. Hollow, because fuel burnt standing still goes nowhere.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-year">
+      <p class="eyebrow">The year</p>
+      <h2 id="h-year">Year on Tape, and a picture to share</h2>
+      <p class="sub">Every trip of the year is a bar of one barcode, stacked by where the money went. One Share button makes a 1920 by 1080 picture, drawn by the app in its own fonts, and hands it to Android's share sheet. The app adds no permission for it and uploads nothing. What you pick in the sheet is your choice.</p>
+      <div class="grid g2">
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/insights-year.jpg" width="1280" height="720" loading="lazy" alt="Insights, Year on Tape: a year of trips as a barcode of bars, with trips, kilometres, spent, idling and sweet spot, and a Share button."></button>
+          <figcaption><b>Year on Tape.</b> A year as a barcode, with the totals beneath. Made-up data.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/insights-year-export.jpg" width="1920" height="1080" loading="lazy" alt="The exported poster: 2026 ON TAPE with the barcode and the totals, at 1920 by 1080."></button>
+          <figcaption><b>The picture Share hands over.</b> The same poster, drawn at full size.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-where-ins">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-where-ins">What has been seen</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Seen</h3>
+          <ul>
+            <li><span>Every analysis in tests, with a made-up commute fixture and a plausibility check against the real recordings.</span></li>
+            <li><span>The real recordings of a real car: the gearbox comes out a fan because it is a CVT, and the wheels get 7 to 17% of the fuel's energy.</span></li>
+            <li><span>Every tab at 640, 720 and 800 wide, and the page opening and closing in the app shell.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet</h3>
+          <ul>
+            <li><span>The Android share sheet. It compiles and the Dart side is tested on a mocked channel, but nobody has watched it open on a phone.</span></li>
+            <li><span>The counted tank on a real car. It starts only after a full tank is logged and drifts if trips are missed.</span></li>
+            <li><span>Toll Map and Ghost commute on a phone's real GPS scatter. The thresholds (150 m for a place, 180 m for a route) are guesses until a real week is in.</span></li>
+            <li><span>A map under the Toll Map, so places are numbered rings and not names.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+
+    <nav class="pn" aria-label="Neighbouring features">
+      <a class="prev" href="../features/trips.html"><small>Previous</small>Trips, Review and History</a><a class="next" href="../features/diagnostics.html"><small>Next</small>Fault codes and the PID matrix</a>
+    </nav>
+
+    <section class="more" aria-labelledby="h-more">
+      <h2 id="h-more">All features</h2>
+      <ul>
+        <li><a href="../features/dashboard.html">The dashboard</a></li>
+        <li><a href="../features/hud.html">The windshield HUD</a></li>
+        <li><a href="../features/navigation-hud.html">Navigation on the HUD</a></li>
+        <li><a href="../features/gps-only.html">GPS speed only</a></li>
+        <li><a href="../features/money.html">Where the money goes</a></li>
+        <li><a href="../features/fuel-and-fill-ups.html">Fuel, fill-ups and calibration</a></li>
+        <li><a href="../features/coach.html">The driving coach</a></li>
+        <li><a href="../features/trips.html">Trips, Review and History</a></li>
+        <li><a href="../features/insights.html" aria-current="page">Insights</a></li>
+        <li><a href="../features/diagnostics.html">Fault codes and the PID matrix</a></li>
+        <li><a href="../features/engine-sound.html">Engine sound</a></li>
+        <li><a href="../features/watch.html">The watch</a></li>
+        <li><a href="../features/data.html">Garage, exchange and survey</a></li>
+        <li><a href="../features/offline.html">Strictly offline</a></li>
+        <li><a href="../features/simulator.html">Built on a simulator</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <div class="links">
+      <a href="https://github.com/ictashik/tapedash">Source on GitHub</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/docs/STATUS.md">What is verified (STATUS.md)</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/DESIGN.md">Design spec</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/CLAUDE.md">Architecture and rules</a>
+    </div>
+    <p>TapeDash is a free, open-source, strictly offline Android app. Fuel and money figures are estimates. It is an aid, not a certified instrument: set it up while parked, and you remain responsible for driving safely.</p>
+    <p>This page itself loads nothing from anywhere else: no web fonts, scripts, analytics or embeds. Google Maps is a trademark of Google LLC; TapeDash is independent and is not affiliated with or endorsed by Google.</p>
+  </footer>
+</div>
+
+<dialog id="lightbox" aria-label="Screenshot">
+  <img id="lbImg" alt="">
+  <div class="cap">
+    <span id="lbCap"></span>
+    <form method="dialog"><button class="btn" autofocus>Close</button></form>
+  </div>
+</dialog>
+
+<script src="../site/site.js"></script>
+</body>
+</html>

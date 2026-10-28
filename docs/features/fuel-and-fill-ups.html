@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#050607">
+<title>Fuel, fill-ups and calibration | TapeDash</title>
+<meta name="description" content="How TapeDash estimates the fuel, and how two full tanks teach it to be right about your car.">
+<link rel="icon" href="../site/icon.png">
+<link rel="stylesheet" href="../site/site.css">
+</head>
+<body class="feature">
+<div class="wrap">
+  <header class="bar">
+    <a class="mark" href="../index.html">Tape<span>Dash</span></a>
+    <nav aria-label="Site">
+      <a href="../index.html#features">Features</a>
+      <a href="../features/offline.html">Offline</a>
+      <a href="../index.html#status">Status</a>
+      <a href="https://github.com/ictashik/tapedash">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="pagehead" aria-labelledby="h-page">
+      <p class="crumbs"><a href="../index.html#features">Features</a> / Where the money goes</p>
+      <h1 id="h-page">Fuel, fill-ups and calibration</h1>
+      <p class="lede sub">A cheap adapter cannot tell you the litres, so TapeDash works them out from what the car does report, shows which method it used, and lets your fill-ups correct it. The figures are estimates and say so.</p>
+    <ul class="levels" aria-label="Where this has been seen working">
+      <li class="on">Simulator, against ground truth</li>
+      <li class="on">Emulator</li>
+      <li class="off">Against a real fill-up: not yet</li>
+    </ul>
+    </section>
+
+    <section aria-labelledby="h-source">
+      <p class="eyebrow">Where the litres come from</p>
+      <h2 id="h-source">It uses the best thing your car reports</h2>
+      <p class="sub">An ELM327 adapter reads what the engine computer will say. Most cars do not say how much fuel they burn, so TapeDash picks the best available method by itself and shows which one is in use on the Diagnostics page.</p>
+      <div class="flow flow-3">
+        <div class="node ours">
+          <span class="tag">1. Best</span>
+          <h3>Fuel rate (PID 5E)</h3>
+          <p>The engine's own figure, used as it is. Never adjusted for ethanol.</p>
+        </div>
+        <div class="node ours">
+          <span class="tag">2. Common</span>
+          <h3>Air flow (MAF)</h3>
+          <p>Litres an hour from the air the engine breathes, divided by the air-fuel ratio and the fuel's density.</p>
+        </div>
+        <div class="node ours">
+          <span class="tag">3. Fallback</span>
+          <h3>Speed-density</h3>
+          <p>From manifold pressure, intake temperature and revs, with your engine's size. Many petrol cars with no MAF work this way.</p>
+        </div>
+      </div>
+      <p class="wall"><b>None of the three?</b> Then fuel and money show as unavailable, with a plain explanation. A diesel's air-fuel ratio varies, so the air-flow method is not valid for it: it uses the fuel rate if there is one, and otherwise says the money is low-confidence until a fill-up calibrates it.</p>
+      <div class="grid g2" style="margin-top:28px">
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/page-diagnostics.png" width="1440" height="720" loading="lazy" alt="Diagnostics with the adapter panel showing FUEL FROM MAP and the grid of PIDs the car answers."></button>
+          <figcaption><b>It tells you which.</b> Diagnostics shows the fuel source in use, here speed-density from the manifold pressure, and which readings the car answers.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/page-garage-1.png" width="1440" height="720" loading="lazy" alt="Garage, Car group: petrol or diesel, ethanol in the petrol E0, E10 or E20, engine size and tank size."></button>
+          <figcaption><b>It needs to know your car.</b> Fuel type, the ethanol in your petrol, the engine's size and the tank's size are set in Garage.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-e20">
+      <p class="eyebrow">Indian petrol</p>
+      <h2 id="h-e20">Ethanol changes the maths</h2>
+      <p class="sub">Petrol at Indian pumps is increasingly E20. Ethanol changes both the air-fuel ratio and the density, so the same air means more litres:</p>
+      <div class="facts">
+        <div class="fact"><b>E0, plain petrol</b><p>Air-fuel ratio 14.7, density 740 g/L.</p></div>
+        <div class="fact"><b>E10</b><p>Ratio 14.1, density 745 g/L: about 3.6% more litres for the same air.</p></div>
+        <div class="fact"><b>E20, the default for a new install</b><p>Ratio 13.5, density 750 g/L: about 7.5% more litres for the same air. Without this, every figure would read about 7% low until fill-ups corrected it.</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-pit">
+      <p class="eyebrow">Pit Stop</p>
+      <h2 id="h-pit">Log a fill-up, and the estimate learns your car</h2>
+      <p class="sub">Pit Stop is a number pad, and it opens only when the car is stopped. Enter the litres and the amount paid, and say whether the tank was filled full. The price a litre is the amount divided by the litres, and it becomes the current price. You can also set the price directly without logging a fill-up.</p>
+      <div class="grid g2">
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/pitstop.jpg" width="1280" height="720" loading="lazy" alt="Pit Stop: a large number pad on the left and fields for litres and amount paid with a Tank filled full switch."></button>
+          <figcaption><b>Pit Stop.</b> A big, fat-finger number pad. The current price is shown, so a stale one is easy to spot.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/pitstop-typed.jpg" width="1280" height="720" loading="lazy" alt="Pit Stop with 32.5 litres typed in."></button>
+          <figcaption><b>Typing a fill-up.</b> Litres, then the amount paid, then Save.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-cal">
+      <p class="eyebrow">Calibration</p>
+      <h2 id="h-cal">Two full tanks make it honest</h2>
+      <div class="prose">
+        <p>Between two consecutive full-tank fill-ups, the app compares the litres you actually put in with the litres it estimated you burned. The ratio is a factor. It keeps a rolling average of the last three factors, held between 0.7 and 1.3, and applies it to every fuel estimate.</p>
+        <ul>
+          <li><b style="color:var(--ink-bright)">Uncalibrated:</b> no factor yet. One pip lit.</li>
+          <li><b style="color:var(--ink-bright)">Calibrating:</b> one factor. Two pips.</li>
+          <li><b style="color:var(--ink-bright)">Calibrated:</b> two or more. Three pips.</li>
+        </ul>
+        <p>On the simulator, after two simulated full-tank fill-ups the calibrated estimate comes out within 3% of the truth on every petrol profile, and the build fails if it does not.</p>
+        <p>The count of litres in the tank, for a car that sends no fuel level, is a separate <a href="insights.html">Insight</a>. It starts from the last full tank, so it needs this log.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-where-fuel">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-where-fuel">Not yet checked against a real tank</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Seen</h3>
+          <ul>
+            <li><span>The estimators against hand-computed values, and the whole chain against the simulator's exact fuel, with each petrol profile and with calibration.</span></li>
+            <li><span>The air-flow method on a real car, which was the fuel source on the first real drives.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet</h3>
+          <ul>
+            <li><span>A real fill-up. The first full-tank comparison in Pit Stop is what will say whether the figures come out right, and whether the E20 correction is the right size.</span></li>
+            <li><span>Pit Stop on a real phone.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+
+    <nav class="pn" aria-label="Neighbouring features">
+      <a class="prev" href="../features/money.html"><small>Previous</small>Where the money goes</a><a class="next" href="../features/coach.html"><small>Next</small>The driving coach</a>
+    </nav>
+
+    <section class="more" aria-labelledby="h-more">
+      <h2 id="h-more">All features</h2>
+      <ul>
+        <li><a href="../features/dashboard.html">The dashboard</a></li>
+        <li><a href="../features/hud.html">The windshield HUD</a></li>
+        <li><a href="../features/navigation-hud.html">Navigation on the HUD</a></li>
+        <li><a href="../features/gps-only.html">GPS speed only</a></li>
+        <li><a href="../features/money.html">Where the money goes</a></li>
+        <li><a href="../features/fuel-and-fill-ups.html" aria-current="page">Fuel, fill-ups and calibration</a></li>
+        <li><a href="../features/coach.html">The driving coach</a></li>
+        <li><a href="../features/trips.html">Trips, Review and History</a></li>
+        <li><a href="../features/insights.html">Insights</a></li>
+        <li><a href="../features/diagnostics.html">Fault codes and the PID matrix</a></li>
+        <li><a href="../features/engine-sound.html">Engine sound</a></li>
+        <li><a href="../features/watch.html">The watch</a></li>
+        <li><a href="../features/data.html">Garage, exchange and survey</a></li>
+        <li><a href="../features/offline.html">Strictly offline</a></li>
+        <li><a href="../features/simulator.html">Built on a simulator</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <div class="links">
+      <a href="https://github.com/ictashik/tapedash">Source on GitHub</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/docs/STATUS.md">What is verified (STATUS.md)</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/DESIGN.md">Design spec</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/CLAUDE.md">Architecture and rules</a>
+    </div>
+    <p>TapeDash is a free, open-source, strictly offline Android app. Fuel and money figures are estimates. It is an aid, not a certified instrument: set it up while parked, and you remain responsible for driving safely.</p>
+    <p>This page itself loads nothing from anywhere else: no web fonts, scripts, analytics or embeds. Google Maps is a trademark of Google LLC; TapeDash is independent and is not affiliated with or endorsed by Google.</p>
+  </footer>
+</div>
+
+<dialog id="lightbox" aria-label="Screenshot">
+  <img id="lbImg" alt="">
+  <div class="cap">
+    <span id="lbCap"></span>
+    <form method="dialog"><button class="btn" autofocus>Close</button></form>
+  </div>
+</dialog>
+
+<script src="../site/site.js"></script>
+</body>
+</html>

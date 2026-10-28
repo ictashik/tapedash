@@ -1,0 +1,113 @@
+    <section aria-labelledby="h-why">
+      <div class="lead-shot" style="margin-top:0">
+        {{fig: site/img/shell-later.jpg | The Apex cluster on a simulated drive at 41 km/h with the page tape beneath. | <b>The real app, on a simulated car.</b> Nothing in this picture is a mock-up. It is the production code reading a simulated adapter.}}
+      </div>
+
+      <p class="eyebrow" style="margin-top:56px">Simulator first</p>
+      <h2 id="h-why">Every feature is built against a car that is not there</h2>
+      <p class="sub">The simulator is a feature of the project, not a test fixture. It powers every test, feeds the Design Lab, and can serve the real WiFi code on a laptop. Real adapters and a real car are connected only after every simulator test passes. It is not in the app: the app never shows simulated data as if it were your car.</p>
+    </section>
+
+    <section aria-labelledby="h-car">
+      <p class="eyebrow">The car</p>
+      <h2 id="h-car">A simple physical model, with exact ground truth</h2>
+      <div class="facts">
+        <div class="fact"><b>Dynamics</b><p>About 1,150 kg with rolling resistance, aerodynamic drag, engine force from throttle, and braking to about 8 m/s<sup>2</sup>. Speed is never negative.</p></div>
+        <div class="fact"><b>A CVT hatch</b><p>Idle about 750 rpm, revs that follow the throttle more than the speed, a 6,500 redline. A manual sporty profile has gears and a 7,000 redline.</p></div>
+        <div class="fact"><b>Air and fuel that agree</b><p>Manifold pressure, air mass flow and fuel rate are physically consistent with each other, with fuel cut-off when coasting.</p></div>
+        <div class="fact"><b>Warm-up, volts, fuel level</b><p>Coolant climbing from ambient to about 90 degrees over 8 to 10 minutes, 12.4 V off and about 14.1 V running, and a tank that empties.</p></div>
+      </div>
+      <p class="sub" style="margin-top:22px">The model keeps the exact cumulative fuel, distance, idle time and idle fuel, and a log of every scripted hard acceleration and hard braking. <b style="color:var(--ink-bright)">The tests compare the app's estimates with that.</b> That is what lets them ask whether the app is right, not just whether it runs.</p>
+    </section>
+
+    <section aria-labelledby="h-profiles">
+      <p class="eyebrow">Many cars</p>
+      <h2 id="h-profiles">Six profiles, and ten scripted drivers</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Vehicle profiles</h3>
+          <ul>
+            <li><span>Petrol CVT with air flow (MAF).</span></li>
+            <li><span>Petrol CVT with manifold pressure only, so the app must use speed-density.</span></li>
+            <li><span>Petrol CVT that reports its own fuel rate.</span></li>
+            <li><span>Petrol manual, sporty, with gear ratios.</span></li>
+            <li><span>A minimal old car with only five readings, to test graceful degradation.</span></li>
+            <li><span>A diesel manual, whose money must be flagged low-confidence.</span></li>
+          </ul>
+        </div>
+        <div class="panel yes">
+          <h3>Scripted drivers</h3>
+          <ul>
+            <li><span>Cold start idle, city stop-go, highway cruise, a traffic jam.</span></li>
+            <li><span>Aggressive city, and the same route driven gently, so the coach's premise can be checked.</span></li>
+            <li><span>A mixed commute with the ignition off and on midway.</span></li>
+            <li><span>Repeated high-rev pulls on the sporty car.</span></li>
+            <li><span>A drive with two fault codes stored.</span></li>
+            <li><span>A flaky adapter with dropped replies and a reconnect.</span></li>
+          </ul>
+        </div>
+      </div>
+      <p class="sub" style="margin-top:20px">The profiles are approximations and not real vehicle data. Real recordings from a real car tune them.</p>
+    </section>
+
+    <section aria-labelledby="h-elm">
+      <p class="eyebrow">The adapter</p>
+      <h2 id="h-elm">An ELM327 that prints byte-accurate text, and misbehaves on request</h2>
+      <p class="sub">It takes raw command strings and answers like a real adapter, with the reset banner, echo, spaces, linefeeds and the prompt following the current settings, the searching message on the first request, single and multi-PID requests, multi-frame replies split over lines, the supported-PID bitmasks, and fault codes. It can also be a bad adapter:</p>
+      <div class="prose">
+        <ul>
+          <li>Latency of a Bluetooth Classic clone, for example 80 ms plus or minus 40.</li>
+          <li>Dropping the first command, ignoring the timeout command, refusing multi-PID requests.</li>
+          <li>Random <code>NO DATA</code>, a missing prompt, garbage bytes, and a disconnect at a chosen time.</li>
+        </ul>
+        <p>Time is always injected, so a 30-minute drive runs in a few seconds on a fake clock, and the tests are deterministic.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-run">
+      <p class="eyebrow">Try it</p>
+      <h2 id="h-run">Serve it over TCP and point the app at it</h2>
+      <div class="pair">
+        <div class="prose">
+          <p>The same simulator is served over TCP by a tool, so the real WiFi code path can be tested end to end with no hardware. From an Android emulator the laptop is <code>10.0.2.2</code>, a private address that passes the app's guard. Replayable recordings of every scenario can also be made, and real-car recordings become regression tests.</p>
+        </div>
+        <div>
+<pre class="code" aria-label="Commands for the simulator"><code>dart run tool/sim_server.dart --list
+dart run tool/sim_server.dart \
+  --scenario city_stop_go --profile petrol_cvt_map
+dart run tool/record_sim.dart --all</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-tests">
+      <p class="eyebrow">Layers of tests</p>
+      <h2 id="h-tests">From a PID formula to a thirty-minute drive</h2>
+      <div class="facts">
+        <div class="fact"><b>Units</b><p>Every PID decoder at its edges, ELM framing in every setting, fault-code decoding, fuel estimators against hand-computed values, calibration, attribution and event detectors.</p></div>
+        <div class="fact"><b>Simulator self-tests</b><p>Deterministic for a seed, consistent between air, pressure and fuel, and matching golden text for each adapter setting.</p></div>
+        <div class="fact"><b>Simulated drives</b><p>The full stack on a fake clock: transport, ELM layer, poller, fuel, money, coach and trips, checked against ground truth.</p></div>
+        <div class="fact"><b>Widgets and design</b><p>Every page against a simulated car at three sizes, plus golden images and a design lint, on CI.</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-where-sim">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-where-sim">What a simulator cannot tell you</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>What it proves</h3>
+          <ul>
+            <li><span>That the app's maths, state and screens are consistent with a car whose truth is known.</span></li>
+            <li><span>That the production WiFi path, parser and poller work against an adapter with awkward habits.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>What it cannot</h3>
+          <ul>
+            <li><span>How a real car or a cheap clone adapter behaves. The real drives found things the simulator never would: two engine computers answering at once, and a 1.3 Hz poll rate.</span></li>
+            <li><span>That the profiles are right. They are approximations until real recordings tune them.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>

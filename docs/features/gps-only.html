@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#050607">
+<title>GPS speed only | TapeDash</title>
+<meta name="description" content="No adapter? The speed, distance and time from the phone&#x27;s GPS alone, and nothing invented.">
+<link rel="icon" href="../site/icon.png">
+<link rel="stylesheet" href="../site/site.css">
+</head>
+<body class="feature">
+<div class="wrap">
+  <header class="bar">
+    <a class="mark" href="../index.html">Tape<span>Dash</span></a>
+    <nav aria-label="Site">
+      <a href="../index.html#features">Features</a>
+      <a href="../features/offline.html">Offline</a>
+      <a href="../index.html#status">Status</a>
+      <a href="https://github.com/ictashik/tapedash">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="pagehead" aria-labelledby="h-page">
+      <p class="crumbs"><a href="../index.html#features">Features</a> / On the dash</p>
+      <h1 id="h-page">GPS speed only</h1>
+      <p class="lede sub">Choose GPS SPEED ONLY on the first screen and TapeDash is a big, honest speedometer with what a GPS can truly add up to. It does not pretend to read the engine, so it shows no tach, money or coach.</p>
+    <ul class="levels" aria-label="Where this has been seen working">
+      <li class="on">Simulator</li>
+      <li class="on">Emulator</li>
+      <li class="off">Real phone: not yet</li>
+    </ul>
+    </section>
+
+    <section aria-labelledby="h-screen">
+      <div class="lead-shot" style="margin-top:0">
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/gps-cluster-city-800.jpg" width="1600" height="720" loading="lazy" alt="The GPS-only screen: a large speed of 50 km/h with distance 0.6 km, moving 0:54, average 39, fastest 51 and heading E beneath."></button>
+          <figcaption><b>The speed as the hero,</b> and what a GPS can honestly add up to: distance, moving time, average and fastest speed, and heading.</figcaption>
+        </figure>
+      </div>
+
+      <p class="eyebrow" style="margin-top:56px">One choice, kept</p>
+      <h2 id="h-screen">You choose the source, and it stays chosen</h2>
+      <p class="sub">The first screen asks: <b style="color:var(--ink-bright)">CONNECT MY CAR</b> or <b style="color:var(--ink-bright)">GPS SPEED ONLY</b>. The answer is kept. An adapter that will not connect stays a drive that is looking for its adapter, and never quietly turns into the GPS. Garage, Speed from, switches between the two. There is no demo mode: the app never shows simulated data as if it were your car.</p>
+      <div class="grid g2">
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/choice.jpg" width="1440" height="720" loading="lazy" alt="The cold open: the wordmark TAPEDASH over two buttons, Connect my car and GPS speed only."></button>
+          <figcaption><b>The cold open.</b> Two honest choices.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/gps-cluster-searching.jpg" width="1440" height="720" loading="lazy" alt="The GPS screen with the text Looking for GPS and advice to give the phone a clear view of the sky."></button>
+          <figcaption><b>Looking for GPS.</b> The first fix can take a minute, and the screen says so in plain words.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-honest-gps">
+      <p class="eyebrow">What it will and will not say</p>
+      <h2 id="h-honest-gps">Honest about what a receiver knows</h2>
+      <div class="facts">
+        <div class="fact"><b>The receiver's own speed</b><p>The speed is the Doppler speed the receiver reports. Below about 1.5 km/h it reads zero, so a parked car shows 0 and not a drifting 2.</p></div>
+        <div class="fact"><b>Distance from speed</b><p>The distance is that speed over time and never the sum of position jumps, which would add up GPS noise as if it were road.</p></div>
+        <div class="fact"><b>Poor fixes are ignored</b><p>A fix less accurate than 100 m is not used at all.</p></div>
+        <div class="fact"><b>Nothing invented</b><p>No tach, money, coach, trips or engine sound, because nothing reads them. The HUD works too, with the speed alone.</p></div>
+      </div>
+      <div class="grid g2" style="margin-top:28px">
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/gps-cluster-permission.jpg" width="1440" height="720" loading="lazy" alt="The GPS screen asking for location permission, with an Allow location button."></button>
+          <figcaption><b>A missing permission</b> is explained, with one button, and nothing leaves the phone.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/gps-cluster-nogps.jpg" width="1440" height="720" loading="lazy" alt="The GPS screen saying No GPS because the phone would not start a GPS receiver."></button>
+          <figcaption><b>No receiver</b> is said just as plainly.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-where-gps">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-where-gps">What has been tested</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Seen</h3>
+          <ul>
+            <li><span>The rules in tests: a simulated city drive whose distance comes out within 3% of the simulated car's own ground truth.</span></li>
+            <li><span>The whole app on a fake receiver at 640, 720 and 800 wide, in widget tests.</span></li>
+            <li><span>An Android 16 emulator with the receiver moving at 30 km/h, as the source for the navigation HUD, in a release build.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet</h3>
+          <ul>
+            <li><span>GPS speed on a real phone in a real car.</span></li>
+            <li><span>The screen at the oldest-phone frame budget, which has not been timed.</span></li>
+            <li><span>A page for it in the Design Lab. It is exercised by a capture test only, and has no golden image yet.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+
+    <nav class="pn" aria-label="Neighbouring features">
+      <a class="prev" href="../features/navigation-hud.html"><small>Previous</small>Navigation on the HUD</a><a class="next" href="../features/money.html"><small>Next</small>Where the money goes</a>
+    </nav>
+
+    <section class="more" aria-labelledby="h-more">
+      <h2 id="h-more">All features</h2>
+      <ul>
+        <li><a href="../features/dashboard.html">The dashboard</a></li>
+        <li><a href="../features/hud.html">The windshield HUD</a></li>
+        <li><a href="../features/navigation-hud.html">Navigation on the HUD</a></li>
+        <li><a href="../features/gps-only.html" aria-current="page">GPS speed only</a></li>
+        <li><a href="../features/money.html">Where the money goes</a></li>
+        <li><a href="../features/fuel-and-fill-ups.html">Fuel, fill-ups and calibration</a></li>
+        <li><a href="../features/coach.html">The driving coach</a></li>
+        <li><a href="../features/trips.html">Trips, Review and History</a></li>
+        <li><a href="../features/insights.html">Insights</a></li>
+        <li><a href="../features/diagnostics.html">Fault codes and the PID matrix</a></li>
+        <li><a href="../features/engine-sound.html">Engine sound</a></li>
+        <li><a href="../features/watch.html">The watch</a></li>
+        <li><a href="../features/data.html">Garage, exchange and survey</a></li>
+        <li><a href="../features/offline.html">Strictly offline</a></li>
+        <li><a href="../features/simulator.html">Built on a simulator</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <div class="links">
+      <a href="https://github.com/ictashik/tapedash">Source on GitHub</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/docs/STATUS.md">What is verified (STATUS.md)</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/DESIGN.md">Design spec</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/CLAUDE.md">Architecture and rules</a>
+    </div>
+    <p>TapeDash is a free, open-source, strictly offline Android app. Fuel and money figures are estimates. It is an aid, not a certified instrument: set it up while parked, and you remain responsible for driving safely.</p>
+    <p>This page itself loads nothing from anywhere else: no web fonts, scripts, analytics or embeds. Google Maps is a trademark of Google LLC; TapeDash is independent and is not affiliated with or endorsed by Google.</p>
+  </footer>
+</div>
+
+<dialog id="lightbox" aria-label="Screenshot">
+  <img id="lbImg" alt="">
+  <div class="cap">
+    <span id="lbCap"></span>
+    <form method="dialog"><button class="btn" autofocus>Close</button></form>
+  </div>
+</dialog>
+
+<script src="../site/site.js"></script>
+</body>
+</html>

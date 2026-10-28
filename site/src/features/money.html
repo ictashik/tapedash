@@ -1,0 +1,84 @@
+    <section aria-labelledby="h-page">
+      <div class="lead-shot" style="margin-top:0">
+        {{fig: site/img/page-money-motion.jpg | The Money page while driving: a large figure of 39 rupees for this trip, 9.1 rupees a kilometre, 11.2 km a litre, a column of rupee blocks on the left and the idle cost on the right. | <b>The Money page, moving.</b> The trip so far in the middle, rupees a kilometre and km a litre beneath it, the Money Tape on one flank and the idling cost on the other. From a simulated city drive.}}
+      </div>
+
+      <p class="eyebrow" style="margin-top:56px">The live trip</p>
+      <h2 id="h-page">Rupees as you drive</h2>
+      <p class="sub">A trip starts when the engine starts and ends when it is switched off, and standing at a signal or in a jam never ends it. If the engine restarts within five minutes, it is the same trip. While it runs, TapeDash keeps:</p>
+      <div class="facts">
+        <div class="fact"><b>Cost so far</b><p>Whole rupees, with confidence pips beside the figure that say how far to trust it.</p></div>
+        <div class="fact"><b>Per kilometre and per litre</b><p>Rupees a kilometre, the average km/L, and an instant km/L that shows a dash below about 5 km/h.</p></div>
+        <div class="fact"><b>Idling</b><p>Idle time and idle cost, updated live, with the idle counter pulsing gently while you stand.</p></div>
+        <div class="fact"><b>What is left</b><p>The fuel remaining in rupees and kilometres, when the car reports its level.</p></div>
+      </div>
+      <div class="grid g2" style="margin-top:28px">
+        {{fig: site/img/money-apex-motion.jpg | The Apex cluster with the money on the driver-side flank: 10 rupees this trip and 8.9 rupees a kilometre beside the speed. | <b>Money on the dash.</b> The Apex cluster carries the trip's rupees and rupees a kilometre beside the speed.}}
+        {{fig: site/img/money-tape-cluster.jpg | The Tape cluster showing 12.1 km a litre in large type, the eco bar beneath it and 10 rupees for this trip at the foot. | <b>Money on the Tape cluster.</b> The instant km/L, the eco bar and the trip's rupees at the foot. The Money Tape itself is the column of blocks on the left of the Money page above: one block a rupee, styled by where it went.}}
+      </div>
+    </section>
+
+    <section aria-labelledby="h-buckets">
+      <p class="eyebrow">Where it went</p>
+      <h2 id="h-buckets">Every rupee goes in exactly one bucket</h2>
+      <p class="sub">Each moment's fuel cost lands in one bucket and one only, so the four always add up to the trip. The shapes differ as well as the colours, so nothing relies on colour alone.</p>
+      <div class="rules">
+        <div class="rule"><h3>Normal driving</h3><p>Everything that is not one of the others. A solid champagne block.</p></div>
+        <div class="rule"><h3>Idling, which is avoidable</h3><p>Speed under 2 km/h with the engine running. A hollow amber block, because money burned for nothing looks empty.</p></div>
+        <div class="rule"><h3>Hard acceleration</h3><p>Spent during a hard-acceleration event. A solid red block with a notch.</p></div>
+        <div class="rule"><h3>High speed</h3><p>Above your speed threshold, 100 km/h by default. A solid accent block.</p></div>
+      </div>
+      <p class="sub" style="margin-top:22px">The wording is deliberate. Idling is "avoidable". The others are "spent during hard acceleration" or at high speed, and nothing is ever called "wasted".</p>
+      <div class="grid g2" style="margin-top:28px">
+        {{fig: site/img/page-review.png | Review of a finished trip with a Where it went bar of rupees: normal driving 20, idling 2, hard acceleration 3, and a legend. | <b>The same barcode in Review.</b> The stacked bar is each bucket's share of the fuel. The legend's rupees add up to the trip.}}
+        {{fig: design-review/watch/screenshots/09-where-it-went.png | The watch's Where it went face: a ring round the rim with the four buckets in rupees. | <b>On the watch.</b> Every rupee is a cell of the ring.}}
+      </div>
+    </section>
+
+    <section aria-labelledby="h-honest-money">
+      <p class="eyebrow">Honest numbers</p>
+      <h2 id="h-honest-money">Estimates, and they say so</h2>
+      <div class="facts">
+        <div class="fact"><b>Whole rupees, one decimal</b><p>Rupees are rounded to whole numbers and km/L to one decimal, never more. Parked detail views prefix an estimate with an approximation sign.</p></div>
+        <div class="fact"><b>Confidence pips</b><p>One lit cell means uncalibrated, two means calibrating, three means calibrated. <a href="fuel-and-fill-ups.html">How a fill-up calibrates it.</a></p></div>
+        <div class="fact"><b>No price, no rupees</b><p>Until you set a fuel price, the figures are litres, with one button that asks for the price. You type it in, and it is never fetched.</p></div>
+        <div class="fact"><b>Unavailable means unavailable</b><p>A car that reports nothing TapeDash can turn into fuel gets a plain explanation, not an invented figure.</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-proof">
+      <p class="eyebrow">How it is held to account</p>
+      <h2 id="h-proof">Tested against the simulator's exact truth</h2>
+      <p class="sub">The simulated car keeps exact fuel, distance and idle time. The tests compare the app's estimates with that, and the build fails if they drift:</p>
+      <div class="prose">
+        <ul>
+          <li>Trip distance within 2% of the truth.</li>
+          <li>Fuel within 5% where the car reports fuel rate or air flow, and within 10% by speed-density before any calibration.</li>
+          <li>Idle time within 5% and idle cost within 7%.</li>
+          <li>The same route driven gently costs at least 15% less than driven hard, which is the premise of the coach.</li>
+          <li>The buckets sum to the trip total, and the Money Tape's rupee blocks match the buckets.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-where-money">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-where-money">What has been seen</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Seen</h3>
+          <ul>
+            <li><span>The tests above, on the simulator, for every petrol profile.</span></li>
+            <li><span>A real car with the air-flow method: the money screens ran on a real phone, and the idle cost of about 1.3 litres an hour matched what the car's air flow implied over two long drives.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet</h3>
+          <ul>
+            <li><span>A comparison against a real tank. Until then, a real car's figures are the model's estimates and may be off by several percent.</span></li>
+            <li><span>The ethanol correction for E20 petrol. It is tested against the simulator and has not been checked on a pump.</span></li>
+            <li><span>The parked Money page's layout. In the simulator renders, up to 800 wide, the breakdown's legend can crowd the central readouts.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>

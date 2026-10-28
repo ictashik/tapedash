@@ -1,0 +1,284 @@
+    <section aria-label="The navigation HUD">
+      <ul class="chips">
+        <li>Off by default</li>
+        <li>Reads Google Maps only</li>
+        <li>Sends it nothing</li>
+        <li>Keeps nothing</li>
+      </ul>
+
+      <div class="stage" data-mirrored="false">
+        <div class="view">
+          <div class="flip">
+            <img src="{{root}}design-review/nav/screenshots/render-right.png" width="1440" height="720" alt="The navigation HUD as designed: speed 54 km/h on the left; on the right a green arrow for a right turn, 650 m, the instruction 'Turn right at Richmond Cir onto Mission Rd', and a line with a dot climbing to a ring; along the bottom 9:25 PM, 25 min and 5.4 km.">
+          </div>
+        </div>
+        <div class="stage-controls">
+          <button class="btn flip-btn" type="button" aria-pressed="false" data-off="Show it as the windshield reflects it" data-on="Show it as designed">Show it as the windshield reflects it</button>
+          <p class="stage-note flip-note" aria-live="polite" data-off="As designed, 720 by 360. A HUD is read in a reflection, so it is drawn mirrored." data-on="As the glass shows it: mirrored, so the reflection reads the right way round.">As designed, 720 by 360. A HUD is read in a reflection, so it is drawn mirrored.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- WHAT IS ON THE GLASS -->
+    <section id="glass" aria-labelledby="h-glass">
+      <p class="eyebrow">The layout</p>
+      <h2 id="h-glass">What is on the glass</h2>
+      <p class="sub">The HUD switches to this layout by itself while Google Maps is guiding, and gives your own layout back when it stops. Nothing needs a touch, and nothing needs a decision while you drive.</p>
+
+      <div class="annot">
+        <figure>
+          <div class="pinned">
+            <img src="{{root}}design-review/nav/screenshots/render-right.png" width="1440" height="720" loading="lazy" alt="The navigation HUD with six numbered markers on the speed, the arrow, the distance, the instruction, the line and the bottom row of figures." style="border-radius:10px;border:1px solid var(--etch)">
+            <span class="pin" style="left:6%;top:27%" aria-hidden="true">1</span>
+            <span class="pin" style="left:65%;top:5%" aria-hidden="true">2</span>
+            <span class="pin" style="left:96%;top:10%" aria-hidden="true">3</span>
+            <span class="pin" style="left:82%;top:58%" aria-hidden="true">4</span>
+            <span class="pin" style="left:49%;top:45%" aria-hidden="true">5</span>
+            <span class="pin" style="left:8%;top:82%" aria-hidden="true">6</span>
+          </div>
+          <figcaption>720 by 360 as designed. The same layout is tested at 640, 720 and 800 wide: one colour on pure black, and strokes of at least 5 lp.</figcaption>
+        </figure>
+        <ol class="legend">
+          <li><div><strong>Your speed</strong>The same big figure as on every HUD layout, from the OBD adapter or from the phone's GPS when there is no adapter.</div></li>
+          <li><div><strong>Google's own arrow</strong>A one-colour picture Maps puts in its notification, painted in your HUD colour. It is Google's drawing, so a hairpin or a roundabout looks the way Google drew it.</div></li>
+          <li><div><strong>Distance to the turn</strong>In Google's units. In the last metres Maps drops it, and the HUD drops it too.</div></li>
+          <li><div><strong>The instruction</strong>Google's words in the phone's language, up to three lines, cut at a word.</div></li>
+          <li><div><strong>The line</strong>A sketch of the next junction: it leans the way the arrow turns and the dot climbs as the turn comes up. <em>It is not a map.</em> Google gives other apps no route, so TapeDash cannot draw the road ahead.</div></li>
+          <li><div><strong>ETA, time left, distance left</strong>All from Maps. When it gives no time left, the HUD uses the ETA minus the phone's clock.</div></li>
+        </ol>
+      </div>
+
+      <h3 style="margin-top:56px">It always says what state it is in</h3>
+      <div class="grid g3">
+        <figure>
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/render-left-near.png" width="1440" height="720" loading="lazy" alt="HUD with a left turn arrow, a short distance and a street name."></button>
+          <figcaption><b>A turn, nearer.</b> The dot climbs over the last 500 m, counting down on the car's own speed between Maps' updates.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/render-turn-now.png" width="1440" height="720" loading="lazy" alt="HUD with the dot filling the ring and no distance figure."></button>
+          <figcaption><b>The last metres.</b> Maps drops the distance and says only "Turn right onto ...". The dot fills the ring: the turn is now.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/render-straight-no-distance.png" width="1440" height="720" loading="lazy" alt="HUD with a straight-ahead arrow and no distance."></button>
+          <figcaption><b>Straight on.</b> No turn in it, so no distance either, rather than a "0 m".</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/render-rerouting.png" width="1440" height="720" loading="lazy" alt="HUD showing only Google's word Rerouting."></button>
+          <figcaption><b>Rerouting.</b> Google's own word and nothing else: no arrow, no line, no figures.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/render-starting.png" width="1440" height="720" loading="lazy" alt="HUD showing only the text Starting navigation."></button>
+          <figcaption><b>Starting.</b> The same: Google's words, no guesses.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/render-stale.png" width="1440" height="720" loading="lazy" alt="HUD showing a dash and the label NO UPDATE."></button>
+          <figcaption><b>Maps has gone quiet.</b> After 15 s with the car moving (3 minutes standing still): a dash and NO UPDATE. An old turn is never shown as a live one.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section id="how" aria-labelledby="h-how">
+      <p class="eyebrow">The mechanism</p>
+      <h2 id="h-how">One notification, read one way</h2>
+      <p class="sub">While Google Maps guides you it keeps a navigation notification up, the one in your shade with the arrow and the street. TapeDash is allowed to read that notification, and only that one. It needs no network to do it.</p>
+
+      <div class="flow">
+        <div class="node">
+          <span class="tag">Google's side</span>
+          <h3>Google Maps</h3>
+          <p>Plans the route, reroutes, and uses its own internet connection. Posts the turn as a notification.</p>
+        </div>
+        <div class="node">
+          <span class="tag">Android</span>
+          <h3>The notification</h3>
+          <p>Title, text, sub-text and a one-colour arrow bitmap. Nothing custom, no route geometry.</p>
+        </div>
+        <div class="node ours">
+          <span class="tag">TapeDash</span>
+          <h3>The listener</h3>
+          <p>Checks the package first and drops everything that is not Google Maps. Passes a small struct to the app.</p>
+        </div>
+        <div class="node ours">
+          <span class="tag">TapeDash</span>
+          <h3>The HUD</h3>
+          <p>Parses it in plain Dart, holds it in memory, marks it stale when Maps goes quiet, and draws it.</p>
+        </div>
+      </div>
+
+      <p class="wall"><b>Where the wall is.</b> Everything that touches the internet is on the left of the third box. TapeDash has no socket, no HTTP client and no network class anywhere in this feature, and the build fails if one appears.</p>
+    </section>
+
+    <!-- ON A REAL PHONE -->
+    <section id="phone" aria-labelledby="h-phone">
+      <p class="eyebrow">Tested on the target phone, 27 October 2026</p>
+      <h2 id="h-phone">On the real phone, with real Maps</h2>
+      <p class="sub">A debug build first, then the release build, installed over the existing app with <code>adb install -r</code> so trips, price and adapter stayed. Google Maps 26.42 on Android 16, navigating a fixed test route in Bangalore while the phone's position was faked from the shell at 30 km/h. These are the frames as the glass shows them: <strong style="color:var(--ink-bright)">mirrored</strong>.</p>
+      <p class="sub" style="margin-top:-4px">The speed is blank in them. The shell can send a position but no speed, and the OBD adapter was not plugged in, so there was nothing to show.</p>
+
+      <div class="grid g3">
+        <figure>
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/phone-maps26-turn-right-350m-no-card.png" width="2712" height="1220" loading="lazy" alt="Mirrored HUD on the phone: 350 m, a right turn arrow, Langford Rd, and 5.3 km, 20 min and 10:02 PM along the bottom."></button>
+          <figcaption><b>A turn right, 350 m.</b> Langford Rd, 5.3 km and 20 min to go, arriving 10:02 PM.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/phone-maps26-turn-left-110m.png" width="2712" height="1220" loading="lazy" alt="Mirrored HUD on the phone showing a left turn at 110 m."></button>
+          <figcaption><b>A turn left, 110 m.</b> The line leans the way the arrow turns.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/phone-maps26-sharp-right-line-straight.png" width="2712" height="1220" loading="lazy" alt="Mirrored HUD on the phone: Sharp right at 50 m with a hairpin arrow and a straight line."></button>
+          <figcaption><b>"Sharp right", 50 m.</b> The hairpin arrow can't be read as a bend, so the line is drawn straight and Google's own arrow does the talking.</figcaption>
+        </figure>
+      </div>
+
+      <h3 style="margin-top:56px">Three bugs the phone found, now fixed</h3>
+      <p class="sub" style="margin-top:8px">The emulator's Maps and your phone's Maps post different shapes of notification. The first run on the phone showed three mistakes the emulator never could. Each fix has a test that was seen failing without it.</p>
+
+      <div class="grid g2">
+        <figure>
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/phone-maps26-before-0m-and-floating-window.png" width="2712" height="1220" loading="lazy" alt="Before the fix: the HUD shows 0 M beside a straight arrow, with Maps' floating map window covering the bottom right."></button>
+          <figcaption><b>Before:</b> "0 M" over a straight arrow, and Maps' floating window over the corner.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/phone-maps26-head-north.png" width="2712" height="1220" loading="lazy" alt="After the fix: Head north with no distance figure."></button>
+          <figcaption><b>After:</b> "Head north", with no distance beside it.</figcaption>
+        </figure>
+      </div>
+
+      <div class="bugs">
+        <div class="bug"><h3>"0 M" over a straight arrow</h3><p>Maps writes a distance of <code>0 m</code> next to "Head east" and "towards ...". A zero distance now counts as no distance.</p></div>
+        <div class="bug"><h3>A sharp right read as a left bend</h3><p>Maps' hairpin arrow looks like a left bend to a simple reader, so the line would have leaned the wrong way. It is now left unread and drawn straight.</p></div>
+        <div class="bug"><h3>"Rerouting" read as "Starting"</h3><p>Maps 26.42 sends an empty sub-text with "Rerouting...". The HUD now shows the right state.</p></div>
+      </div>
+    </section>
+
+    <!-- THE CARD -->
+    <section id="card" aria-labelledby="h-card">
+      <p class="eyebrow">The one thing the app cannot fix</p>
+      <h2 id="h-card">Maps' pop-up card, and the fix</h2>
+      <p class="sub">As a turn nears, Google Maps moves its notification into a high-importance channel called "Navigation urgent updates", and Android drops it over the top of the screen for about six seconds. On a HUD that is a bright card over the arrow and the distance.</p>
+
+      <div class="grid g2">
+        <figure>
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/phone-maps26-card-over-hud.png" width="2712" height="1220" loading="lazy" alt="The mirrored HUD with a dark teal Android notification card reading '170 m, Residency Rd' dropped over the top of the arrow and the distance."></button>
+          <figcaption><b>The card, on the real phone.</b> "170 m · Residency Rd" lands on top of the arrow.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/phone-maps26-turn-right-350m-no-card.png" width="2712" height="1220" loading="lazy" alt="The mirrored HUD on the phone at a right turn, 350 m, with nothing over it."></button>
+          <figcaption><b>Pop on screen switched off for that one channel.</b> A turn right at 350 m, nothing over it. Maps keeps guiding.</figcaption>
+        </figure>
+      </div>
+
+      <div class="stats">
+        <div class="stat bad"><div class="n">5 <small>of 15</small></div><div class="l">sampled frames on the phone had the card, with Maps' floating window denied</div></div>
+        <div class="stat good"><div class="n">0 <small>of 75</small></div><div class="l">frames with "Pop on screen" off for "Navigation urgent updates", though Maps kept posting to it</div></div>
+        <div class="stat"><div class="n">26 <small>of 85</small></div><div class="l">on the emulator with Do Not Disturb on, against 25 of 85 without it. Do Not Disturb does not help.</div></div>
+      </div>
+
+      <div class="callout">
+        <h3>I first got this wrong</h3>
+        <p>I had written that the card shows once, and that Do Not Disturb was the answer. Measured with the release build and real Maps, it shows at about every turn and Do Not Disturb changes nothing. The notes in the app and the docs were corrected.</p>
+      </div>
+
+      <h3 style="margin-top:48px">How Garage walks you through it</h3>
+      <div class="grid g2" style="margin-top:16px">
+        <div>
+          <ol class="steps">
+            <li><span>In <b style="color:var(--ink-bright)">Garage, Navigation</b>, tap <em>Open Google Maps' notification settings</em>. It opens Android's own page and does not start Maps.</span></li>
+            <li><span>Open the list of categories and choose <b style="color:var(--ink-bright)">Navigation urgent updates</b>. The name may differ in your language.</span></li>
+            <li><span>Turn off <b style="color:var(--ink-bright)">Pop on screen</b>. Leave the notification itself on, because that is what the HUD reads.</span></li>
+            <li><span>Also deny Maps' floating window (Settings, Apps, Special app access, Picture-in-picture). Allowed, it puts a bright map over the HUD's corner.</span></li>
+          </ol>
+        </div>
+        <figure>
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/emulator-garage-card-note.png" width="2400" height="1080" loading="lazy" alt="The Garage page with a note titled 'If a card drops over the HUD at a turn' and a row 'Open Google Maps notification settings, Android's own screen'."></button>
+          <figcaption>The note and the row in Garage. It is only reachable while parked.</figcaption>
+        </figure>
+      </div>
+
+      <div class="grid g2">
+        <figure>
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/phone-maps-notification-categories.png" width="2712" height="1220" loading="lazy" alt="Android's notification settings page for Maps listing categories, including Navigation urgent updates with a switch."></button>
+          <figcaption><b>The categories,</b> on the phone.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/phone-maps-urgent-channel-page.png" width="2712" height="1220" loading="lazy" alt="Android's Navigation urgent updates page with Default and Silent choices and a Pop on screen switch."></button>
+          <figcaption><b>The channel,</b> with the one switch that matters: Pop on screen.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- TURNING IT ON -->
+    <section id="on" aria-labelledby="h-on">
+      <p class="eyebrow">Setting it up</p>
+      <h2 id="h-on">Turning it on takes one switch and one Android screen</h2>
+      <p class="sub">It is off to begin with. Turning it on says it needs notification access and opens Android's own page, where you switch TapeDash on and confirm Android's dialog. Android shows that dialog for any app with this access, and its wording is broader than what TapeDash does. Garage says plainly what TapeDash reads.</p>
+
+      <div class="strip">
+        <figure class="land">
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/emulator-garage-navigation.png" width="2400" height="1080" loading="lazy" alt="Garage, Navigation group, with the switch off."></button>
+          <figcaption><b>1.</b> Garage, as it starts: off.</figcaption>
+        </figure>
+        <figure class="port">
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/android-access-screen-granted.png" width="1080" height="2400" loading="lazy" alt="Android's Notification access page with TapeDash switched on."></button>
+          <figcaption><b>2.</b> Android's page.</figcaption>
+        </figure>
+        <figure class="port">
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/android-access-dialog.png" width="1080" height="2400" loading="lazy" alt="Android's confirmation dialog for notification access."></button>
+          <figcaption><b>3.</b> Android's confirmation.</figcaption>
+        </figure>
+        <figure class="land">
+          <button class="zoom" type="button"><img src="{{root}}design-review/nav/screenshots/emulator-garage-navigation-granted.png" width="2400" height="1080" loading="lazy" alt="Garage, Navigation group, after access was granted."></button>
+          <figcaption><b>4.</b> Garage afterwards. These four are from the Android 16 emulator.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- OFFLINE CONTRACT -->
+    <section id="offline" aria-labelledby="h-off">
+      <p class="eyebrow">The contract</p>
+      <h2 id="h-off">TapeDash never connects to the internet</h2>
+      <p class="sub">It may read the navigation notification of a navigation app you have installed, which has its own connection. It sends that app nothing. Six rules hold that line, and <code>tool/check_offline.sh</code> fails the build if one is broken. Each rule has a test that was seen failing when the rule was removed.</p>
+
+      <div class="rules">
+        <div class="rule"><h3>One package</h3><p>The listener checks the notification's package before it reads anything else of it. A release build allows <code>com.google.android.apps.maps</code> and nothing else.</p></div>
+        <div class="rule"><h3>One way</h3><p>TapeDash reads. It never replies to the app, presses its buttons, or launches it with a destination.</p></div>
+        <div class="rule"><h3>Nothing kept</h3><p>What it reads lives in memory, for the HUD. It is never written to a trip, a recording, the exchange file or the log. Street names are location data.</p></div>
+        <div class="rule"><h3>No network code</h3><p>No socket, no HTTP client and no networking import in the listener or the navigation code.</p></div>
+        <div class="rule"><h3>Off by default</h3><p>Switched on in Garage, parked only, with a plain explanation. You can revoke it in Android's settings at any time.</p></div>
+        <div class="rule"><h3>Stale is stale</h3><p>When Maps stops updating, the HUD says so. It never shows an old turn as a live one.</p></div>
+      </div>
+      <p class="sub" style="margin-top:22px">One honest caveat, which Garage also states: Android does not enforce the package filter. It is a promise kept by tests and by the code being open source.</p>
+    </section>
+
+    <!-- STATUS -->
+    <section id="status" aria-labelledby="h-status">
+      <p class="eyebrow">Status, 28 October 2026</p>
+      <h2 id="h-status">What has and has not been verified</h2>
+      <p class="sub"><span class="badge">Pre-alpha</span>&nbsp; Built and tested on emulators and on one real phone with a faked position. Not yet driven in a car.</p>
+
+      <div class="two">
+        <div class="panel yes">
+          <h3>Verified</h3>
+          <ul>
+            <li><span>3,956 tests, the offline check and the Android API 24 lint pass.</span></li>
+            <li><span>Android 16 emulator with real Google Maps 25.33, including the release build from a cold open.</span></li>
+            <li><span>Android 7.0 emulator, the minimum, with a stand-in for Maps (the real Maps cannot run there).</span></li>
+            <li><span>The target phone: Android 16 with Maps 26.42, the debug and then the release build, four runs of 2 to 3 minutes at 25 to 27 degrees. Turns, distances, ETA, rerouting, the card and the floating window, and the Garage row that opens Android's page.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet verified</h3>
+          <ul>
+            <li><span>A real drive: the sun, heat, and a whole trip with the adapter and Maps running together.</span></li>
+            <li><span>The speed on the HUD on the phone. The shell cannot send a speed and the adapter was not there, so it was blank.</span></li>
+            <li><span>Miles and other languages. Both captures so far are English and kilometres.</span></li>
+            <li><span>Roundabouts, U-turns and highway exits, and Maps' progress-style notification on a phone.</span></li>
+            <li><span>The windshield itself: brightness, the double image of laminated glass, and whether three lines of text survive it.</span></li>
+            <li><span>Frame rate on an old 2 GB phone. Emulators say nothing about it.</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="sub" style="margin-top:28px"><b style="color:var(--ink-bright)">Where it works.</b> Only where Google Maps itself runs, on the same phone as TapeDash. Today's Maps needs Android 9 at the very least, so the 2 GB Android 7 target phone cannot run it, and there the switch is simply not offered.</p>
+    </section>

@@ -1,0 +1,64 @@
+    <section aria-labelledby="h-rule">
+      <div class="lead-shot" style="margin-top:0">
+        {{fig: site/img/page-coach.png | The Coach page: kilometres a litre at each steady speed with the sweet spot highlighted at 60 to 70 km/h, this week's spend against last week's, a rupees-a-kilometre trend over eight weeks and one tip. | <b>The Coach page.</b> Your own efficiency curve with the sweet spot marked, this week against last, the trend, and one tip. Parked only. Built from made-up trips in the test harness.}}
+      </div>
+
+      <p class="eyebrow" style="margin-top:56px">The one rule</p>
+      <h2 id="h-rule">It never speaks while you drive</h2>
+      <p class="sub">A coach that nags is a distraction, and a distraction is a danger. So while the car moves the coach is limited to one wordless cue, and detailed advice appears only when the car is stopped or the trip has ended. No pop-ups, no text entry, no small tap targets, no voice.</p>
+      <div class="grid g3">
+        {{fig: site/img/eco-efficient.jpg | The eco bar with the puck to the right of centre. | <b>More efficient than your average.</b> The puck sits right of the centre.}}
+        {{fig: site/img/eco-average.jpg | The eco bar with the puck at the centre. | <b>About your average.</b> It sits on the middle mark, your own average km/L.}}
+        {{fig: site/img/eco-thirsty.jpg | The eco bar with a red puck to the left of centre. | <b>Thirstier than your average.</b> It drifts left and turns red. No words, no sound.}}
+      </div>
+      <p class="sub" style="margin-top:20px">That is the live cue. It compares your instant km/L with your car's own average, so it needs no fuel price and nothing about anyone else's car.</p>
+    </section>
+
+    <section aria-labelledby="h-events">
+      <p class="eyebrow">What it notices</p>
+      <h2 id="h-events">Five kinds of moment</h2>
+      <p class="sub">The speed is smoothed over about a second before acceleration is worked out, because OBD speed is whole km/h and noisy. Every threshold is configurable, and Garage has Gentle, Normal and Sporty presets.</p>
+      <div class="rules">
+        <div class="rule"><h3>Hard acceleration</h3><p>Smoothed acceleration above 2.5 m/s<sup>2</sup> for at least a second, or throttle above 70% for two seconds above 10 km/h.</p></div>
+        <div class="rule"><h3>Hard braking</h3><p>Smoothed deceleration beyond 3.5 m/s<sup>2</sup> for at least half a second.</p></div>
+        <div class="rule"><h3>Long idle</h3><p>Idling for more than 60 seconds on end.</p></div>
+        <div class="rule"><h3>High revs</h3><p>Above 3,500 rpm for more than three seconds.</p></div>
+        <div class="rule"><h3>Speeding</h3><p>Above your speed threshold for more than ten seconds.</p></div>
+      </div>
+      <div class="grid g2" style="margin-top:28px">
+        {{fig: site/img/page-garage-4.png | Garage, Coach group: hard acceleration and braking set to Gentle, Normal or Sporty, and a speed threshold slider at 100 km/h. | <b>Garage, Coach.</b> Gentle, Normal or Sporty, and your own speed threshold.}}
+        {{fig: site/img/page-review.png | Review with a tip panel reading: 3 rupees went on hard acceleration this trip. | <b>A tip, after the trip.</b> At most two per trip, chosen by their rupee impact, in plain facts.}}
+      </div>
+    </section>
+
+    <section aria-labelledby="h-sweet">
+      <p class="eyebrow">Your car, not a textbook</p>
+      <h2 id="h-sweet">Finding your sweet spot</h2>
+      <p class="sub">From your real trips, TapeDash collects the steady stretches: acceleration under 0.3 m/s<sup>2</sup> and throttle changing less than 5% a second. It bins them by 10 km/h of speed and reports kilometres a litre for a band once there are at least 3 km of data in it. The curve on the Coach page is yours, and the sweet spot is its peak.</p>
+      <div class="prose">
+        <h3>Tips are facts, and never shame</h3>
+        <p>They are written from templates, and each names a rupee amount and a cause: "₹24 of this trip went on idling, about 14 minutes with the engine on." Idling is called avoidable. Nothing is ever called wasted, and the comparison of a gentle drive with a hard one is a premise the simulator checks, not a claim made about any one trip.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-where-coach">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-where-coach">What has been seen</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Seen</h3>
+          <ul>
+            <li><span>On the simulator, the same route driven gently costs at least 15% less than driven hard, the hard run gets an idling or hard-acceleration tip and the gentle run gets none.</span></li>
+            <li><span>Tips never appear while the vehicle is moving, in widget tests at three screen sizes.</span></li>
+            <li><span>Event detection at each threshold's edges and durations.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet</h3>
+          <ul>
+            <li><span>Whether the advice reads right on real drives. Review showed no tip on the first short real trip, which may well be correct.</span></li>
+            <li><span>A sweet spot from real data. It needs enough steady driving, and the real recordings so far are short.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>

@@ -1,0 +1,80 @@
+    <section aria-labelledby="h-review">
+      <div class="lead-shot" style="margin-top:0">
+        {{fig: site/img/replay-720-0-before.png | Review of a trip: a route with marked moments, a channel selector, the receipt with 25 rupees, distance, time, economy, cost a kilometre and idling, the Where it went bar, one tip, and a scrubber with play, speed and stop buttons. | <b>Review.</b> The route, the receipt, where it went, one tip and a scrubber with the marked moments. Made from a hand-made drive round a block, so the route is a square wave and not a real road.}}
+      </div>
+
+      <p class="eyebrow" style="margin-top:56px">When the engine goes off</p>
+      <h2 id="h-review">A trip becomes a receipt, a route and a replay</h2>
+      <p class="sub">Every trip is kept on the phone with a sample each second: speed, revs, throttle, fuel use, GPS position, and where the car reports them, load, coolant and battery voltage. Review is parked only.</p>
+      <div class="facts">
+        <div class="fact"><b>The receipt</b><p>Rupees, distance, time, economy, rupees a kilometre and idling, with the four buckets of where it went.</p></div>
+        <div class="fact"><b>A route coloured by what you choose</b><p>Speed, revs, throttle, load, coolant, volts or rupees a kilometre. The scrubber beneath follows it and the cursor says its value.</p></div>
+        <div class="fact"><b>Moments marked on the way</b><p>Hard braking and hard acceleration appear on the route and on the scrubber, so you can jump to them.</p></div>
+        <div class="fact"><b>One tip, at most two</b><p>Chosen by rupee impact, and only here, never while driving.</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-debrief">
+      <p class="eyebrow">The Debrief</p>
+      <h2 id="h-debrief">A few seconds that close the trip</h2>
+      <p class="sub">When the engine has been off long enough to end the trip, the Debrief plays: the route draws itself and the figures count up to the receipt. A touch skips it, and if the engine comes back it is put away and the trip carries on.</p>
+      <div class="grid g2">
+        {{fig: site/img/page-debrief-1.png | The Debrief early on: the receipt at zero and a single dot where the route will start. | <b>The start.</b> The figures at zero and a dot where the route begins.}}
+        {{fig: site/img/page-debrief-2.png | The Debrief later: the route drawn across the screen and the buckets beginning to fill. | <b>Drawing itself.</b> The route traces out as the numbers climb.}}
+      </div>
+    </section>
+
+    <section aria-labelledby="h-replay">
+      <p class="eyebrow">Replay</p>
+      <h2 id="h-replay">Drive it again, at 1x, 2x or 3x</h2>
+      <p class="sub">A play button, a speed button and a stop button sit beside the scrubber. The route turns into a game map: a chase camera follows an arrow for the car, zooms out as the car speeds up and in as it slows, and the map turns with it, or stays north up. The route behind the car is bright and the route ahead is dim.</p>
+      <div class="grid g3">
+        {{fig: site/img/replay-720-2-moving.png | The replay at 50 km/h: a chase camera on the route, speed 50, revs 2,550 and throttle bars and the running rupees, distance and time. | <b>Replaying.</b> The receipt gives way to instruments: speed, revs, throttle, rupees so far, distance and time.}}
+        {{fig: site/img/replay-720-3b-event.png | The replay at a marked moment: the instruments and the label Hard braking in red. | <b>A marked moment</b> is named as the car passes it.}}
+        {{fig: site/img/replay-720-3c-northup.png | The replay with the map turned north up and the car arrow pointing right. | <b>North up.</b> Or let the map turn with the car.}}
+      </div>
+      <div class="prose" style="margin-top:24px">
+        <ul>
+          <li>The car stands still while the car stood, placed by the trip's odometer and never by time, and a stretch with the engine off is crossed in half a second.</li>
+          <li>It ends on the receipt's own totals, so the replay and the receipt never disagree.</li>
+          <li>The optional <a href="engine-sound.html">engine sound</a> plays from the recorded revs, a moment ahead of the picture.</li>
+          <li>Pinch to zoom from 1 to 24 times, drag to pan, double-tap to zoom, and tap the route to put the cursor there.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-history">
+      <p class="eyebrow">History</p>
+      <h2 id="h-history">Every trip, with its route and its spend</h2>
+      <div class="grid g2">
+        {{fig: site/img/page-history.png | History: this month's total of 994 rupees over 113 km, with a list of trips each showing a mini route, distance, rupees and km a litre, and Week, Month and All switches. | <b>History.</b> A total for the week, month or everything, and a row for each trip with its mini route. Tap one to open it in Review.}}
+        <div class="prose">
+          <h3>On the phone, and only there</h3>
+          <p>Trips live in a database on the phone. They go nowhere unless you export them yourself as a file (see <a href="data.html">Garage, exchange and survey</a>).</p>
+          <h3>No base map, on purpose</h3>
+          <p>There is the route and no map under it. A real map from a file you put on the phone has been assessed and left for later: the usual map library needs an HTTP client, which the offline rules ban, so it would need a vector-tile reader of our own.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-where-trips">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-where-trips">What has been seen</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Seen</h3>
+          <ul>
+            <li><span>Review on a real phone, with a real trip, on the first real drive.</span></li>
+            <li><span>All of it laid out at 640, 720 and 800 wide in tests, with the Debrief playing, skipping and being put away, and tips never shown while the vehicle moves.</span></li>
+            <li><span>Trip boundaries on a real recording: one ignition-off in a real drive ended the trip and the restart three minutes later resumed the same one, as designed.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet</h3>
+          <ul>
+            <li><span>The replay and the map gestures by a finger on a phone. They have been driven by tests and looked at in captures only.</span></li>
+            <li><span>A very long trip zoomed in. The route is thinned to about 1,000 points, so a deep zoom shows straight runs and not the road.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>

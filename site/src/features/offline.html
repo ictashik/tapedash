@@ -1,0 +1,72 @@
+    <section aria-labelledby="h-rule">
+      <p class="eyebrow">The first principle</p>
+      <h2 id="h-rule">Nothing to sign into, nothing that phones home</h2>
+      <p class="sub">TapeDash never connects to the internet: no cloud, no accounts, no analytics, no crash reporting, no ads, no remote config, no price lookups and no downloads at runtime. Every font and asset is bundled or comes from a file you pick. Fuel prices are typed in by you, never fetched.</p>
+      <div class="two">
+        <div class="panel yes">
+          <h3>What it talks to</h3>
+          <ul>
+            <li><span>Your OBD adapter: Bluetooth Classic, Bluetooth Low Energy, or a WiFi adapter on a private address.</span></li>
+            <li><span>The phone's own GPS receiver, light sensor, accelerometer and battery temperature.</span></li>
+            <li><span>Files you choose to import.</span></li>
+            <li><span>Optionally, and off by default, the navigation notification of Google Maps if you have it. <a href="navigation-hud.html">That is the one exception, and it is a reading, not a connection.</a></span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>What it never talks to</h3>
+          <ul>
+            <li><span>Any server, of ours or anyone's.</span></li>
+            <li><span>Google Play Services, Firebase, or any proprietary SDK, directly or through a library.</span></li>
+            <li><span>Anything it could send your trips, your location or your car's data to.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-enforce">
+      <p class="eyebrow">Enforced, not promised</p>
+      <h2 id="h-enforce">A check that fails the build</h2>
+      <p class="sub"><code>tool/check_offline.sh</code> runs before every commit and in CI. It fails if any of these is true:</p>
+      <div class="rules">
+        <div class="rule"><h3>A banned package</h3><p>The lock file contains <code>http</code>, <code>dio</code>, <code>google_fonts</code>, any Firebase or analytics package, or Sentry.</p></div>
+        <div class="rule"><h3>Network code in Dart</h3><p>Any file under <code>lib/</code> imports <code>package:http</code> or uses <code>HttpClient</code>.</p></div>
+        <div class="rule"><h3>An extra permission</h3><p>The merged release manifest asks for anything outside a short allowed list: Bluetooth, location, wake lock and one more, below.</p></div>
+        <div class="rule"><h3>Play Services or Firebase</h3><p>Either appears anywhere in the Gradle dependency tree.</p></div>
+        <div class="rule"><h3>A leaky navigation listener</h3><p>The navigation listener imports a networking class, there is a second listener service, the release allowlist is not exactly Google Maps, or it reads a notification before checking its package.</p></div>
+        <div class="rule"><h3>A weak rule</h3><p>Each of these checks has its own test that shows it failing when the rule is broken, so the check cannot silently stop checking.</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-internet">
+      <p class="eyebrow">The one permission that looks wrong</p>
+      <h2 id="h-internet">Why INTERNET is in the manifest</h2>
+      <p class="sub">Android requires the INTERNET permission for any socket at all, including one to a WiFi ELM327 on the dash. So it is there, and it is guarded: all socket code lives in a single file, which refuses any address outside the private ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, loopback and link-local). That refusal is unit-tested, and the emulator's host address passes it.</p>
+    </section>
+
+    <section aria-labelledby="h-site">
+      <p class="eyebrow">This site too</p>
+      <h2 id="h-site">These pages load nothing from elsewhere</h2>
+      <p class="sub">No web fonts, scripts, stylesheets, analytics, embeds or pictures from another site: the fonts are the app's own, copied in, and the screenshots are the app's own renders. The only address a page may link to outside the repository is the project's own on GitHub. <code>tool/build_site.py --check</code> fails the build if a page breaks that, in the same spirit as the app's own check.</p>
+    </section>
+
+    <section aria-labelledby="h-where-off">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-where-off">What is and is not guaranteed</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Guaranteed by a check</h3>
+          <ul>
+            <li><span>No network code, banned package, Play Services or Firebase gets into a commit.</span></li>
+            <li><span>The release manifest asks only for what is allowed.</span></li>
+            <li><span>A WiFi adapter address outside private ranges is refused.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>A promise, not enforced by Android</h3>
+          <ul>
+            <li><span>The navigation listener's filter to one package is kept by tests and by the code being open, not by Android. Garage says so.</span></li>
+            <li><span>A build you did not make yourself. The source is open so that you can read it and build your own.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>

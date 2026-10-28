@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#050607">
+<title>The windshield HUD | TapeDash</title>
+<meta name="description" content="Mirrored, pure black, one colour, huge numerals, and an alignment pattern for setting it up on the glass.">
+<link rel="icon" href="../site/icon.png">
+<link rel="stylesheet" href="../site/site.css">
+</head>
+<body class="feature">
+<div class="wrap">
+  <header class="bar">
+    <a class="mark" href="../index.html">Tape<span>Dash</span></a>
+    <nav aria-label="Site">
+      <a href="../index.html#features">Features</a>
+      <a href="../features/offline.html">Offline</a>
+      <a href="../index.html#status">Status</a>
+      <a href="https://github.com/ictashik/tapedash">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="pagehead" aria-labelledby="h-page">
+      <p class="crumbs"><a href="../index.html#features">Features</a> / On the dash</p>
+      <h1 id="h-page">The windshield HUD</h1>
+      <p class="lede sub">Stick the phone face up on the dash, lay a reflector film or a 3D-printed holder over it, and the speed floats in the windshield. The HUD is one component of the design, not the whole of it: windshield optics have their own rules.</p>
+    <ul class="levels" aria-label="Where this has been seen working">
+      <li class="on">Simulator</li>
+      <li class="on">Emulator</li>
+      <li class="on">Real phone</li>
+      <li class="off">On a windshield: not yet</li>
+    </ul>
+    </section>
+
+    <section aria-labelledby="h-glass">
+      <div class="stage" id="stage" data-mirrored="false">
+        <div class="view">
+          <div class="flip">
+            <img src="../site/img/hud-drive-money.png" width="1440" height="720" alt="The Drive and Money HUD: a green speed of 64 km/h on the left and a dash with the words MONEY UNAVAILABLE on the right, on pure black.">
+          </div>
+        </div>
+        <div class="stage-controls">
+          <button class="btn flip-btn" type="button" aria-pressed="false" data-off="Show it as the windshield reflects it" data-on="Show it as designed">Show it as the windshield reflects it</button>
+          <p class="stage-note flip-note" aria-live="polite" data-off="As designed. The HUD is drawn mirrored, because it is read in a reflection." data-on="As the glass shows it: mirrored, so the reflection reads the right way round.">As designed. The HUD is drawn mirrored, because it is read in a reflection.</p>
+        </div>
+      </div>
+
+      <p class="eyebrow" style="margin-top:56px">Optics</p>
+      <h2 id="h-glass">What a windshield lets through</h2>
+      <p class="sub">A windshield reflects only a small fraction of the phone's light, and the two glass surfaces of a laminated screen add a faint double image. Only bright, bold, simple shapes survive. So the HUD is not the dashboard made bigger. It has its own rules.</p>
+      <div class="rules">
+        <div class="rule"><h3>Pure black</h3><p>No background, no frames, no etched lines. Nothing of the phone's own glass is lit, so only the numerals reach the windshield.</p></div>
+        <div class="rule"><h3>One colour</h3><p>HUD Green (the most visible, and the default), Ion, Amber or White. You choose it; a critical alert still uses red.</p></div>
+        <div class="rule"><h3>Bold and large</h3><p>Strokes of at least 5 lp, labels at least 6% of the screen height, numerals SemiBold or heavier. No halos, no trails, no thin lines.</p></div>
+        <div class="rule"><h3>No bright areas</h3><p>Numerals may be filled, panels never, so a night drive gets no glare and no double-imaged blocks.</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-layouts">
+      <p class="eyebrow">Layouts</p>
+      <h2 id="h-layouts">Three, and a fourth when Maps is guiding</h2>
+      <div class="grid g3">
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/hud-drive.png" width="1440" height="720" loading="lazy" alt="The Drive HUD: a huge green speed of 64 km/h with a thin RPM bar beneath it."></button>
+          <figcaption><b>Drive.</b> A huge speed with a thin rev bar beneath it.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/hud-drive-redline.png" width="1440" height="720" loading="lazy" alt="The Drive HUD with the end of the rev bar in red and taller."></button>
+          <figcaption><b>The redline</b> stands taller as well as red, so it never relies on colour alone.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/hud-drive-money.png" width="1440" height="720" loading="lazy" alt="The Drive and Money HUD with the speed on the left and the money on the right."></button>
+          <figcaption><b>Drive and Money.</b> The speed on the left and the rupees for this trip on the right.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/hud-money.png" width="1440" height="720" loading="lazy" alt="The Money HUD showing an amber dash and the words MONEY UNAVAILABLE."></button>
+          <figcaption><b>Money.</b> Huge rupees for this trip with rupees per kilometre beneath. With nothing to show, it says so rather than guessing.</figcaption>
+        </figure>
+      </div>
+      <p class="sub" style="margin-top:22px">While Google Maps is guiding, the HUD takes over with <a href="navigation-hud.html">its navigation layout</a> and gives your own layout back when Maps stops. A double-tap on Drive or Money, or the dock button, switches the HUD on and off, and the last mode is remembered. The screen is kept on, set to maximum brightness in daylight, and put in immersive mode.</p>
+    </section>
+
+    <section aria-labelledby="h-setup">
+      <p class="eyebrow">Setting it up</p>
+      <h2 id="h-setup">An alignment pattern, and every way up</h2>
+      <p class="sub">However the phone sits, it should work. Garage has a flip left to right (on by default, because a windshield mirrors), a flip top to bottom, the height on the glass, and the size. Before you drive, a full-screen test pattern with a crosshair grid, a large F and an UP marker lets you confirm the orientation and position in the actual windshield. It is drawn with your current flips.</p>
+      <div class="grid g2">
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/hud-alignment.png" width="1440" height="720" loading="lazy" alt="The alignment pattern as designed: a green grid, a large F, an UP arrow and the wordmark TAPEDASH."></button>
+          <figcaption><b>The alignment pattern, as designed.</b> A large F and an UP marker make a wrong flip obvious.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/hud-alignment-mirrored.png" width="1440" height="720" loading="lazy" alt="The alignment pattern mirrored: the F and the UP text are reversed."></button>
+          <figcaption><b>With the flips on,</b> it is drawn the way the glass will show it.</figcaption>
+        </figure>
+      </div>
+      <div class="grid g2" style="margin-top:20px">
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/page-garage-3.png" width="1440" height="720" loading="lazy" alt="Garage, HUD group: the colour, flip left to right, flip top to bottom, height on the glass and size."></button>
+          <figcaption><b>Garage, HUD.</b> The colour, both flips, the height on the glass and the size. Only reachable while parked.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../build-video/frames/035-hud.jpg" width="1440" height="720" loading="lazy" alt="The HUD with a large green speed and a red zone on the rev bar."></button>
+          <figcaption><b>An early frame of the HUD</b> from the build.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-night">
+      <p class="eyebrow">Brightness</p>
+      <h2 id="h-night">Bright by day, quiet at night</h2>
+      <p class="sub">In daylight the HUD goes to maximum brightness. At night it follows the room's light with a floor of 20%, so a dark road gets a dim, steady figure. The numerals roll on a single gentle spring and nothing overshoots.</p>
+    </section>
+
+    <section aria-labelledby="h-honest">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-honest">Not yet seen on a windshield</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Seen</h3>
+          <ul>
+            <li><span>Every layout and the alignment pattern, drawn by the real app, as designed and mirrored, at 640, 720 and 800 wide.</span></li>
+            <li><span>Tests that hold the HUD to one colour on pure black, strokes of at least 5 lp, and nothing under the size floor.</span></li>
+            <li><span>The HUD on an Android 7 emulator and on a real phone at a desk.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet</h3>
+          <ul>
+            <li><span>A real windshield: its brightness in sun, the double image of laminated glass, and whether a reflector film or a printed holder helps.</span></li>
+            <li><span>Night driving with the HUD on.</span></li>
+            <li><span>The HUD's heat and battery over a long drive in the sun.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+
+    <nav class="pn" aria-label="Neighbouring features">
+      <a class="prev" href="../features/dashboard.html"><small>Previous</small>The dashboard</a><a class="next" href="../features/navigation-hud.html"><small>Next</small>Navigation on the HUD</a>
+    </nav>
+
+    <section class="more" aria-labelledby="h-more">
+      <h2 id="h-more">All features</h2>
+      <ul>
+        <li><a href="../features/dashboard.html">The dashboard</a></li>
+        <li><a href="../features/hud.html" aria-current="page">The windshield HUD</a></li>
+        <li><a href="../features/navigation-hud.html">Navigation on the HUD</a></li>
+        <li><a href="../features/gps-only.html">GPS speed only</a></li>
+        <li><a href="../features/money.html">Where the money goes</a></li>
+        <li><a href="../features/fuel-and-fill-ups.html">Fuel, fill-ups and calibration</a></li>
+        <li><a href="../features/coach.html">The driving coach</a></li>
+        <li><a href="../features/trips.html">Trips, Review and History</a></li>
+        <li><a href="../features/insights.html">Insights</a></li>
+        <li><a href="../features/diagnostics.html">Fault codes and the PID matrix</a></li>
+        <li><a href="../features/engine-sound.html">Engine sound</a></li>
+        <li><a href="../features/watch.html">The watch</a></li>
+        <li><a href="../features/data.html">Garage, exchange and survey</a></li>
+        <li><a href="../features/offline.html">Strictly offline</a></li>
+        <li><a href="../features/simulator.html">Built on a simulator</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <div class="links">
+      <a href="https://github.com/ictashik/tapedash">Source on GitHub</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/docs/STATUS.md">What is verified (STATUS.md)</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/DESIGN.md">Design spec</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/CLAUDE.md">Architecture and rules</a>
+    </div>
+    <p>TapeDash is a free, open-source, strictly offline Android app. Fuel and money figures are estimates. It is an aid, not a certified instrument: set it up while parked, and you remain responsible for driving safely.</p>
+    <p>This page itself loads nothing from anywhere else: no web fonts, scripts, analytics or embeds. Google Maps is a trademark of Google LLC; TapeDash is independent and is not affiliated with or endorsed by Google.</p>
+  </footer>
+</div>
+
+<dialog id="lightbox" aria-label="Screenshot">
+  <img id="lbImg" alt="">
+  <div class="cap">
+    <span id="lbCap"></span>
+    <form method="dialog"><button class="btn" autofocus>Close</button></form>
+  </div>
+</dialog>
+
+<script src="../site/site.js"></script>
+</body>
+</html>

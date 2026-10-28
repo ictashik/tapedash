@@ -1,0 +1,51 @@
+    <section aria-labelledby="h-screen">
+      <div class="lead-shot" style="margin-top:0">
+        {{fig: site/img/gps-cluster-city-800.jpg | The GPS-only screen: a large speed of 50 km/h with distance 0.6 km, moving 0:54, average 39, fastest 51 and heading E beneath. | <b>The speed as the hero,</b> and what a GPS can honestly add up to: distance, moving time, average and fastest speed, and heading.}}
+      </div>
+
+      <p class="eyebrow" style="margin-top:56px">One choice, kept</p>
+      <h2 id="h-screen">You choose the source, and it stays chosen</h2>
+      <p class="sub">The first screen asks: <b style="color:var(--ink-bright)">CONNECT MY CAR</b> or <b style="color:var(--ink-bright)">GPS SPEED ONLY</b>. The answer is kept. An adapter that will not connect stays a drive that is looking for its adapter, and never quietly turns into the GPS. Garage, Speed from, switches between the two. There is no demo mode: the app never shows simulated data as if it were your car.</p>
+      <div class="grid g2">
+        {{fig: site/img/choice.jpg | The cold open: the wordmark TAPEDASH over two buttons, Connect my car and GPS speed only. | <b>The cold open.</b> Two honest choices.}}
+        {{fig: site/img/gps-cluster-searching.jpg | The GPS screen with the text Looking for GPS and advice to give the phone a clear view of the sky. | <b>Looking for GPS.</b> The first fix can take a minute, and the screen says so in plain words.}}
+      </div>
+    </section>
+
+    <section aria-labelledby="h-honest-gps">
+      <p class="eyebrow">What it will and will not say</p>
+      <h2 id="h-honest-gps">Honest about what a receiver knows</h2>
+      <div class="facts">
+        <div class="fact"><b>The receiver's own speed</b><p>The speed is the Doppler speed the receiver reports. Below about 1.5 km/h it reads zero, so a parked car shows 0 and not a drifting 2.</p></div>
+        <div class="fact"><b>Distance from speed</b><p>The distance is that speed over time and never the sum of position jumps, which would add up GPS noise as if it were road.</p></div>
+        <div class="fact"><b>Poor fixes are ignored</b><p>A fix less accurate than 100 m is not used at all.</p></div>
+        <div class="fact"><b>Nothing invented</b><p>No tach, money, coach, trips or engine sound, because nothing reads them. The HUD works too, with the speed alone.</p></div>
+      </div>
+      <div class="grid g2" style="margin-top:28px">
+        {{fig: site/img/gps-cluster-permission.jpg | The GPS screen asking for location permission, with an Allow location button. | <b>A missing permission</b> is explained, with one button, and nothing leaves the phone.}}
+        {{fig: site/img/gps-cluster-nogps.jpg | The GPS screen saying No GPS because the phone would not start a GPS receiver. | <b>No receiver</b> is said just as plainly.}}
+      </div>
+    </section>
+
+    <section aria-labelledby="h-where-gps">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-where-gps">What has been tested</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Seen</h3>
+          <ul>
+            <li><span>The rules in tests: a simulated city drive whose distance comes out within 3% of the simulated car's own ground truth.</span></li>
+            <li><span>The whole app on a fake receiver at 640, 720 and 800 wide, in widget tests.</span></li>
+            <li><span>An Android 16 emulator with the receiver moving at 30 km/h, as the source for the navigation HUD, in a release build.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet</h3>
+          <ul>
+            <li><span>GPS speed on a real phone in a real car.</span></li>
+            <li><span>The screen at the oldest-phone frame budget, which has not been timed.</span></li>
+            <li><span>A page for it in the Design Lab. It is exercised by a capture test only, and has no golden image yet.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>

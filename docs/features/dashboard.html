@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#050607">
+<title>The dashboard | TapeDash</title>
+<meta name="description" content="Five cluster layouts, four liveries, Daylight and Night, drawn like an instrument and not like an app.">
+<link rel="icon" href="../site/icon.png">
+<link rel="stylesheet" href="../site/site.css">
+</head>
+<body class="feature">
+<div class="wrap">
+  <header class="bar">
+    <a class="mark" href="../index.html">Tape<span>Dash</span></a>
+    <nav aria-label="Site">
+      <a href="../index.html#features">Features</a>
+      <a href="../features/offline.html">Offline</a>
+      <a href="../index.html#status">Status</a>
+      <a href="https://github.com/ictashik/tapedash">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="pagehead" aria-labelledby="h-page">
+      <p class="crumbs"><a href="../index.html#features">Features</a> / On the dash</p>
+      <h1 id="h-page">The dashboard</h1>
+      <p class="lede sub">TapeDash is for people who know the best instrument clusters in the world and want that on their own dash. A tach arc, tapes, a road view and a telemetry grid, drawn with a glyph atlas so they do not jitter, on a phone that may be ten years old.</p>
+    <ul class="levels" aria-label="Where this has been seen working">
+      <li class="on">Simulator</li>
+      <li class="on">Emulator</li>
+      <li class="on">Real phone</li>
+      <li class="on">Real car (one BLE adapter)</li>
+    </ul>
+    </section>
+
+    <section aria-labelledby="h-layouts">
+      <div class="lead-shot" style="margin-top:0">
+        <figure>
+          <button class="zoom" type="button"><img src="../build-video/frames/023-apex-cluster.jpg" width="1600" height="800" loading="lazy" alt="The Apex cluster: a segmented tach arc round a large speed readout, with coolant and the trip beside it."></button>
+          <figcaption><b>Apex</b>, the default: the speed inside the tach arc. Drawn by the real app on the built-in simulator.</figcaption>
+        </figure>
+      </div>
+
+      <p class="eyebrow" style="margin-top:56px">Drive</p>
+      <h2 id="h-layouts">Five layouts, one swipe</h2>
+      <p class="sub">A vertical swipe cycles through the layouts and the choice is remembered. They share one horizon and floor, so changing layout never moves the things you read by feel.</p>
+      <div class="grid g2">
+        <figure>
+          <button class="zoom" type="button"><img src="../build-video/frames/025-tape-cluster.jpg" width="1600" height="800" loading="lazy" alt="The Tape cluster: a speed tape on the left and an RPM tape on the right with readout boxes."></button>
+          <figcaption><b>Tape</b>, the brand layout. Speed and revs as vertical tapes with trend vectors, the instrument TapeDash is named for.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../build-video/frames/026-minimal-cluster.jpg" width="1600" height="800" loading="lazy" alt="The Minimal cluster: a large speed with a thin RPM line under the digits."></button>
+          <figcaption><b>Minimal</b>. The speed and a thin line whose length follows the revs. Best at night.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../build-video/frames/027-telemetry-cluster.jpg" width="1600" height="800" loading="lazy" alt="The Telemetry cluster: six tiles with live sparklines for RPM, speed, throttle, load, coolant and volts."></button>
+          <figcaption><b>Telemetry</b>, the enthusiast layout. Six tiles with a minute of history each. The one dense layout, so it is opt-in and never the default.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../build-video/frames/024-road-cluster.jpg" width="1600" height="800" loading="lazy" alt="The Road cluster: a road view with converging lane lines and a large speed."></button>
+          <figcaption><b>Road</b>. A road view that rolls with the car's lateral acceleration, with the speed over it.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-look">
+      <p class="eyebrow">Look</p>
+      <h2 id="h-look">Four liveries, and a mode for the sun and the dark</h2>
+      <p class="sub">A livery swaps the accent colour, the numeral style and the texture, and never the layout or the motion. Daylight and Night apply on top of any livery by themselves, from the phone's light sensor, and can be overridden in Garage.</p>
+      <div class="grid g3">
+        <figure>
+          <button class="zoom" type="button"><img src="../build-video/frames/003-livery-vfd.jpg" width="1280" height="720" loading="lazy" alt="VFD livery: seven-segment digits with ghost segments on a fine mesh."></button>
+          <figcaption><b>VFD</b>. Seven-segment digits leaning 8 degrees, with unlit ghost segments and a fine mesh. An 80s digital dash.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../build-video/frames/004-livery-mono.jpg" width="1280" height="720" loading="lazy" alt="MONO livery: thin light numerals in near-white."></button>
+          <figcaption><b>MONO</b>. Thin strokes in near-white. Luxury and restrained.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../build-video/frames/005-livery-ember.jpg" width="1280" height="720" loading="lazy" alt="EMBER livery: warm orange numerals."></button>
+          <figcaption><b>EMBER</b>. A warm, sporty accent. <b>ION</b>, the cool default, is the one in the pictures above.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../build-video/frames/006-mode-daylight.jpg" width="1280" height="720" loading="lazy" alt="Daylight mode: bright numerals with the halo switched off."></button>
+          <figcaption><b>Daylight</b>, above about 5,000 lux. Halos off, strokes thicker, labels brighter, so it reads in sun.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../build-video/frames/007-mode-night.jpg" width="1280" height="720" loading="lazy" alt="Night mode: the same numerals with a halved halo."></button>
+          <figcaption><b>Night</b>, below about 20 lux. Brightness follows the room, halos halve and the structure dims.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../build-video/frames/002-odometer-roll.jpg" width="1280" height="720" loading="lazy" alt="The detented odometer numerals frozen at seven values mid-roll."></button>
+          <figcaption><b>Numerals that roll.</b> A digit turns through a detent like an odometer, and the ones digit never moves sideways as a value goes 7, 77, 107.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-parts">
+      <p class="eyebrow">Instruments</p>
+      <h2 id="h-parts">Each part is an instrument, not a widget</h2>
+      <div class="grid g3">
+        <figure>
+          <button class="zoom" type="button"><img src="../build-video/frames/013-tach-arc.jpg" width="1280" height="1000" loading="lazy" alt="The tach arc: chamfered segments with a light-blade needle and a red zone past 6,500 rpm."></button>
+          <figcaption><b>The tach arc.</b> Chamfered segments, a light-blade needle, and the redline zone in critical red.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../build-video/frames/014-shift-horizon.jpg" width="1280" height="200" loading="lazy" alt="The shift horizon: a light bar converging to the centre."></button>
+          <figcaption><b>The shift horizon.</b> A light bar that converges on the centre as the revs near the point to shift.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/eco-efficient.jpg" width="1280" height="200" loading="lazy" alt="The eco bar with a glowing puck to the right of the centre."></button>
+          <figcaption><b>The eco bar.</b> A puck on the car's own average km/L: right when you are more efficient, left when thirstier. No text.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-parked">
+      <p class="eyebrow">Moving and parked</p>
+      <h2 id="h-parked">It gets out of the way, and comes back when you stop</h2>
+      <p class="sub">The app is one strip of pages: Review, Money, Drive, Coach, History. While the car moves only Drive and Money can be reached, and the page dots lock. A stop of five seconds, or the ignition off, puts the dock in reach.</p>
+      <div class="grid g2">
+        <figure>
+          <button class="zoom" type="button"><img src="../build-video/frames/028-the-strip.jpg" width="1600" height="800" loading="lazy" alt="The Strip mid-swipe: the Money page half in and the Drive page half out."></button>
+          <figcaption><b>The Strip.</b> Swipe to Money and the speed you were watching travels to the corner instead of vanishing.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../build-video/frames/030-parked-dock.jpg" width="1600" height="800" loading="lazy" alt="The parked dock rising under the cluster with buttons for Garage, Pit Stop, Diagnostics and HUD."></button>
+          <figcaption><b>The parked dock.</b> Garage, Pit Stop, Diagnostics, Insights, HUD and End trip. Settings, tips, fill-ups and fault-code clearing live here and nowhere else.</figcaption>
+        </figure>
+      </div>
+      <p class="sub" style="margin-top:20px">When the car starts moving, the moving layout is back within 300 ms.</p>
+    </section>
+
+    <section aria-labelledby="h-moments">
+      <p class="eyebrow">Moments</p>
+      <h2 id="h-moments">Starting up, and losing the car</h2>
+      <div class="grid g2">
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/ignition-550ms.jpg" width="1600" height="800" loading="lazy" alt="The ignition sequence: the needle sweeping with the speed numerals rolling up."></button>
+          <figcaption><b>The ignition.</b> The needle swings up and back as the numerals roll up and the horizon draws.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/connection-searching.jpg" width="1600" height="800" loading="lazy" alt="A cluster in standby with a sweep beam circling the arc and the text Looking for your adapter."></button>
+          <figcaption><b>Looking for your adapter.</b> A sweep circles the arc. An adapter that will not connect stays a drive that is looking for it, and never turns into another source. Raw adapter errors are never shown.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-old">
+      <p class="eyebrow">Old phones first</p>
+      <h2 id="h-old">Smooth on a ten-year-old phone</h2>
+      <div class="facts">
+        <div class="fact"><b>A glyph atlas</b><p>Live numerals are drawn from a prebuilt atlas, with baked glow sprites and cached static layers, so nothing is laid out as text every frame.</p></div>
+        <div class="fact"><b>Zero allocation per frame</b><p>Live data never rebuilds a widget. Painters repaint through listenables and batch their segments into one draw.</p></div>
+        <div class="fact"><b>Three fidelity tiers</b><p>The app measures the phone and picks a tier, with a 60 fps target and a 30 fps fallback. The look has to hold up in the lowest tier.</p></div>
+        <div class="fact"><b>Budgets</b><p>Under 20 MB per ABI with fonts included, about 150 MB of memory, 32-bit ARM kept, Android 7 as the floor.</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-honest">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-honest">What has and has not been seen</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Seen</h3>
+          <ul>
+            <li><span>All five layouts, the liveries and both modes, drawn by the real app in tests and captures, and on an Android 7 emulator and a real phone.</span></li>
+            <li><span>A real car over several long drives with a Bluetooth Low Energy adapter, with the page dots locking while moving.</span></li>
+            <li><span>Frame timing on a flagship phone: about 120 fps with the full tier chosen automatically.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet</h3>
+          <ul>
+            <li><span>The old, low-end 2 GB phone the app is designed for. Timings are from emulators and a flagship, which say little about it.</span></li>
+            <li><span>Other adapters. The one tried polls about 1.3 times a second, so the needle is smoothed with a playout buffer that shows the car about half a second late, on purpose, to avoid overshoot.</span></li>
+            <li><span>Every livery and mode in the golden-image matrix on every page.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+
+    <nav class="pn" aria-label="Neighbouring features">
+      <a class="next" href="../features/hud.html"><small>Next</small>The windshield HUD</a>
+    </nav>
+
+    <section class="more" aria-labelledby="h-more">
+      <h2 id="h-more">All features</h2>
+      <ul>
+        <li><a href="../features/dashboard.html" aria-current="page">The dashboard</a></li>
+        <li><a href="../features/hud.html">The windshield HUD</a></li>
+        <li><a href="../features/navigation-hud.html">Navigation on the HUD</a></li>
+        <li><a href="../features/gps-only.html">GPS speed only</a></li>
+        <li><a href="../features/money.html">Where the money goes</a></li>
+        <li><a href="../features/fuel-and-fill-ups.html">Fuel, fill-ups and calibration</a></li>
+        <li><a href="../features/coach.html">The driving coach</a></li>
+        <li><a href="../features/trips.html">Trips, Review and History</a></li>
+        <li><a href="../features/insights.html">Insights</a></li>
+        <li><a href="../features/diagnostics.html">Fault codes and the PID matrix</a></li>
+        <li><a href="../features/engine-sound.html">Engine sound</a></li>
+        <li><a href="../features/watch.html">The watch</a></li>
+        <li><a href="../features/data.html">Garage, exchange and survey</a></li>
+        <li><a href="../features/offline.html">Strictly offline</a></li>
+        <li><a href="../features/simulator.html">Built on a simulator</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <div class="links">
+      <a href="https://github.com/ictashik/tapedash">Source on GitHub</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/docs/STATUS.md">What is verified (STATUS.md)</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/DESIGN.md">Design spec</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/CLAUDE.md">Architecture and rules</a>
+    </div>
+    <p>TapeDash is a free, open-source, strictly offline Android app. Fuel and money figures are estimates. It is an aid, not a certified instrument: set it up while parked, and you remain responsible for driving safely.</p>
+    <p>This page itself loads nothing from anywhere else: no web fonts, scripts, analytics or embeds. Google Maps is a trademark of Google LLC; TapeDash is independent and is not affiliated with or endorsed by Google.</p>
+  </footer>
+</div>
+
+<dialog id="lightbox" aria-label="Screenshot">
+  <img id="lbImg" alt="">
+  <div class="cap">
+    <span id="lbCap"></span>
+    <form method="dialog"><button class="btn" autofocus>Close</button></form>
+  </div>
+</dialog>
+
+<script src="../site/site.js"></script>
+</body>
+</html>

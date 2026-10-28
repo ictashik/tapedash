@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#050607">
+<title>Fault codes and the PID matrix | TapeDash</title>
+<meta name="description" content="Read stored and pending fault codes in plain words, see what your car answers, and clear codes only when stopped.">
+<link rel="icon" href="../site/icon.png">
+<link rel="stylesheet" href="../site/site.css">
+</head>
+<body class="feature">
+<div class="wrap">
+  <header class="bar">
+    <a class="mark" href="../index.html">Tape<span>Dash</span></a>
+    <nav aria-label="Site">
+      <a href="../index.html#features">Features</a>
+      <a href="../features/offline.html">Offline</a>
+      <a href="../index.html#status">Status</a>
+      <a href="https://github.com/ictashik/tapedash">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="pagehead" aria-labelledby="h-page">
+      <p class="crumbs"><a href="../index.html#features">Features</a> / The car</p>
+      <h1 id="h-page">Fault codes and the PID matrix</h1>
+      <p class="lede sub">Read what the engine computer has stored, look it up in a bundled list, and see exactly which readings your car reports. Clearing codes needs a long slide, and only works with the car at a standstill.</p>
+    <ul class="levels" aria-label="Where this has been seen working">
+      <li class="on">Simulator, with injected codes</li>
+      <li class="on">Emulator</li>
+      <li class="off">Codes on a real car: not yet</li>
+    </ul>
+    </section>
+
+    <section aria-labelledby="h-screen">
+      <div class="lead-shot" style="margin-top:0">
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/page-diagnostics.png" width="1440" height="720" loading="lazy" alt="Diagnostics: the adapter ELM327 v1.5 on ISO 15765-4 CAN 11-bit 500 kbaud, a grid of 96 cells with 9 lit, two fault codes P0420 and P0171 with descriptions and stored and pending chips, and a red slide to clear codes."></button>
+          <figcaption><b>Diagnostics.</b> What the adapter is, which readings the car answers, the fault codes in plain words, and a slide to clear them. Drawn by the real app on a fake adapter with two injected codes.</figcaption>
+        </figure>
+      </div>
+
+      <p class="eyebrow" style="margin-top:56px">What your car is saying</p>
+      <h2 id="h-screen">Three panels on one screen</h2>
+      <div class="facts">
+        <div class="fact"><b>The adapter</b><p>Its name and version, the protocol in words, the module voltage, the achieved poll rate as a sparkline, and which fuel method is in use.</p></div>
+        <div class="fact"><b>The PID matrix</b><p>One cell for each Mode 01 reading from 01 to 60, lit where your car answers. Tap a cell to name it. It shows exactly what your car is talking about, and so what TapeDash can use.</p></div>
+        <div class="fact"><b>Fault codes</b><p>Stored codes (Mode 03) and pending codes (Mode 07), each with a plain-English line and a stored or pending chip.</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-codes">
+      <p class="eyebrow">Fault codes</p>
+      <h2 id="h-codes">Read them in words, not numbers</h2>
+      <p class="sub">A code like P0420 is decoded into its family (powertrain, chassis, body or network) and looked up in a list bundled in the app. The list of 283 common generic codes was written from scratch for this project, in short plain sentences, and records its source in the repository. It is deliberately not exhaustive.</p>
+      <div class="prose">
+        <p>Manufacturer-specific codes mean different things on different cars. For those, and for any generic code that is not in the list, the app says which system the code belongs to and to look it up for your car. It never guesses a description.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-clear">
+      <p class="eyebrow">Clearing</p>
+      <h2 id="h-clear">A long slide, and only when stopped</h2>
+      <p class="sub">Clearing codes (Mode 04) needs a full slide to confirm, and the app will not do it unless the car is at a standstill. If the car refuses, you are told. Clearing also wipes the data a mechanic would want, so do not use it on a car you do not understand.</p>
+    </section>
+
+    <section aria-labelledby="h-where-diag">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-where-diag">What has been seen</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Seen</h3>
+          <ul>
+            <li><span>The whole path against a simulated car with two codes stored (P0420 and P0171): they are read, decoded and described, and clearing is refused while the car moves.</span></li>
+            <li><span>Every control at 640, 720 and 800 wide, and the flow through the real app.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet</h3>
+          <ul>
+            <li><span>Reading or clearing codes on a real car.</span></li>
+            <li><span>The PID matrix does not yet pulse on each response, and its voltage is the module voltage the poller reads, not the adapter's own reading.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+
+    <nav class="pn" aria-label="Neighbouring features">
+      <a class="prev" href="../features/insights.html"><small>Previous</small>Insights</a><a class="next" href="../features/engine-sound.html"><small>Next</small>Engine sound</a>
+    </nav>
+
+    <section class="more" aria-labelledby="h-more">
+      <h2 id="h-more">All features</h2>
+      <ul>
+        <li><a href="../features/dashboard.html">The dashboard</a></li>
+        <li><a href="../features/hud.html">The windshield HUD</a></li>
+        <li><a href="../features/navigation-hud.html">Navigation on the HUD</a></li>
+        <li><a href="../features/gps-only.html">GPS speed only</a></li>
+        <li><a href="../features/money.html">Where the money goes</a></li>
+        <li><a href="../features/fuel-and-fill-ups.html">Fuel, fill-ups and calibration</a></li>
+        <li><a href="../features/coach.html">The driving coach</a></li>
+        <li><a href="../features/trips.html">Trips, Review and History</a></li>
+        <li><a href="../features/insights.html">Insights</a></li>
+        <li><a href="../features/diagnostics.html" aria-current="page">Fault codes and the PID matrix</a></li>
+        <li><a href="../features/engine-sound.html">Engine sound</a></li>
+        <li><a href="../features/watch.html">The watch</a></li>
+        <li><a href="../features/data.html">Garage, exchange and survey</a></li>
+        <li><a href="../features/offline.html">Strictly offline</a></li>
+        <li><a href="../features/simulator.html">Built on a simulator</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <div class="links">
+      <a href="https://github.com/ictashik/tapedash">Source on GitHub</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/docs/STATUS.md">What is verified (STATUS.md)</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/DESIGN.md">Design spec</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/CLAUDE.md">Architecture and rules</a>
+    </div>
+    <p>TapeDash is a free, open-source, strictly offline Android app. Fuel and money figures are estimates. It is an aid, not a certified instrument: set it up while parked, and you remain responsible for driving safely.</p>
+    <p>This page itself loads nothing from anywhere else: no web fonts, scripts, analytics or embeds. Google Maps is a trademark of Google LLC; TapeDash is independent and is not affiliated with or endorsed by Google.</p>
+  </footer>
+</div>
+
+<dialog id="lightbox" aria-label="Screenshot">
+  <img id="lbImg" alt="">
+  <div class="cap">
+    <span id="lbCap"></span>
+    <form method="dialog"><button class="btn" autofocus>Close</button></form>
+  </div>
+</dialog>
+
+<script src="../site/site.js"></script>
+</body>
+</html>

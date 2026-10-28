@@ -1,0 +1,57 @@
+    <section aria-labelledby="h-rule">
+      <div class="lead-shot" style="margin-top:0">
+        {{fig: site/img/engine-spectrogram.jpg | A spectrogram of the synthesised inline-four engine sweeping up through the revs and back down: a fan of harmonic lines that rises and falls with the revs. | <b>What it sounds like, drawn.</b> A spectrogram of the inline-four sweeping up through its revs and back, rendered by the app's own synthesiser. Each line is a harmonic of the engine's firing rate, and the whole fan climbs with the revs.}}
+      </div>
+
+      <p class="eyebrow" style="margin-top:56px">The one rule</p>
+      <h2 id="h-rule">A sound is not a signal</h2>
+      <p class="sub">The engine sound is an optional extra that says what the tach already says, in a second sense. It carries no cue, alert, voice or chime. It has no information beyond the revs and the load, so it cannot ask anything of the driver, and the coach's rule holds: nothing is said while driving.</p>
+      <div class="rules">
+        <div class="rule"><h3>Off until you turn it on</h3><p>In Garage, with the engine you want, a volume, a ten-second test and a status line.</p></div>
+        <div class="rule"><h3>It is the needle's sound</h3><p>It follows the same played-out revs and throttle the tach shows, so what is heard is what is seen. The revs glide, rising at most 9,000 a second and falling at most 6,000, so a late reading is never a click.</p></div>
+        <div class="rule"><h3>It goes quiet as the data does</h3><p>A stale signal, a lost link or the engine off fades it out in a third of a second. There is no drone on a dead link.</p></div>
+        <div class="rule"><h3>Car audio only</h3><p>By default it plays only on the car's audio and stops at once if the output switches to the phone speaker. It asks for no audio focus, so your music carries on under it.</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-engines">
+      <p class="eyebrow">Made in code</p>
+      <h2 id="h-engines">Seven engines, no recordings</h2>
+      <p class="sub">The engines are synthesised, not recorded: an inline-four, a three-cylinder, a V6, a V8, a flat-six, a turbo four and an electric. They are named for the layout and never a make. Each is a set of parameters: the cylinders and their firing, the exhaust pulse, the pipe, the body's resonances, the throttle's brightness, the intake, a turbo's whistle and pops on an overrun. All are set to the same level at a reference load, so changing engine never changes the volume.</p>
+      <div class="grid g2">
+        {{fig: site/img/engine-spectrogram-turbo.jpg | A spectrogram of the turbo-four sweep, with the harmonic fan and a separate whistle line. | <b>The turbo four.</b> The same sweep, with the turbo's whistle as its own line beside the fan of harmonics.}}
+        <div class="prose">
+          <h3>Nothing to license, nothing to download</h3>
+          <p>There is no audio asset, so nothing to license and nothing added to the app's size. The synthesis is deterministic and renders ten seconds of audio in milliseconds. It runs in an isolate of its own and plays through a thin native audio channel with no audio library and no plugin. It stops when the app leaves the screen, so it needs no service and no new permission.</p>
+          <h3>Hear it without a car</h3>
+          <p>A tool in the repository, <code>tool/render_engine.dart</code>, writes every engine as sound files for three scenes: idle, a sweep and a drive. The spectrograms here were made from them.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-lag">
+      <p class="eyebrow">Honest about the lag</p>
+      <h2 id="h-lag">It suits a quiet cabin and a replay</h2>
+      <p class="sub">A cheap adapter reports once or twice a second and the picture is already half a second behind it. Bluetooth audio adds about a fifth of a second more. The sound is honest about trends and not about blips, and next to a loud real engine it will drift out of step. A trip replay is taken a moment ahead so that the sound arrives with its picture.</p>
+    </section>
+
+    <section aria-labelledby="h-where-snd">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-where-snd">Built and measured, not yet heard</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Seen</h3>
+          <ul>
+            <li><span>The pitch is exact: a four at 3,000 rpm is 100 Hz, to a fraction of a sample. The level, the absence of clipping and clicks, and silence when off, are all tested.</span></li>
+            <li><span>The spectrograms of every engine were looked at.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet</h3>
+          <ul>
+            <li><span>How it sounds. Whether it reads as an engine or a buzzing synthesiser, and which engine is best, is for an ear, and will take rounds of tuning like the tach did.</span></li>
+            <li><span>The native audio channel on a phone: car-audio detection, stopping when the output changes, and whether Bluetooth audio alongside a Bluetooth adapter slows the poll rate.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>

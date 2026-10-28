@@ -1,0 +1,78 @@
+    <section aria-labelledby="h-glass">
+      <div class="stage" id="stage" data-mirrored="false">
+        <div class="view">
+          <div class="flip">
+            <img src="{{root}}site/img/hud-drive-money.png" width="1440" height="720" alt="The Drive and Money HUD: a green speed of 64 km/h on the left and a dash with the words MONEY UNAVAILABLE on the right, on pure black.">
+          </div>
+        </div>
+        <div class="stage-controls">
+          <button class="btn flip-btn" type="button" aria-pressed="false" data-off="Show it as the windshield reflects it" data-on="Show it as designed">Show it as the windshield reflects it</button>
+          <p class="stage-note flip-note" aria-live="polite" data-off="As designed. The HUD is drawn mirrored, because it is read in a reflection." data-on="As the glass shows it: mirrored, so the reflection reads the right way round.">As designed. The HUD is drawn mirrored, because it is read in a reflection.</p>
+        </div>
+      </div>
+
+      <p class="eyebrow" style="margin-top:56px">Optics</p>
+      <h2 id="h-glass">What a windshield lets through</h2>
+      <p class="sub">A windshield reflects only a small fraction of the phone's light, and the two glass surfaces of a laminated screen add a faint double image. Only bright, bold, simple shapes survive. So the HUD is not the dashboard made bigger. It has its own rules.</p>
+      <div class="rules">
+        <div class="rule"><h3>Pure black</h3><p>No background, no frames, no etched lines. Nothing of the phone's own glass is lit, so only the numerals reach the windshield.</p></div>
+        <div class="rule"><h3>One colour</h3><p>HUD Green (the most visible, and the default), Ion, Amber or White. You choose it; a critical alert still uses red.</p></div>
+        <div class="rule"><h3>Bold and large</h3><p>Strokes of at least 5 lp, labels at least 6% of the screen height, numerals SemiBold or heavier. No halos, no trails, no thin lines.</p></div>
+        <div class="rule"><h3>No bright areas</h3><p>Numerals may be filled, panels never, so a night drive gets no glare and no double-imaged blocks.</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-layouts">
+      <p class="eyebrow">Layouts</p>
+      <h2 id="h-layouts">Three, and a fourth when Maps is guiding</h2>
+      <div class="grid g3">
+        {{fig: site/img/hud-drive.png | The Drive HUD: a huge green speed of 64 km/h with a thin RPM bar beneath it. | <b>Drive.</b> A huge speed with a thin rev bar beneath it.}}
+        {{fig: site/img/hud-drive-redline.png | The Drive HUD with the end of the rev bar in red and taller. | <b>The redline</b> stands taller as well as red, so it never relies on colour alone.}}
+        {{fig: site/img/hud-drive-money.png | The Drive and Money HUD with the speed on the left and the money on the right. | <b>Drive and Money.</b> The speed on the left and the rupees for this trip on the right.}}
+        {{fig: site/img/hud-money.png | The Money HUD showing an amber dash and the words MONEY UNAVAILABLE. | <b>Money.</b> Huge rupees for this trip with rupees per kilometre beneath. With nothing to show, it says so rather than guessing.}}
+      </div>
+      <p class="sub" style="margin-top:22px">While Google Maps is guiding, the HUD takes over with <a href="navigation-hud.html">its navigation layout</a> and gives your own layout back when Maps stops. A double-tap on Drive or Money, or the dock button, switches the HUD on and off, and the last mode is remembered. The screen is kept on, set to maximum brightness in daylight, and put in immersive mode.</p>
+    </section>
+
+    <section aria-labelledby="h-setup">
+      <p class="eyebrow">Setting it up</p>
+      <h2 id="h-setup">An alignment pattern, and every way up</h2>
+      <p class="sub">However the phone sits, it should work. Garage has a flip left to right (on by default, because a windshield mirrors), a flip top to bottom, the height on the glass, and the size. Before you drive, a full-screen test pattern with a crosshair grid, a large F and an UP marker lets you confirm the orientation and position in the actual windshield. It is drawn with your current flips.</p>
+      <div class="grid g2">
+        {{fig: site/img/hud-alignment.png | The alignment pattern as designed: a green grid, a large F, an UP arrow and the wordmark TAPEDASH. | <b>The alignment pattern, as designed.</b> A large F and an UP marker make a wrong flip obvious.}}
+        {{fig: site/img/hud-alignment-mirrored.png | The alignment pattern mirrored: the F and the UP text are reversed. | <b>With the flips on,</b> it is drawn the way the glass will show it.}}
+      </div>
+      <div class="grid g2" style="margin-top:20px">
+        {{fig: site/img/page-garage-3.png | Garage, HUD group: the colour, flip left to right, flip top to bottom, height on the glass and size. | <b>Garage, HUD.</b> The colour, both flips, the height on the glass and the size. Only reachable while parked.}}
+        {{fig: build-video/frames/035-hud.jpg | The HUD with a large green speed and a red zone on the rev bar. | <b>An early frame of the HUD</b> from the build.}}
+      </div>
+    </section>
+
+    <section aria-labelledby="h-night">
+      <p class="eyebrow">Brightness</p>
+      <h2 id="h-night">Bright by day, quiet at night</h2>
+      <p class="sub">In daylight the HUD goes to maximum brightness. At night it follows the room's light with a floor of 20%, so a dark road gets a dim, steady figure. The numerals roll on a single gentle spring and nothing overshoots.</p>
+    </section>
+
+    <section aria-labelledby="h-honest">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-honest">Not yet seen on a windshield</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Seen</h3>
+          <ul>
+            <li><span>Every layout and the alignment pattern, drawn by the real app, as designed and mirrored, at 640, 720 and 800 wide.</span></li>
+            <li><span>Tests that hold the HUD to one colour on pure black, strokes of at least 5 lp, and nothing under the size floor.</span></li>
+            <li><span>The HUD on an Android 7 emulator and on a real phone at a desk.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet</h3>
+          <ul>
+            <li><span>A real windshield: its brightness in sun, the double image of laminated glass, and whether a reflector film or a printed holder helps.</span></li>
+            <li><span>Night driving with the HUD on.</span></li>
+            <li><span>The HUD's heat and battery over a long drive in the sun.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>

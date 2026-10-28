@@ -2,8 +2,9 @@
 #
 # The gate to pass before every commit (CLAUDE.md 2): formatting, analysis, the
 # tests, the offline check and the Android API check (nothing newer than the minimum
-# Android, which lint finds and an emulator would find too late). Never commit a red
-# build.
+# Android, which lint finds and an emulator would find too late) and the web pages
+# (docs/index.html and docs/features/, built by tool/build_site.py). Never commit a
+# red build.
 #
 # Usage: tool/verify.sh [--strict]
 #   --strict  CI mode; passed on to tool/check_offline.sh, which then needs a
@@ -34,6 +35,9 @@ fi
 
 echo "== offline"
 tool/check_offline.sh "$@"
+
+echo "== site"
+python3 tool/build_site.py --check
 
 echo "== android api"
 tool/check_android_api.sh

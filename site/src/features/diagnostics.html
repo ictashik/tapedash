@@ -1,0 +1,49 @@
+    <section aria-labelledby="h-screen">
+      <div class="lead-shot" style="margin-top:0">
+        {{fig: site/img/page-diagnostics.png | Diagnostics: the adapter ELM327 v1.5 on ISO 15765-4 CAN 11-bit 500 kbaud, a grid of 96 cells with 9 lit, two fault codes P0420 and P0171 with descriptions and stored and pending chips, and a red slide to clear codes. | <b>Diagnostics.</b> What the adapter is, which readings the car answers, the fault codes in plain words, and a slide to clear them. Drawn by the real app on a fake adapter with two injected codes.}}
+      </div>
+
+      <p class="eyebrow" style="margin-top:56px">What your car is saying</p>
+      <h2 id="h-screen">Three panels on one screen</h2>
+      <div class="facts">
+        <div class="fact"><b>The adapter</b><p>Its name and version, the protocol in words, the module voltage, the achieved poll rate as a sparkline, and which fuel method is in use.</p></div>
+        <div class="fact"><b>The PID matrix</b><p>One cell for each Mode 01 reading from 01 to 60, lit where your car answers. Tap a cell to name it. It shows exactly what your car is talking about, and so what TapeDash can use.</p></div>
+        <div class="fact"><b>Fault codes</b><p>Stored codes (Mode 03) and pending codes (Mode 07), each with a plain-English line and a stored or pending chip.</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-codes">
+      <p class="eyebrow">Fault codes</p>
+      <h2 id="h-codes">Read them in words, not numbers</h2>
+      <p class="sub">A code like P0420 is decoded into its family (powertrain, chassis, body or network) and looked up in a list bundled in the app. The list of 283 common generic codes was written from scratch for this project, in short plain sentences, and records its source in the repository. It is deliberately not exhaustive.</p>
+      <div class="prose">
+        <p>Manufacturer-specific codes mean different things on different cars. For those, and for any generic code that is not in the list, the app says which system the code belongs to and to look it up for your car. It never guesses a description.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-clear">
+      <p class="eyebrow">Clearing</p>
+      <h2 id="h-clear">A long slide, and only when stopped</h2>
+      <p class="sub">Clearing codes (Mode 04) needs a full slide to confirm, and the app will not do it unless the car is at a standstill. If the car refuses, you are told. Clearing also wipes the data a mechanic would want, so do not use it on a car you do not understand.</p>
+    </section>
+
+    <section aria-labelledby="h-where-diag">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-where-diag">What has been seen</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Seen</h3>
+          <ul>
+            <li><span>The whole path against a simulated car with two codes stored (P0420 and P0171): they are read, decoded and described, and clearing is refused while the car moves.</span></li>
+            <li><span>Every control at 640, 720 and 800 wide, and the flow through the real app.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet</h3>
+          <ul>
+            <li><span>Reading or clearing codes on a real car.</span></li>
+            <li><span>The PID matrix does not yet pulse on each response, and its voltage is the module voltage the poller reads, not the adapter's own reading.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>

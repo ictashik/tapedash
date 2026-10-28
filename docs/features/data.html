@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#050607">
+<title>Garage, exchange and survey | TapeDash</title>
+<meta name="description" content="Settings that stay out of the way, a file format to move your data by hand, and a read-only survey of your car.">
+<link rel="icon" href="../site/icon.png">
+<link rel="stylesheet" href="../site/site.css">
+</head>
+<body class="feature">
+<div class="wrap">
+  <header class="bar">
+    <a class="mark" href="../index.html">Tape<span>Dash</span></a>
+    <nav aria-label="Site">
+      <a href="../index.html#features">Features</a>
+      <a href="../features/offline.html">Offline</a>
+      <a href="../index.html#status">Status</a>
+      <a href="https://github.com/ictashik/tapedash">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="pagehead" aria-labelledby="h-page">
+      <p class="crumbs"><a href="../index.html#features">Features</a> / Other screens and your data</p>
+      <h1 id="h-page">Garage, exchange and survey</h1>
+      <p class="lede sub">Everything you can set lives in Garage and only opens when you are parked. Your data leaves as a plain file you can read. And a survey drive can ask every module in the car what it knows, to find out what TapeDash could show next.</p>
+    <ul class="levels" aria-label="Where this has been seen working">
+      <li class="on">Simulator</li>
+      <li class="on">Emulator and Wear OS emulator</li>
+      <li class="on">Survey: a first file from a real car</li>
+      <li class="off">Share and file picker on a phone: not yet</li>
+    </ul>
+    </section>
+
+    <section aria-labelledby="h-garage">
+      <p class="eyebrow">Garage</p>
+      <h2 id="h-garage">Settings that wait until you are parked</h2>
+      <p class="sub">Everything you can set lives in Garage, which opens from the parked dock and closes itself when the car starts to move. Each setting changes at once and is remembered. The sensible defaults mean you rarely need it: install to live gauges in under two minutes with no manual.</p>
+      <div class="grid g2">
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/page-garage-1.png" width="1440" height="720" loading="lazy" alt="Garage, Car group: petrol or diesel, ethanol blend, engine size and tank size."></button>
+          <figcaption><b>Car.</b> Fuel, the ethanol in your petrol, the engine's size and the tank's size.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/page-garage-2.png" width="1440" height="720" loading="lazy" alt="Garage: fuel price a litre, cluster layout, livery and driver side."></button>
+          <figcaption><b>Price, layout and look.</b> The fuel price a litre, the cluster, the livery and which side you sit.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/page-garage-3.png" width="1440" height="720" loading="lazy" alt="Garage, HUD group: colour, flips, height on the glass and size."></button>
+          <figcaption><b>HUD.</b> The colour, both flips, the height on the glass and the size, and the alignment pattern.</figcaption>
+        </figure>
+        <figure>
+          <button class="zoom" type="button"><img src="../site/img/page-garage-4.png" width="1440" height="720" loading="lazy" alt="Garage: the coach preset and speed threshold, and the brightness mode."></button>
+          <figcaption><b>Coach and display.</b> Gentle, Normal or Sporty, the speed threshold, brightness mode, reduced motion and the fidelity tier.</figcaption>
+        </figure>
+      </div>
+      <p class="sub" style="margin-top:22px">Other groups hold the adapter (with a connection log that says why a connection failed, and an option to record what the adapter says), the <a href="engine-sound.html">engine sound</a>, the <a href="navigation-hud.html">navigation switch</a>, and your data. Deleting the data needs a full slide.</p>
+    </section>
+
+    <section aria-labelledby="h-exchange">
+      <p class="eyebrow">The exchange file</p>
+      <h2 id="h-exchange">Your data as a file you can read</h2>
+      <p class="sub">Trips live in a private database on the phone, which a release build does not let a computer read, and a watch has no keyboard. So there is one file format for moving your data out and in: newline-delimited JSON, optionally gzipped, that you can read with <code>less</code>, <code>grep</code> or <code>jq</code>. Nothing is ever sent by TapeDash itself: no account, no server.</p>
+      <div class="grid g2">
+        <div>
+<pre class="code" aria-label="The lines of an exchange file"><code>{"t":"tdx","v":1,"app":"tapedash", ... "scopes":["profile","trips","fillups","rest"]}
+{"t":"profile","vehicle":{...},"money":{"pricePerLitre":115.0},"adapter":{...}}
+{"t":"trip","startedMs":...,"distanceKm":14.2,"litres":0.93,"cost":106.9, ...}
+{"t":"samples","trip":...,"cols":["s","kmh","rpm","thr","lph","lat","lon",...],"rows":[...]}
+{"t":"fillup","litres":31.2,"amount":3588,"full":true,"factor":1.02}
+{"t":"rest","readings":[[1792950000000,12.61]]}
+{"t":"end","counts":{...},"crc32":"9be3a2f0"}</code></pre>
+        </div>
+        <div class="prose">
+          <ul>
+            <li><b style="color:var(--ink-bright)">Checked whole first.</b> A reader verifies the header and every byte against the footer's CRC-32 before it changes anything. A file cut short by a dropped connection or a full disk is refused whole.</li>
+            <li><b style="color:var(--ink-bright)">Merged, never overwritten.</b> Imports merge by start time and never overwrite what is already on the phone.</li>
+            <li><b style="color:var(--ink-bright)">Many ways to carry it.</b> adb, a file in the app's own folder, Android's share sheet and file picker on a phone, and the folder on a watch.</li>
+            <li><b style="color:var(--ink-bright)">Tools for your laptop:</b> <code>tool/tdx.dart</code> to inspect, check, merge and turn a file into CSV, and <code>tool/adb_exchange.sh</code> to export, pull, push and import over adb.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="grid round" style="margin-top:24px; max-width:420px">
+        <figure>
+          <button class="zoom" type="button"><img src="../design-review/watch/screenshots/15-export-message.png" width="454" height="454" loading="lazy" alt="The watch after an export: Exported 8 trips, 2 fill-ups, the setup. Saved in the outbox folder."></button>
+          <figcaption><b>From the watch's menu.</b> An export, saved in the outbox folder where adb can reach it.</figcaption>
+        </figure>
+      </div>
+      <p class="sub" style="margin-top:22px">Never exported: unfinished trips, simulated trips, the adapter's remembered protocol and connection log, recordings, and the running fuel count since the last full tank, which is only right on one device.</p>
+    </section>
+
+    <section aria-labelledby="h-survey">
+      <p class="eyebrow">Survey drive</p>
+      <h2 id="h-survey">Ask every module what it knows</h2>
+      <p class="sub">The first real drives showed that the car has two engine computers answering with different readings, and that the dashboard read only 9 of the 32 it lists. A survey drive finds out what your car will really tell TapeDash, so the next pages (an electrical page, an engine page) can be designed from what it gives and not from what a car like it might.</p>
+      <div class="two">
+        <div class="panel yes">
+          <h3>What it reads</h3>
+          <ul>
+            <li><span>Live data (Mode 01) as fast as the adapter allows.</span></li>
+            <li><span>Stored, pending and permanent fault codes (Modes 03, 07 and 0A), and the engine computers' own test results (Mode 06).</span></li>
+            <li><span>The calibration ID and the computers' names (Mode 09), and the adapter's own voltage reading.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>What it never does</h3>
+          <ul>
+            <li><span>Write anything, clear codes or change a setting.</span></li>
+            <li><span>Ask for the VIN, so the file does not carry it.</span></li>
+            <li><span>Use the network or your location. The file stays on the phone until you copy it off.</span></li>
+          </ul>
+        </div>
+      </div>
+      <p class="sub" style="margin-top:22px">It takes over the adapter, so the dashboard is off while it runs. A guided, parked list of steps comes first, then the drive with nothing to touch. It is in Garage, Adapter, Survey drive, and a tool on your laptop, <code>tool/survey_summary.dart</code>, turns the file into a summary or CSV.</p>
+    </section>
+
+    <section aria-labelledby="h-where-data">
+      <p class="eyebrow">Said plainly</p>
+      <h2 id="h-where-data">What has been seen</h2>
+      <div class="two">
+        <div class="panel yes">
+          <h3>Seen</h3>
+          <ul>
+            <li><span>Garage's every control, at 640, 720 and 800 wide, and the flow through the real app.</span></li>
+            <li><span>The exchange file's writer, reader and merge in tests, and an export and import on a Wear OS emulator, read back on a laptop with the tool.</span></li>
+            <li><span>The survey against a simulator with two engine computers, with each way back from an adapter that will not cooperate. A first survey file has been recorded from a real car.</span></li>
+          </ul>
+        </div>
+        <div class="panel no">
+          <h3>Not yet</h3>
+          <ul>
+            <li><span>Android's share sheet and file picker on a phone. They compile and are tested on a mocked channel.</span></li>
+            <li><span>adb's reach into the app's folder on every device. It is documented Android behaviour, and has not been tried on all of them.</span></li>
+            <li><span>The survey's analysis. It will say which of its assumptions about the adapter held.</span></li>
+            <li><span>Beam, a phone-to-watch transfer over our own Bluetooth link. It is designed and not built.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+
+    <nav class="pn" aria-label="Neighbouring features">
+      <a class="prev" href="../features/watch.html"><small>Previous</small>The watch</a><a class="next" href="../features/offline.html"><small>Next</small>Strictly offline</a>
+    </nav>
+
+    <section class="more" aria-labelledby="h-more">
+      <h2 id="h-more">All features</h2>
+      <ul>
+        <li><a href="../features/dashboard.html">The dashboard</a></li>
+        <li><a href="../features/hud.html">The windshield HUD</a></li>
+        <li><a href="../features/navigation-hud.html">Navigation on the HUD</a></li>
+        <li><a href="../features/gps-only.html">GPS speed only</a></li>
+        <li><a href="../features/money.html">Where the money goes</a></li>
+        <li><a href="../features/fuel-and-fill-ups.html">Fuel, fill-ups and calibration</a></li>
+        <li><a href="../features/coach.html">The driving coach</a></li>
+        <li><a href="../features/trips.html">Trips, Review and History</a></li>
+        <li><a href="../features/insights.html">Insights</a></li>
+        <li><a href="../features/diagnostics.html">Fault codes and the PID matrix</a></li>
+        <li><a href="../features/engine-sound.html">Engine sound</a></li>
+        <li><a href="../features/watch.html">The watch</a></li>
+        <li><a href="../features/data.html" aria-current="page">Garage, exchange and survey</a></li>
+        <li><a href="../features/offline.html">Strictly offline</a></li>
+        <li><a href="../features/simulator.html">Built on a simulator</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <div class="links">
+      <a href="https://github.com/ictashik/tapedash">Source on GitHub</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/docs/STATUS.md">What is verified (STATUS.md)</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/DESIGN.md">Design spec</a>
+      <a href="https://github.com/ictashik/tapedash/blob/main/CLAUDE.md">Architecture and rules</a>
+    </div>
+    <p>TapeDash is a free, open-source, strictly offline Android app. Fuel and money figures are estimates. It is an aid, not a certified instrument: set it up while parked, and you remain responsible for driving safely.</p>
+    <p>This page itself loads nothing from anywhere else: no web fonts, scripts, analytics or embeds. Google Maps is a trademark of Google LLC; TapeDash is independent and is not affiliated with or endorsed by Google.</p>
+  </footer>
+</div>
+
+<dialog id="lightbox" aria-label="Screenshot">
+  <img id="lbImg" alt="">
+  <div class="cap">
+    <span id="lbCap"></span>
+    <form method="dialog"><button class="btn" autofocus>Close</button></form>
+  </div>
+</dialog>
+
+<script src="../site/site.js"></script>
+</body>
+</html>
